@@ -21,19 +21,31 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
+    
     if (error) {
       toast({
         title: 'Error',
         description: error.message,
         variant: 'destructive',
       });
-    } else {
+    } else if (user) {
       toast({
         title: 'Success',
         description: 'Logged in successfully!',
       });
-      router.push('/dashboard');
+      
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+        
+      if (profile?.role === 'admin') {
+        router.push('/dashboard/settings');
+      } else {
+        router.push('/dashboard');
+      }
     }
     setLoading(false);
   };
