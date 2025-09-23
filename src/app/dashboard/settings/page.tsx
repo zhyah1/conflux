@@ -1,3 +1,5 @@
+'use client';
+
 import { PageHeader } from '../components/page-header';
 import {
   Card,
@@ -19,7 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { users } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { MoreHorizontal } from 'lucide-react';
 import {
@@ -28,8 +29,91 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { supabase } from '@/lib/supabase';
+import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+const ROLES = ['admin', 'pmc', 'owner', 'contractor', 'subcontractor'];
 
 export default function SettingsPage() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any>(null);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('contractor');
+  const [userRole, setUserRole] = useState('');
+  
+  const { toast } = useToast();
+
+  const fetchUsers = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profileData, error: profileError } = await supabase.from('users').select('*').eq('id', user.id).single();
+      if(profileData?.role === 'admin') {
+        setUserRole('admin');
+        const { data, error } = await supabase.from('users').select('*');
+        if (error) {
+          toast({ title: 'Error fetching users', description: error.message, variant: 'destructive' });
+        } else {
+          setUsers(data || []);
+        }
+      }
+      if(profileData){
+        setProfile(profileData);
+        setFullName(profileData.full_name);
+        setEmail(user.email || '');
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { error } = await supabase
+        .from('users')
+        .update({ full_name: fullName })
+        .eq('id', user.id);
+      
+      if(email !== user.email){
+        await supabase.auth.updateUser({ email });
+      }
+
+      if (error) {
+        toast({ title: 'Error updating profile', description: error.message, variant: 'destructive' });
+      } else {
+        toast({ title: 'Profile Updated', description: 'Your profile has been updated successfully.' });
+        fetchUsers();
+      }
+    }
+  };
+
+  const handleInviteUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { data, error } = await supabase.auth.admin.inviteUserByEmail(inviteEmail, {
+      data: { role: inviteRole },
+    });
+    if (error) {
+      toast({ title: 'Error inviting user', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'User Invited', description: `An invitation has been sent to ${inviteEmail}.` });
+      setInviteEmail('');
+      fetchUsers();
+    }
+  };
+  
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -44,76 +128,94 @@ export default function SettingsPage() {
         </TabsList>
         <TabsContent value="profile">
           <Card>
-            <CardHeader>
-              <CardTitle className="font-headline">Profile</CardTitle>
-              <CardDescription>
-                This is how others will see you on the site.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" defaultValue="Sarah Walker" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" defaultValue="sarah.walker@conflux.com" />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button>Save Changes</Button>
-            </CardFooter>
+            <form onSubmit={handleProfileUpdate}>
+              <CardHeader>
+                <CardTitle className="font-headline">Profile</CardTitle>
+                <CardDescription>
+                  This is how others will see you on the site.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button type="submit">Save Changes</Button>
+              </CardFooter>
+            </form>
           </Card>
         </TabsContent>
-        <TabsContent value="users">
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline">Users</CardTitle>
-              <CardDescription>
-                Manage your team members and their roles.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>
-                      <span className="sr-only">Actions</span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="font-medium">{user.name}</div>
-                        <div className="text-sm text-muted-foreground">{user.email}</div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{user.role}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button size="icon" variant="ghost">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>Remove</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+        {userRole === 'admin' && (
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline">Users</CardTitle>
+                <CardDescription>
+                  Manage your team members and their roles.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleInviteUser} className="flex items-center gap-2 mb-4">
+                    <Input type="email" placeholder="new.user@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required />
+                     <Select value={inviteRole} onValueChange={setInviteRole}>
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ROLES.map(role => (
+                            <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    <Button type="submit">Invite User</Button>
+                </form>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>
+                        <span className="sr-only">Actions</span>
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="font-medium">{user.full_name}</div>
+                          {/* We don't have the user's email in the users table, only in auth.users */}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{user.role}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem>Edit</DropdownMenuItem>
+                              <DropdownMenuItem>Remove</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
         <TabsContent value="roles">
           <Card>
             <CardHeader>
@@ -123,7 +225,20 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p>Role management interface will be here.</p>
+               <div className="space-y-2">
+                {ROLES.map(role => (
+                    <div key={role} className="flex items-center justify-between p-2 border rounded-md">
+                        <span className="capitalize font-medium">{role}</span>
+                        <Badge variant="secondary">
+                            {role === 'admin' && 'Full Access'}
+                            {role === 'pmc' && 'Project Management'}
+                            {role === 'owner' && 'Project Ownership'}
+                            {role === 'contractor' && 'General Access'}
+                            {role === 'subcontractor' && 'Limited Access'}
+                        </Badge>
+                    </div>
+                ))}
+            </div>
             </CardContent>
           </Card>
         </TabsContent>
