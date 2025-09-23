@@ -24,13 +24,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
         setSession(newSession);
+        // On sign out, redirect to home
+        if (_event === 'SIGNED_OUT') {
+           if (window.location.pathname !== '/') {
+            router.push('/');
+          }
+        }
       }
     );
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
   
   useEffect(() => {
     const checkUserRole = async () => {
@@ -42,10 +48,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .single();
 
         if (error && error.code === 'PGRST116') {
-          // This can happen on the very first login if the DB trigger is slow.
-          // We'll just wait a moment and let the next check handle it.
-          console.warn('Profile not found, waiting for creation...');
-          return;
+          // Profile not found, this can happen on first login if the DB trigger is slow.
+          // Wait and retry once.
+          console.warn('Profile not found, retrying...');
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          const { data: retriedProfile, error: retryError } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+
+            if (retryError) {
+                profile = null; // Ensure profile is null if retry fails
+            } else {
+                profile = retriedProfile;
+            }
         }
 
         if (profile?.role === 'admin') {
@@ -68,10 +85,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
     
-    if(!loading){
-        if (session) {
-            checkUserRole();
-        } 
+    if(!loading && session){
+      checkUserRole();
     }
   }, [session, loading, router, toast]);
 
