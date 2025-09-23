@@ -50,7 +50,7 @@ export default function SignupPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
            <Logo className="h-10 w-10 text-primary mx-auto mb-2" />
-          <CardTitle className="font-headline">Create an Admin Account</CardTitle>
+          <CardTitle className="font-headline">Create an Account</CardTitle>
           <CardDescription>Enter your details to register.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -90,7 +90,7 @@ export default function SignupPage() {
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Sign Up as Admin'}
+              {isLoading ? 'Creating account...' : 'Sign Up'}
             </Button>
           </form>
            <div className="mt-4 text-center text-sm">

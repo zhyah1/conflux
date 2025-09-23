@@ -108,7 +108,7 @@ export default function SettingsPage() {
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
     const { data, error } = await supabase.auth.admin.inviteUserByEmail(inviteEmail, {
-      data: { role: inviteRole },
+      data: { role: inviteRole, full_name: 'Invited User' },
     });
 
     if (error) {
@@ -117,7 +117,9 @@ export default function SettingsPage() {
       toast({ title: 'Success', description: `Invitation sent to ${inviteEmail}.` });
       setInviteEmail('');
       // Refresh user list
-      fetchAllUsers();
+      if (currentUserRole === 'admin') {
+        fetchAllUsers();
+      }
     }
   };
   
