@@ -33,18 +33,18 @@ export function Header() {
             const href = '/' + pathSegments.slice(0, index + 1).join('/');
             const isLast = index === pathSegments.length - 1;
             return (
-              <BreadcrumbItem key={href}>
-                {isLast ? (
-                  <BreadcrumbPage>{toTitleCase(segment)}</BreadcrumbPage>
-                ) : (
-                  <>
+              <React.Fragment key={href}>
+                <BreadcrumbItem>
+                  {isLast ? (
+                    <BreadcrumbPage>{toTitleCase(segment)}</BreadcrumbPage>
+                  ) : (
                     <BreadcrumbLink asChild>
                       <Link href={href}>{toTitleCase(segment)}</Link>
                     </BreadcrumbLink>
-                    <BreadcrumbSeparator />
-                  </>
-                )}
-              </BreadcrumbItem>
+                  )}
+                </BreadcrumbItem>
+                {!isLast && <BreadcrumbSeparator />}
+              </React.Fragment>
             );
           })}
         </BreadcrumbList>
