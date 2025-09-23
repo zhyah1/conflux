@@ -59,6 +59,13 @@ export default function SettingsPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('contractor');
 
+  const fetchAllUsers = async () => {
+    const { data: allUsers } = await supabase.from('users').select('id, full_name, role');
+    if (allUsers) {
+      setUsers(allUsers);
+    }
+  };
+
   useEffect(() => {
     const fetchUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -78,10 +85,7 @@ export default function SettingsPage() {
 
         // Fetch all users if admin
         if (profile?.role === 'admin') {
-          const { data: allUsers } = await supabase.from('users').select('id, full_name, role');
-          if (allUsers) {
-            setUsers(allUsers);
-          }
+          fetchAllUsers();
         }
       }
     };
@@ -112,11 +116,8 @@ export default function SettingsPage() {
     } else {
       toast({ title: 'Success', description: `Invitation sent to ${inviteEmail}.` });
       setInviteEmail('');
-      // Optionally refresh user list
-      const { data: allUsers } = await supabase.from('users').select('id, full_name, role');
-      if (allUsers) {
-        setUsers(allUsers);
-      }
+      // Refresh user list
+      fetchAllUsers();
     }
   };
   
@@ -199,7 +200,7 @@ export default function SettingsPage() {
                     {users.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell>
-                          <div className="font-medium">{user.full_name}</div>
+                          <div className="font-medium">{user.full_name || 'No name provided'}</div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{user.role}</Badge>
