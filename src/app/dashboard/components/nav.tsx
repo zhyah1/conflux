@@ -45,7 +45,7 @@ export function Nav() {
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === item.href || (item.href === '/dashboard' && pathname.startsWith('/dashboard/')) && !navItems.slice(1).find(i => pathname.startsWith(i.href))}
+                isActive={pathname === item.href}
                 tooltip={item.label}
               >
                 <Link href={item.href}>
