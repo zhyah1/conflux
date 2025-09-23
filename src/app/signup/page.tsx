@@ -15,12 +15,14 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setMessage('');
     setIsLoading(true);
 
     const { error } = await supabase.auth.signUp({
@@ -37,10 +39,7 @@ export default function SignupPage() {
     if (error) {
       setError(error.message);
     } else {
-      // After signup, the user is automatically logged in.
-      // The AuthProvider will detect the new session and the 'admin' role,
-      // and then redirect to the dashboard.
-      router.push('/dashboard'); 
+      setMessage('Account created! Please check your email to verify your account.');
     }
     setIsLoading(false);
   };
@@ -50,7 +49,7 @@ export default function SignupPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
            <Logo className="h-10 w-10 text-primary mx-auto mb-2" />
-          <CardTitle className="font-headline">Create an Account</CardTitle>
+          <CardTitle className="font-headline">Create an Admin Account</CardTitle>
           <CardDescription>Enter your details to register.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -89,8 +88,9 @@ export default function SignupPage() {
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
+            {message && <p className="text-sm text-green-600">{message}</p>}
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Sign Up'}
+              {isLoading ? 'Creating account...' : 'Sign Up as Admin'}
             </Button>
           </form>
            <div className="mt-4 text-center text-sm">
