@@ -181,7 +181,7 @@ export default function UsersPage() {
               ) : (
                  <TableRow>
                   <TableCell colSpan={4} className="h-24 text-center">
-                    No users found. Ensure you are an admin and RLS policies are correct.
+                    No users found. Ensure your RLS policies in Supabase are correct.
                   </TableCell>
                 </TableRow>
               )}
