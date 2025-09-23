@@ -14,24 +14,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const handleAuthChange = async (event: string, session: any) => {
       if (!isMounted) return;
 
-      console.log('AuthProvider - Auth event:', event, session?.user?.id);
+      console.log('AuthProvider - Auth event:', event);
+      console.log('AuthProvider - Session user:', session?.user);
 
       if (event === 'SIGNED_IN' && session) {
         try {
+          console.log('AuthProvider - Fetching profile for user:', session.user.id);
+          
+          // First, let's check if the user exists in auth.users
+          const { data: authUser } = await supabase.auth.getUser();
+          console.log('AuthProvider - Auth user check:', authUser);
+
           const { data: profile, error } = await supabase
             .from('users')
-            .select('role')
+            .select('*') // Select all fields for debugging
             .eq('id', session.user.id)
             .single();
 
+          console.log('AuthProvider - Profile query result:', { profile, error });
+          console.log('AuthProvider - Error details:', {
+            message: error?.message,
+            code: error?.code,
+            details: error?.details,
+            hint: error?.hint
+          });
+
           if (error) {
-            console.error('AuthProvider - Profile fetch error:', error);
-            router.push('/dashboard'); // Default to dashboard if profile fetch fails
+            // Check if it's a "no rows" error (user doesn't exist in users table)
+            if (error.code === 'PGRST116') {
+              console.log('AuthProvider - User profile not found, creating...');
+              
+              // Try to create the user profile
+              const { data: newProfile, error: insertError } = await supabase
+                .from('users')
+                .insert({
+                  id: session.user.id,
+                  full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+                  avatar_url: session.user.user_metadata?.avatar_url || null,
+                  role: 'contractor' // Default role
+                })
+                .select()
+                .single();
+
+              if (insertError) {
+                console.error('AuthProvider - Failed to create profile:', insertError);
+                router.push('/dashboard'); // Default redirect even if profile creation fails
+              } else {
+                console.log('AuthProvider - Created new profile:', newProfile);
+                if (newProfile.role === 'admin') {
+                  router.push('/dashboard/settings');
+                } else {
+                  router.push('/dashboard');
+                }
+              }
+            } else {
+              console.error('AuthProvider - Profile fetch error:', error);
+              router.push('/dashboard'); // Default to dashboard if profile fetch fails
+            }
           } else {
-            console.log('AuthProvider - User profile:', profile);
+            console.log('AuthProvider - User profile found:', profile);
             if (profile?.role === 'admin') {
+              console.log('AuthProvider - Redirecting admin to settings');
               router.push('/dashboard/settings');
             } else {
+              console.log('AuthProvider - Redirecting user to dashboard');
               router.push('/dashboard');
             }
           }
@@ -40,34 +86,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           router.push('/dashboard'); // Default to dashboard on error
         }
       } else if (event === 'SIGNED_OUT') {
+        console.log('AuthProvider - User signed out, redirecting to login');
         router.push('/');
       }
     };
 
     const initializeAuth = async () => {
       try {
+        console.log('AuthProvider - Initializing auth state');
         // Check initial session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && isMounted) {
-          await handleAuthChange('INITIAL_SESSION', session);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('AuthProvider - Session error:', error);
+        }
+        
+        console.log('AuthProvider - Initial session:', session?.user?.id || 'No session');
+        
+        if (session) {
+          await handleAuthChange('SIGNED_IN', session);
         }
       } catch (error) {
         console.error('AuthProvider - Initialization error:', error);
       } finally {
         if (isMounted) {
-            setIsInitialized(true);
+          setIsInitialized(true);
         }
       }
     };
 
     // Set up auth listener
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-            await handleAuthChange(event, session);
-        } else if (event === 'SIGNED_OUT') {
-            await handleAuthChange(event, null);
-        }
-    });
+    const { data: authListener } = supabase.auth.onAuthStateChange(handleAuthChange);
 
     // Initialize auth state
     initializeAuth();
