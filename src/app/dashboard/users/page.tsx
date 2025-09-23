@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { inviteUser } from './actions';
 
 type User = {
   id: string;
@@ -80,18 +81,15 @@ export default function UsersPage() {
       return;
     }
     
-    const { error } = await supabase.auth.admin.inviteUserByEmail(inviteEmail, {
-      data: { role: selectedRole },
-    });
+    const result = await inviteUser(inviteEmail, selectedRole);
 
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: `Failed to send invitation: ${error.message}` });
+    if (result.error) {
+      toast({ variant: 'destructive', title: 'Error', description: `Failed to send invitation: ${result.error}` });
     } else {
       toast({ title: 'Success', description: `Invitation sent to ${inviteEmail}.` });
       setInviteEmail('');
-      // The new user will appear after they accept the invite and sign up.
-      // We can optionally refetch users here if we want to show pending invites,
-      // but for now, we'll wait for them to accept.
+      // We can't immediately see the new user, as they need to accept the invite first.
+      // A page refresh or periodic refetch could show pending users if the backend supported it.
     }
   };
 
@@ -183,7 +181,7 @@ export default function UsersPage() {
               ) : (
                  <TableRow>
                   <TableCell colSpan={4} className="h-24 text-center">
-                    No users found.
+                    No users found. Ensure you are an admin and RLS policies are correct.
                   </TableCell>
                 </TableRow>
               )}
