@@ -54,48 +54,49 @@ export default function UsersPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('contractor');
 
-  const fetchAllUsers = async () => {
-    const { data: allUsersData, error } = await supabase.from('users').select('id, full_name, role');
-    if (error) {
-      console.error('Error fetching users:', error);
-      return;
-    }
-  
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    if (authError) {
-      console.error('Error fetching auth users:', authError);
-      return;
-    }
+  const fetchUsersAndRole = async () => {
+    // Fetch current user's data first to determine role
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile) {
+        setCurrentUserRole(profile.role);
 
-    const combinedUsers = allUsersData.map(profile => {
-      const authUser = authUsers.users.find(u => u.id === profile.id);
-      return {
-        ...profile,
-        email: authUser?.email || 'N/A',
-      };
-    });
-
-    setUsers(combinedUsers);
+        // If user is admin, fetch all other users
+        if (profile.role === 'admin') {
+          const { data: allUsersData, error: allUsersError } = await supabase.from('users').select('id, full_name, role');
+          
+          if (allUsersError) {
+            console.error('Error fetching users:', allUsersError);
+            return;
+          }
+        
+          const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+          if (authError) {
+            console.error('Error fetching auth users:', authError);
+            return;
+          }
+      
+          const combinedUsers = allUsersData.map(profile => {
+            const authUser = authUsers.users.find(u => u.id === profile.id);
+            return {
+              ...profile,
+              email: authUser?.email || 'N/A',
+            };
+          });
+          setUsers(combinedUsers);
+        }
+      }
+    }
   };
 
   useEffect(() => {
-    const fetchCurrentUserData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        if (profile) {
-          setCurrentUserRole(profile.role);
-          if (profile.role === 'admin') {
-            fetchAllUsers();
-          }
-        }
-      }
-    };
-    fetchCurrentUserData();
+    fetchUsersAndRole();
   }, []);
   
   const handleInviteUser = async (e: React.FormEvent) => {
@@ -114,7 +115,7 @@ export default function UsersPage() {
     } else {
       toast({ title: 'Success', description: `Invitation sent to ${inviteEmail}.` });
       setInviteEmail('');
-      fetchAllUsers(); // Refresh user list
+      fetchUsersAndRole(); // Refresh user list
     }
   };
   
@@ -173,7 +174,7 @@ export default function UsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {isAdmin && users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="font-medium">{user.full_name || 'Invited User'}</div>
@@ -183,26 +184,24 @@ export default function UsersPage() {
                     <Badge variant="outline" className="capitalize">{user.role}</Badge>
                   </TableCell>
                   <TableCell>
-                    {isAdmin && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem>Edit Role</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">Remove User</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem>Edit Role</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">Remove User</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          {!isAdmin && users.length === 0 && (
-             <p className="text-center text-muted-foreground pt-4">You do not have permission to view users.</p>
+          {!isAdmin && (
+             <div className="text-center text-muted-foreground pt-4">You do not have permission to view users.</div>
           )}
         </CardContent>
       </Card>
