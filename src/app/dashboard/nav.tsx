@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   FolderKanban,
   Settings,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
@@ -25,6 +26,7 @@ const navItems = [
   { href: '/dashboard/tasks', icon: ListTodo, label: 'Tasks' },
   { href: '/dashboard/issues', icon: ShieldAlert, label: 'Issues' },
   { href: '/dashboard/documents', icon: FolderKanban, label: 'Documents' },
+  { href: '/dashboard/users', icon: Users, label: 'Users' },
   { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ];
 
