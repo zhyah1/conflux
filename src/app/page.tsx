@@ -21,34 +21,70 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    
-    if (error) {
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
+
+      if (error) {
+        console.error('Login error:', error);
+        toast({
+          title: 'Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (data.user) {
+        toast({
+          title: 'Success',
+          description: 'Successfully logged in!',
+        });
+        
+        // Force a refresh to trigger middleware
+        window.location.href = '/dashboard';
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
       toast({
         title: 'Error',
-        description: error.message,
+        description: 'An unexpected error occurred. Please try again.',
         variant: 'destructive',
       });
+    } finally {
       setLoading(false);
-    } else if (data.user) {
-        // On successful login, the middleware will take care of redirection.
-        // We just need to trigger a navigation event.
-        router.push('/dashboard');
     }
   };
-  
+
   const handleGoogleLogin = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-     if (error) {
+    
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        console.error('Google login error:', error);
+        toast({
+          title: 'Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+        setLoading(false);
+      }
+      // Don't set loading to false here for OAuth as the page will redirect
+    } catch (error) {
+      console.error('Unexpected Google login error:', error);
       toast({
         title: 'Error',
-        description: error.message,
+        description: 'Failed to initiate Google login. Please try again.',
         variant: 'destructive',
       });
       setLoading(false);
@@ -69,7 +105,15 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="m@example.com" 
+                required 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
             </div>
             <div className="grid gap-2">
               <div className="flex items-center">
@@ -78,15 +122,29 @@ export default function LoginPage() {
                   Forgot your password?
                 </Link>
               </div>
-              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+              />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
-           <Button variant="outline" className="w-full mt-4" onClick={handleGoogleLogin} disabled={loading}>
-              Login with Google
-            </Button>
+
+          <Button 
+            variant="outline" 
+            className="w-full mt-4" 
+            onClick={handleGoogleLogin} 
+            disabled={loading}
+          >
+            {loading ? 'Redirecting...' : 'Login with Google'}
+          </Button>
+          
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{' '}
             <Link href="/signup" className="underline">
