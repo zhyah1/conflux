@@ -107,10 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('AuthProvider - Initialization error:', error);
       } finally {
-        if (isMounted && sessionInitialized) {
-          setIsInitialized(true);
-        } else if(isMounted) {
-          // If there's no session, we still need to unblock the UI
+        if (isMounted) {
           setIsInitialized(true);
         }
       }
