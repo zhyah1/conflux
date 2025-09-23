@@ -29,6 +29,7 @@ export default function LoginPage() {
         description: error.message,
         variant: 'destructive',
       });
+      setLoading(false);
     } else if (user) {
       toast({
         title: 'Success',
@@ -42,12 +43,13 @@ export default function LoginPage() {
         .single();
         
       if (profile?.role === 'admin') {
-        router.push('/dashboard/settings');
+        router.replace('/dashboard/settings');
       } else {
-        router.push('/dashboard');
+        router.replace('/dashboard');
       }
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   };
   
   const handleGoogleLogin = async () => {
@@ -64,8 +66,8 @@ export default function LoginPage() {
         description: error.message,
         variant: 'destructive',
       });
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -97,7 +99,7 @@ export default function LoginPage() {
               {loading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
-           <Button variant="outline" className="w-full mt-4" onClick={handleGoogleLogin}>
+           <Button variant="outline" className="w-full mt-4" onClick={handleGoogleLogin} disabled={loading}>
               Login with Google
             </Button>
           <div className="mt-4 text-center text-sm">

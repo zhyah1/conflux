@@ -7,16 +7,26 @@ export async function middleware(req: NextRequest) {
   const supabase = createMiddlewareClient({ req, res });
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  // if user is signed in and the current path is / redirect to /dashboard
-  if (user && req.nextUrl.pathname === '/') {
+  const user = session?.user;
+
+  // if user is signed in and the current path is / or /signup, redirect to dashboard
+  if (user && (req.nextUrl.pathname === '/' || req.nextUrl.pathname.startsWith('/signup'))) {
+    const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+    if (profile?.role === 'admin') {
+      return NextResponse.redirect(new URL('/dashboard/settings', req.url));
+    }
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
-  // if user is not signed in and the current path is not / redirect to /
-  if (!user && req.nextUrl.pathname !== '/' && !req.nextUrl.pathname.startsWith('/signup') && !req.nextUrl.pathname.startsWith('/auth/callback')) {
+  // if user is not signed in and the current path is not / or signup or auth callback, redirect to /
+  if (!user && !['/', '/signup'].includes(req.nextUrl.pathname) && !req.nextUrl.pathname.startsWith('/auth/callback')) {
     return NextResponse.redirect(new URL('/', req.url));
   }
 
@@ -24,5 +34,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*'],
+  matcher: ['/', '/dashboard/:path*', '/signup'],
 };
