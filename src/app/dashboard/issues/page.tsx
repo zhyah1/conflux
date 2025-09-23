@@ -2,9 +2,9 @@
 
 import * as React from 'react';
 import {
-  CaretSortIcon,
-  ChevronDownIcon,
-} from '@radix-ui/react-icons';
+  ArrowUpDown,
+  ChevronDown,
+} from 'lucide-react';
 import type {
   ColumnDef,
   ColumnFiltersState,
@@ -58,7 +58,7 @@ const columns: ColumnDef<Issue>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
         >
           Title
-          <CaretSortIcon className="ml-2 h-4 w-4" />
+          <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
     },
@@ -136,7 +136,7 @@ export default function IssuesPage() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
-              Columns <ChevronDownIcon className="ml-2 h-4 w-4" />
+              Columns <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
