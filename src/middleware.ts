@@ -13,8 +13,8 @@ export async function middleware(req: NextRequest) {
   const user = session?.user;
   const pathname = req.nextUrl.pathname;
 
-  // If the user is on the login page but is already signed in, redirect to dashboard
-  if (user && pathname === '/') {
+  // If the user is on the login or signup page but is already signed in, redirect to dashboard
+  if (user && (pathname === '/' || pathname === '/signup')) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
@@ -27,5 +27,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*'],
+  matcher: ['/', '/signup', '/dashboard/:path*'],
 };
