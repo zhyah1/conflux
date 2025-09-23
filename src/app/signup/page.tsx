@@ -17,7 +17,6 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +30,7 @@ export default function SignupPage() {
       options: {
         data: {
           full_name: fullName,
-          role: 'admin', // Assign 'admin' role on signup
+          role: 'admin', // Public signup creates an admin
         },
       },
     });
@@ -39,7 +38,7 @@ export default function SignupPage() {
     if (error) {
       setError(error.message);
     } else {
-      setMessage('Account created! Please check your email to verify your account.');
+      setMessage('Account created! Please check your email to verify your account and sign in.');
     }
     setIsLoading(false);
   };
@@ -50,7 +49,7 @@ export default function SignupPage() {
         <CardHeader className="text-center">
            <Logo className="h-10 w-10 text-primary mx-auto mb-2" />
           <CardTitle className="font-headline">Create an Admin Account</CardTitle>
-          <CardDescription>Enter your details to register.</CardDescription>
+          <CardDescription>Enter your details to register as a new administrator.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignup} className="space-y-4">

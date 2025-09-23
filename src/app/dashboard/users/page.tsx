@@ -29,6 +29,14 @@ import {
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 type User = {
   id: string;
@@ -37,10 +45,13 @@ type User = {
   email: string;
 };
 
+const roles = ['pmc', 'owner', 'contractor', 'subcontractor'];
+
 export default function UsersPage() {
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [selectedRole, setSelectedRole] = useState('contractor');
   const [loading, setLoading] = useState(true);
 
   const fetchUsers = async () => {
@@ -69,10 +80,8 @@ export default function UsersPage() {
       return;
     }
     
-    // Invite a new user, setting their role to 'admin' by default in the metadata.
-    // The handle_new_user trigger in Supabase will use this metadata.
-    const { data, error } = await supabase.auth.admin.inviteUserByEmail(inviteEmail, {
-      data: { role: 'admin' },
+    const { error } = await supabase.auth.admin.inviteUserByEmail(inviteEmail, {
+      data: { role: selectedRole },
     });
 
     if (error) {
@@ -90,26 +99,42 @@ export default function UsersPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Users"
-        description="Manage your team members. All users are admins."
+        description="Manage your team members and their roles."
       />
       
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Invite New Admin</CardTitle>
+          <CardTitle className="font-headline">Invite New User</CardTitle>
           <CardDescription>
-            Send an invitation to a new team member. They will have full admin privileges.
+            Send an invitation to a new team member and assign them a role.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleInviteUser} className="flex items-center gap-2 mb-6">
-              <Input 
-                type="email" 
-                placeholder="new.user@example.com" 
-                value={inviteEmail} 
-                onChange={(e) => setInviteEmail(e.target.value)} 
-                required 
-                className="max-w-sm"
-              />
+          <form onSubmit={handleInviteUser} className="grid md:grid-cols-3 gap-4 items-end mb-6">
+              <div className="space-y-2">
+                <Label htmlFor="invite-email">Email</Label>
+                <Input 
+                  id="invite-email"
+                  type="email" 
+                  placeholder="new.user@example.com" 
+                  value={inviteEmail} 
+                  onChange={(e) => setInviteEmail(e.target.value)} 
+                  required
+                />
+              </div>
+               <div className="space-y-2">
+                <Label htmlFor="role-select">Role</Label>
+                <Select value={selectedRole} onValueChange={setSelectedRole}>
+                  <SelectTrigger id="role-select">
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                       <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <Button type="submit">Invite User</Button>
           </form>
 
@@ -144,7 +169,7 @@ export default function UsersPage() {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost" disabled={users.length <= 1}>
+                          <Button size="icon" variant="ghost" disabled={user.role === 'admin'}>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
