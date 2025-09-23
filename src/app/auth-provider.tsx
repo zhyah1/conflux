@@ -24,19 +24,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
         setSession(newSession);
-        // When auth state changes (login/logout), we might need to re-route.
-        if (_event === 'SIGNED_IN' && newSession) {
-            // The check below will handle redirection.
-        } else if (_event === 'SIGNED_OUT') {
-            router.push('/');
-        }
       }
     );
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [router]);
+  }, []);
   
   useEffect(() => {
     const checkUserRole = async () => {
@@ -47,29 +41,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq('id', session.user.id)
           .single();
 
-        // If profile doesn't exist, create it.
         if (error && error.code === 'PGRST116') {
-          const { data: newProfile, error: insertError } = await supabase
-            .from('users')
-            .insert({
-              id: session.user.id,
-              full_name: session.user.email?.split('@')[0] || 'New User',
-              // Default role is 'contractor', admin must be set manually
-              role: 'contractor', 
-            })
-            .select('role')
-            .single();
-          
-          if (insertError) {
-             console.error('Failed to create user profile:', insertError);
-          } else {
-            // After creation, the profile is now available
-            profile = newProfile;
-          }
+          // This can happen on the very first login if the DB trigger is slow.
+          // We'll just wait a moment and let the next check handle it.
+          console.warn('Profile not found, waiting for creation...');
+          return;
         }
 
         if (profile?.role === 'admin') {
-          router.push('/dashboard');
+          // Only redirect if not already on a dashboard page
+          if (!window.location.pathname.startsWith('/dashboard')) {
+            router.push('/dashboard');
+          }
         } else {
           await supabase.auth.signOut();
           toast({
@@ -77,13 +60,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             title: 'Access Denied',
             description: 'You do not have permission to access this application.',
           });
-          router.push('/?error=Access%20Denied');
+          // Only redirect if not already on the home page
+          if (window.location.pathname !== '/') {
+            router.push('/?error=Access%20Denied');
+          }
         }
       }
     };
     
-    if(!loading && session){
-        checkUserRole();
+    if(!loading){
+        if (session) {
+            checkUserRole();
+        } 
     }
   }, [session, loading, router, toast]);
 

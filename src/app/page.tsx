@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Logo } from '@/components/logo';
 import { useEffect } from 'react';
 
@@ -38,7 +39,9 @@ export default function Home() {
     if (error) {
       setError(error.message);
     } else {
-      // The AuthProvider will handle redirection
+      // The AuthProvider will handle redirection based on role
+      // We push to a temporary page to trigger the AuthProvider check
+      router.push('/dashboard'); 
     }
     setIsLoading(false);
   };
@@ -80,6 +83,14 @@ export default function Home() {
             </Button>
           </form>
         </CardContent>
+        <CardFooter className="flex-col">
+            <p className="text-center text-sm text-muted-foreground">
+                Don&apos;t have an account?{' '}
+                <Link href="/signup" className="underline">
+                    Sign up
+                </Link>
+            </p>
+        </CardFooter>
       </Card>
     </div>
   );
