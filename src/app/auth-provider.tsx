@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const { data: profile, error } = await supabase
             .from('users')
             .select('role')
-            .eq('id', session.user.id) // Fixed the typo here
+            .eq('id', session.user.id)
             .single();
 
           if (error) {
@@ -48,8 +48,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         // Check initial session
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          await handleAuthChange('SIGNED_IN', session);
+        if (session && isMounted) {
+          await handleAuthChange('INITIAL_SESSION', session);
         }
       } catch (error) {
         console.error('AuthProvider - Initialization error:', error);
@@ -61,7 +61,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     // Set up auth listener
-    const { data: authListener } = supabase.auth.onAuthStateChange(handleAuthChange);
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+            await handleAuthChange(event, session);
+        } else if (event === 'SIGNED_OUT') {
+            await handleAuthChange(event, null);
+        }
+    });
 
     // Initialize auth state
     initializeAuth();
