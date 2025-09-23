@@ -41,16 +41,20 @@ export async function middleware(req: NextRequest) {
       try {
         const { data: profile, error } = await supabase
           .from('users')
-          .select('role')
+          .select('role, full_name')
           .eq('id', user.id)
           .single();
 
         if (error) {
           console.error('Error fetching user profile:', error);
+          console.error('Error details:', error.message, error.code);
           // Continue to dashboard even if profile fetch fails
-        } else if (profile?.role === 'admin') {
-          console.log('Redirecting admin user to settings');
-          return NextResponse.redirect(new URL('/dashboard/settings', req.url));
+        } else {
+          console.log('User profile:', profile);
+          if (profile?.role === 'admin') {
+            console.log('Redirecting admin user to settings');
+            return NextResponse.redirect(new URL('/dashboard/settings', req.url));
+          }
         }
       } catch (error) {
         console.error('Error in role check:', error);
