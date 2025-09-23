@@ -41,30 +41,44 @@ export default function UsersPage() {
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const fetchUsers = async () => {
-    const { data: allUsersData, error: allUsersError } = await supabase.from('users').select('id, full_name, role');
+    setLoading(true);
     
-    if (allUsersError) {
-      console.error('Error fetching users:', allUsersError);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user data.' });
-      return;
-    }
-  
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    if (authError) {
-      console.error('Error fetching auth users:', authError);
+    // Fetch profiles from the 'users' table
+    const { data: profiles, error: profilesError } = await supabase
+      .from('users')
+      .select('id, full_name, role');
+
+    if (profilesError) {
+      console.error('Error fetching user profiles:', profilesError);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user profiles.' });
+      setLoading(false);
       return;
     }
 
-    const combinedUsers = allUsersData.map(profile => {
-      const authUser = authUsers.users.find(u => u.id === profile.id);
+    // Fetch authenticated users from Supabase Auth to get their emails
+    const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+    
+    if (authError) {
+      console.error('Error fetching auth users:', authError);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch authenticated users.' });
+      setLoading(false);
+      return;
+    }
+
+    // Combine profile data with auth data (email)
+    const combinedUsers = profiles.map(profile => {
+      const authUser = authData.users.find(u => u.id === profile.id);
       return {
         ...profile,
         email: authUser?.email || 'N/A',
       };
     });
+
     setUsers(combinedUsers);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -130,29 +144,43 @@ export default function UsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="font-medium">{user.full_name || 'Invited User'}</div>
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="capitalize">{user.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="icon" variant="ghost" disabled={users.length <= 1}>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem className="text-destructive">Remove User</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center">
+                    Loading users...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : users.length > 0 ? (
+                users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div className="font-medium">{user.full_name || 'Invited User'}</div>
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="capitalize">{user.role}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" disabled={users.length <= 1}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem className="text-destructive">Remove User</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                 <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center">
+                    No users found.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
