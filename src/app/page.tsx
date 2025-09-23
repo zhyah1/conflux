@@ -39,7 +39,6 @@ export default function Home() {
     if (error) {
       setError(error.message);
     } else {
-      // The AuthProvider will handle redirection based on role
       router.push('/dashboard'); 
     }
     setIsLoading(false);
