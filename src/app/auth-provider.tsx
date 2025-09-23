@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 router.push('/dashboard'); // Default redirect even if profile creation fails
               } else {
                 console.log('AuthProvider - Created new profile:', newProfile);
-                if (newProfile.role === 'admin') {
+                if (newProfile?.role === 'admin') {
                   router.push('/dashboard/settings');
                 } else {
                   router.push('/dashboard');
