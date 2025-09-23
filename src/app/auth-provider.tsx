@@ -89,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const initializeAuth = async () => {
+      let sessionInitialized = false;
       try {
         console.log('AuthProvider - Initializing auth state');
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -102,10 +103,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session) {
           await handleAuthChange('SIGNED_IN', session);
         }
+        sessionInitialized = true;
       } catch (error) {
         console.error('AuthProvider - Initialization error:', error);
       } finally {
-        if (isMounted) {
+        if (isMounted && sessionInitialized) {
+          setIsInitialized(true);
+        } else if(isMounted) {
+          // If there's no session, we still need to unblock the UI
           setIsInitialized(true);
         }
       }
