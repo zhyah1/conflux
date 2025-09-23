@@ -42,9 +42,11 @@ export function UserNav() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/');
+    router.refresh();
   };
   
   const getInitials = (name: string) => {
+    if (!name) return '';
     const names = name.split(' ');
     if (names.length > 1) {
       return names[0][0] + names[names.length - 1][0];

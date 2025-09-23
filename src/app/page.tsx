@@ -21,7 +21,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     
     if (error) {
       toast({
@@ -30,25 +30,9 @@ export default function LoginPage() {
         variant: 'destructive',
       });
       setLoading(false);
-    } else if (user) {
-      toast({
-        title: 'Success',
-        description: 'Logged in successfully!',
-      });
-      
-      const { data: profile } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-        
-      if (profile?.role === 'admin') {
-        router.replace('/dashboard/settings');
-      } else {
-        router.replace('/dashboard');
-      }
     } else {
-      setLoading(false);
+      // Let the middleware handle redirection
+      router.refresh();
     }
   };
   

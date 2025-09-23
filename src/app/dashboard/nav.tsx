@@ -40,6 +40,7 @@ export function Nav() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/');
+    router.refresh();
   };
 
   return (
@@ -72,11 +73,9 @@ export function Nav() {
         <SidebarSeparator />
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout} asChild tooltip="Logout">
-              <Link href="#">
-                <LogOut />
-                <span>Logout</span>
-              </Link>
+            <SidebarMenuButton onClick={handleLogout} tooltip="Logout">
+              <LogOut />
+              <span>Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

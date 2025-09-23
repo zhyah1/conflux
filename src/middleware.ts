@@ -25,14 +25,19 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
-  // if user is not signed in and the current path is not / or signup or auth callback, redirect to /
-  if (!user && !['/', '/signup'].includes(req.nextUrl.pathname) && !req.nextUrl.pathname.startsWith('/auth/callback')) {
+  // if user is not signed in and trying to access a protected route, redirect to /
+  if (!user && req.nextUrl.pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/', req.url));
+  }
+  
+  // if user is not signed in and the current path is not / or signup or auth callback, allow it.
+  if (!user && !['/', '/signup'].includes(req.nextUrl.pathname) && !req.nextUrl.pathname.startsWith('/auth/callback')) {
+    return res;
   }
 
   return res;
 }
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/signup'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };
