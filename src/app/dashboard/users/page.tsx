@@ -46,38 +46,15 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     setLoading(true);
     
-    // Fetch profiles from the 'users' table
-    const { data: profiles, error: profilesError } = await supabase
-      .from('users')
-      .select('id, full_name, role');
+    const { data, error } = await supabase.from('users').select('*');
 
-    if (profilesError) {
-      console.error('Error fetching user profiles:', profilesError);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user profiles.' });
-      setLoading(false);
-      return;
+    if (error) {
+      console.error('Error fetching users:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch user data. Please ensure RLS policies are set correctly in Supabase.' });
+      setUsers([]);
+    } else {
+      setUsers(data as User[]);
     }
-
-    // Fetch authenticated users from Supabase Auth to get their emails
-    const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-    
-    if (authError) {
-      console.error('Error fetching auth users:', authError);
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch authenticated users.' });
-      setLoading(false);
-      return;
-    }
-
-    // Combine profile data with auth data (email)
-    const combinedUsers = profiles.map(profile => {
-      const authUser = authData.users.find(u => u.id === profile.id);
-      return {
-        ...profile,
-        email: authUser?.email || 'N/A',
-      };
-    });
-
-    setUsers(combinedUsers);
     setLoading(false);
   };
 
@@ -92,16 +69,20 @@ export default function UsersPage() {
       return;
     }
     
+    // Invite a new user, setting their role to 'admin' by default in the metadata.
+    // The handle_new_user trigger in Supabase will use this metadata.
     const { data, error } = await supabase.auth.admin.inviteUserByEmail(inviteEmail, {
-      data: { role: 'admin', full_name: 'Invited User' },
+      data: { role: 'admin' },
     });
 
     if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
+      toast({ variant: 'destructive', title: 'Error', description: `Failed to send invitation: ${error.message}` });
     } else {
       toast({ title: 'Success', description: `Invitation sent to ${inviteEmail}.` });
       setInviteEmail('');
-      fetchUsers(); // Refresh user list
+      // The new user will appear after they accept the invite and sign up.
+      // We can optionally refetch users here if we want to show pending invites,
+      // but for now, we'll wait for them to accept.
     }
   };
 
