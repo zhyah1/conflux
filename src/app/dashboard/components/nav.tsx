@@ -40,7 +40,6 @@ export function Nav() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/');
-    router.refresh();
   };
 
   return (
@@ -57,7 +56,7 @@ export function Nav() {
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
                 asChild
-                isActive={pathname === item.href}
+                isActive={pathname === item.href || (item.href === '/dashboard' && pathname.startsWith('/dashboard/')) && !navItems.slice(1).find(i => pathname.startsWith(i.href))}
                 tooltip={item.label}
               >
                 <Link href={item.href}>

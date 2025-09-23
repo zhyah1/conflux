@@ -21,7 +21,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     
     if (error) {
       toast({
@@ -30,9 +30,10 @@ export default function LoginPage() {
         variant: 'destructive',
       });
       setLoading(false);
-    } else {
-      // Let the middleware handle redirection
-      router.refresh();
+    } else if (data.user) {
+        // On successful login, the middleware will take care of redirection.
+        // We just need to trigger a navigation event.
+        router.push('/dashboard');
     }
   };
   
