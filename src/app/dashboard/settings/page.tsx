@@ -29,7 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Select,
   SelectContent,
@@ -37,35 +37,91 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 
 const ROLES = ['admin', 'pmc', 'owner', 'contractor', 'subcontractor'];
 
-// Static data for users since we removed the database connection
-const usersData = [
-    { id: '1', full_name: 'Demo User', role: 'admin' },
-    { id: '2', full_name: 'Jane Smith', role: 'pmc' },
-];
+type User = {
+  id: string;
+  full_name: string;
+  role: string;
+};
 
 export default function SettingsPage() {
-  const [users, setUsers] = useState(usersData);
-  const [fullName, setFullName] = useState('Demo User');
-  const [email, setEmail] = useState('demo@example.com');
+  const { toast } = useToast();
+  const [users, setUsers] = useState<User[]>([]);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('contractor');
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setEmail(user.email || '');
+
+        // Fetch current user's profile to get name and role
+        const { data: profile } = await supabase
+          .from('users')
+          .select('full_name, role')
+          .eq('id', user.id)
+          .single();
+        if (profile) {
+          setFullName(profile.full_name);
+          setCurrentUserRole(profile.role);
+        }
+
+        // Fetch all users if admin
+        if (profile?.role === 'admin') {
+          const { data: allUsers } = await supabase.from('users').select('id, full_name, role');
+          if (allUsers) {
+            setUsers(allUsers);
+          }
+        }
+      }
+    };
+    fetchUserData();
+  }, []);
   
-  const handleProfileUpdate = (e: React.FormEvent) => {
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    // This is a mock function now.
-    console.log('Profile updated (mock):', { fullName, email });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { error } = await supabase.from('users').update({ full_name: fullName }).eq('id', user.id);
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to update profile.' });
+      } else {
+        toast({ title: 'Success', description: 'Profile updated successfully.' });
+      }
+    }
   };
 
-  const handleInviteUser = (e: React.FormEvent) => {
+  const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    // This is a mock function now.
-    console.log('User invited (mock):', { email: inviteEmail, role: inviteRole });
-    setInviteEmail('');
+    const { data, error } = await supabase.auth.admin.inviteUserByEmail(inviteEmail, {
+      data: { role: inviteRole },
+    });
+
+    if (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+    } else {
+      toast({ title: 'Success', description: `Invitation sent to ${inviteEmail}.` });
+      setInviteEmail('');
+      // Optionally refresh user list
+      const { data: allUsers } = await supabase.from('users').select('id, full_name, role');
+      if (allUsers) {
+        setUsers(allUsers);
+      }
+    }
   };
   
+  const isAdmin = currentUserRole === 'admin';
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -94,7 +150,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Input id="email" type="email" value={email} disabled />
                 </div>
               </CardContent>
               <CardFooter>
@@ -112,56 +168,62 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleInviteUser} className="flex items-center gap-2 mb-4">
-                  <Input type="email" placeholder="new.user@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required />
-                   <Select value={inviteRole} onValueChange={setInviteRole}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ROLES.map(role => (
-                          <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  <Button type="submit">Invite User</Button>
-              </form>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>
-                      <span className="sr-only">Actions</span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="font-medium">{user.full_name}</div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{user.role}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button size="icon" variant="ghost">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>Remove</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              {isAdmin && (
+                <form onSubmit={handleInviteUser} className="flex items-center gap-2 mb-4">
+                    <Input type="email" placeholder="new.user@example.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required />
+                     <Select value={inviteRole} onValueChange={setInviteRole}>
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ROLES.map(role => (
+                            <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    <Button type="submit">Invite User</Button>
+                </form>
+              )}
+              {isAdmin ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>
+                        <span className="sr-only">Actions</span>
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="font-medium">{user.full_name}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{user.role}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem>Edit</DropdownMenuItem>
+                              <DropdownMenuItem>Remove</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-muted-foreground">You do not have permission to manage users.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
