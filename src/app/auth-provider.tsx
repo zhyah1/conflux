@@ -9,14 +9,38 @@ import { useToast } from '@/hooks/use-toast';
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
-        router.push('/');
-      } else if (event === 'SIGNED_IN' && session) {
-        // Try to get user profile
+    const getSession = async () => {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      setSession(currentSession);
+      setLoading(false);
+    };
+
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        setSession(newSession);
+        // When auth state changes (login/logout), we might need to re-route.
+        if (_event === 'SIGNED_IN' && newSession) {
+            // The check below will handle redirection.
+        } else if (_event === 'SIGNED_OUT') {
+            router.push('/');
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [router]);
+  
+  useEffect(() => {
+    const checkUserRole = async () => {
+      if (session) {
         let { data: profile, error } = await supabase
           .from('users')
           .select('role')
@@ -47,39 +71,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (profile?.role === 'admin') {
           router.push('/dashboard');
         } else {
-          // If not an admin, sign them out and show an error.
           await supabase.auth.signOut();
           toast({
             variant: 'destructive',
             title: 'Access Denied',
             description: 'You do not have permission to access this application.',
           });
-          // Redirect to login page with an error query param
           router.push('/?error=Access%20Denied');
         }
       }
-    });
-
-    const initializeSession = async () => {
-      // This helps prevent a flash of the login page for already logged-in users on refresh.
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-         setIsInitialized(true);
-      }
-      // If there is a session, onAuthStateChange will fire and handle redirection.
-      // We wait for that to avoid race conditions.
     };
+    
+    if(!loading && session){
+        checkUserRole();
+    }
+  }, [session, loading, router, toast]);
 
-    initializeSession();
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [router, toast]);
-
-  // Keep showing loading screen until session is processed.
-  // The onAuthStateChange listener will set isInitialized for non-session cases.
-  if (!isInitialized) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="text-center">
