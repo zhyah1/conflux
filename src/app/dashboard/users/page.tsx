@@ -38,6 +38,8 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { inviteUser } from './actions';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Terminal } from 'lucide-react';
 
 type User = {
   id: string;
@@ -54,10 +56,27 @@ export default function UsersPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [selectedRole, setSelectedRole] = useState('contractor');
   const [loading, setLoading] = useState(true);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
-    
+
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+    if (currentUser) {
+      // Fetch the current user's role from the public.users table
+      const { data: currentUserProfile, error: profileError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single();
+      
+      if (currentUserProfile) {
+        setCurrentUserRole(currentUserProfile.role);
+      }
+    }
+
+    // Fetch all users. The RLS policy will allow this for any authenticated user.
     const { data, error } = await supabase.from('users').select('*');
 
     if (error) {
@@ -73,7 +92,7 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers();
   }, []);
-  
+
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail) {
@@ -88,10 +107,10 @@ export default function UsersPage() {
     } else {
       toast({ title: 'Success', description: `Invitation sent to ${inviteEmail}.` });
       setInviteEmail('');
-      // We can't immediately see the new user, as they need to accept the invite first.
-      // A page refresh or periodic refetch could show pending users if the backend supported it.
     }
   };
+  
+  const isCurrentUserAdmin = currentUserRole === 'admin';
 
   return (
     <div className="flex flex-col gap-6">
@@ -100,6 +119,16 @@ export default function UsersPage() {
         description="Manage your team members and their roles."
       />
       
+      {!isCurrentUserAdmin && !loading && (
+        <Alert>
+          <Terminal className="h-4 w-4" />
+          <AlertTitle>Non-Admin View</AlertTitle>
+          <AlertDescription>
+            You are viewing this page as a non-administrator. You can see the list of users, but you cannot invite new users or manage existing ones.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="font-headline">Invite New User</CardTitle>
@@ -118,11 +147,12 @@ export default function UsersPage() {
                   value={inviteEmail} 
                   onChange={(e) => setInviteEmail(e.target.value)} 
                   required
+                  disabled={!isCurrentUserAdmin}
                 />
               </div>
                <div className="space-y-2">
                 <Label htmlFor="role-select">Role</Label>
-                <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <Select value={selectedRole} onValueChange={setSelectedRole} disabled={!isCurrentUserAdmin}>
                   <SelectTrigger id="role-select">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
@@ -133,7 +163,7 @@ export default function UsersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit">Invite User</Button>
+              <Button type="submit" disabled={!isCurrentUserAdmin || loading}>Invite User</Button>
           </form>
 
           <Table>
@@ -162,12 +192,12 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="capitalize">{user.role}</Badge>
+                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">{user.role}</Badge>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost" disabled={user.role === 'admin'}>
+                          <Button size="icon" variant="ghost" disabled={!isCurrentUserAdmin}>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -181,7 +211,7 @@ export default function UsersPage() {
               ) : (
                  <TableRow>
                   <TableCell colSpan={4} className="h-24 text-center">
-                    No users found. Ensure your RLS policies in Supabase are correct.
+                    No users found. You can invite the first user if you are an administrator.
                   </TableCell>
                 </TableRow>
               )}
