@@ -35,6 +35,7 @@ export default function LoginPage() {
           description: error.message,
           variant: 'destructive',
         });
+        setLoading(false); // Stop loading on error
         return;
       }
 
@@ -44,8 +45,8 @@ export default function LoginPage() {
           description: 'Successfully logged in!',
         });
         
-        // Force a refresh to trigger middleware
-        window.location.href = '/dashboard';
+        // Use Next.js router to navigate, which allows middleware to work correctly
+        router.push('/dashboard');
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -54,9 +55,9 @@ export default function LoginPage() {
         description: 'An unexpected error occurred. Please try again.',
         variant: 'destructive',
       });
-    } finally {
-      setLoading(false);
+      setLoading(false); // Stop loading on error
     }
+    // No finally block needed here, loading state is handled in each path
   };
 
   const handleGoogleLogin = async () => {
