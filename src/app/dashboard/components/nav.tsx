@@ -7,6 +7,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarContent,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
 import {
   LayoutDashboard,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
+import { ThemeToggle } from './theme-toggle';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -59,6 +61,9 @@ export function Nav() {
           ))}
         </SidebarMenu>
       </SidebarContent>
+       <SidebarFooter>
+        <ThemeToggle />
+      </SidebarFooter>
     </>
   );
 }
