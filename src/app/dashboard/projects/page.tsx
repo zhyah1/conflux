@@ -28,6 +28,7 @@ import { PageHeader } from '../components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AddProjectForm } from './add-project-form';
 
 type Project = {
   id: string;
@@ -45,7 +46,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     async function fetchProjects() {
       setLoading(true);
-      const { data, error } = await supabase.from('projects').select('*');
+      const { data, error } = await supabase.from('projects').select('*').order('start_date', { ascending: false });
       if (!error) {
         setProjects(data as Project[]);
       } else {
@@ -62,10 +63,12 @@ export default function ProjectsPage() {
         title="Projects"
         description="Manage all your master projects."
       >
-        <Button size="sm" className="gap-1">
-          <PlusCircle className="h-4 w-4" />
-          Add Project
-        </Button>
+        <AddProjectForm>
+          <Button size="sm" className="gap-1">
+            <PlusCircle className="h-4 w-4" />
+            Add Project
+          </Button>
+        </AddProjectForm>
       </PageHeader>
       <Card>
         <CardContent className="pt-6">
