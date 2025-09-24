@@ -26,7 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -38,6 +38,8 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { inviteUser } from './actions';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Terminal } from "lucide-react"
 
 type User = {
   id: string;
@@ -55,8 +57,24 @@ export default function UsersPage() {
   const [selectedRole, setSelectedRole] = useState('contractor');
   const [loading, setLoading] = useState(true);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
+
+    // Step 1: Debug version of fetchUsers as requested.
+    // Log the current session to check authentication status.
+    console.log('Attempting to fetch session to debug authentication...');
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      console.error('Error fetching session:', sessionError);
+      toast({ variant: 'destructive', title: 'Debug Error', description: 'Could not fetch Supabase session.' });
+    }
+
+    if (session) {
+      console.log('DEBUG: Supabase session found:', session);
+    } else {
+      console.error('DEBUG: No Supabase session found. User is not authenticated.');
+    }
     
     const { data, error } = await supabase.from('users').select('*');
 
@@ -68,11 +86,11 @@ export default function UsersPage() {
       setUsers(data as User[]);
     }
     setLoading(false);
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
