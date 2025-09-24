@@ -4,7 +4,6 @@ import { PageHeader } from '../components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, MoreHorizontal } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { tasks } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -24,9 +23,19 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { automaticDelayEscalation } from '@/ai/flows/automatic-delay-escalation';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Skeleton } from '@/components/ui/skeleton';
 
-type Task = (typeof tasks)[0];
+type Task = {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  assignee_name: string;
+  assignee_avatar: string;
+};
+
 type TaskStatus = 'Backlog' | 'In Progress' | 'Done';
 
 const statusColumns: { status: TaskStatus; title: string }[] = [
@@ -52,7 +61,7 @@ function TaskCard({ task }: { task: Task }) {
       dueDate: '2024-12-31',
       currentProgress: task.status === 'Done' ? 100 : task.status === 'In Progress' ? 50 : 0,
       dependencies: [],
-      resourcesAllocated: [task.assignee.name],
+      resourcesAllocated: [task.assignee_name],
       issuesReported: [],
     });
     setEscalationResult(result);
@@ -91,8 +100,8 @@ function TaskCard({ task }: { task: Task }) {
               {task.priority}
             </Badge>
             <Avatar className="h-6 w-6">
-              <AvatarImage src={task.assignee.avatar} alt={task.assignee.name} />
-              <AvatarFallback>{task.assignee.name.charAt(0)}</AvatarFallback>
+              <AvatarImage src={task.assignee_avatar} alt={task.assignee_name} />
+              <AvatarFallback>{task.assignee_name.charAt(0)}</AvatarFallback>
             </Avatar>
           </div>
         </CardContent>
@@ -137,6 +146,23 @@ function TaskCard({ task }: { task: Task }) {
 }
 
 export default function TasksPage() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchTasks() {
+      setLoading(true);
+      const { data, error } = await supabase.from('tasks').select('*');
+      if (!error) {
+        setTasks(data as Task[]);
+      } else {
+        console.error('Error fetching tasks:', error);
+      }
+      setLoading(false);
+    }
+    fetchTasks();
+  }, []);
+
   const getTasksByStatus = (status: TaskStatus) => {
     return tasks.filter((task) => task.status === status);
   };
@@ -156,9 +182,16 @@ export default function TasksPage() {
               <CardTitle className="font-headline">{title}</CardTitle>
             </CardHeader>
             <CardContent>
-              {getTasksByStatus(status).map((task) => (
-                <TaskCard key={task.id} task={task} />
-              ))}
+              {loading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-24 w-full" />
+                </div>
+              ) : (
+                getTasksByStatus(status).map((task) => (
+                  <TaskCard key={task.id} task={task} />
+                ))
+              )}
             </CardContent>
           </Card>
         ))}

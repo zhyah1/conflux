@@ -4,69 +4,6 @@ export const user = {
   avatar: 'https://picsum.photos/seed/user1/100/100',
 };
 
-export const projects = [
-  {
-    id: 'PROJ-001',
-    name: 'Downtown Tower Renovation',
-    status: 'In Progress',
-    owner: 'Nexus Properties',
-    startDate: '2023-01-15',
-    endDate: '2024-12-31',
-    budget: 5000000,
-    completion: 65,
-  },
-  {
-    id: 'PROJ-002',
-    name: 'Greenfield Industrial Park',
-    status: 'On Track',
-    owner: 'Innovate Corp',
-    startDate: '2023-03-01',
-    endDate: '2025-06-30',
-    budget: 12000000,
-    completion: 40,
-  },
-  {
-    id: 'PROJ-003',
-    name: 'Coastal Bridge Retrofit',
-    status: 'Delayed',
-    owner: 'State Transport Authority',
-    startDate: '2022-09-01',
-    endDate: '2024-09-01',
-    budget: 8500000,
-    completion: 85,
-  },
-  {
-    id: 'PROJ-004',
-    name: 'Suburban Housing Development',
-    status: 'Completed',
-    owner: 'Homestead Builders',
-    startDate: '2021-06-10',
-    endDate: '2023-11-20',
-    budget: 25000000,
-    completion: 100,
-  },
-  {
-    id: 'PROJ-005',
-    name: 'City General Hospital Wing',
-    status: 'Planning',
-    owner: 'Metropolis Health',
-    startDate: '2024-05-01',
-    endDate: '2026-12-15',
-    budget: 15000000,
-    completion: 5,
-  },
-];
-
-export const tasks = [
-  { id: 'TASK-8717', title: 'Review structural blueprints', status: 'Done', priority: 'High', assignee: { name: 'Sarah Walker', avatar: 'https://picsum.photos/seed/user1/100/100' } },
-  { id: 'TASK-8718', title: 'Finalize electrical wiring plan', status: 'In Progress', priority: 'Medium', assignee: { name: 'Mike Ross', avatar: 'https://picsum.photos/seed/user2/100/100' } },
-  { id: 'TASK-8719', title: 'Procure HVAC units', status: 'Backlog', priority: 'Medium', assignee: { name: 'John Smith', avatar: 'https://picsum.photos/seed/user4/100/100' } },
-  { id: 'TASK-8720', title: 'Submit plumbing permit application', status: 'In Progress', priority: 'High', assignee: { name: 'Jane Doe', avatar: 'https://picsum.photos/seed/user3/100/100' } },
-  { id: 'TASK-8721', title: 'Hire scaffolding subcontractor', status: 'Done', priority: 'Low', assignee: { name: 'Sarah Walker', avatar: 'https://picsum.photos/seed/user1/100/100' } },
-  { id: 'TASK-8722', title: 'Install foundation rebar', status: 'In Progress', priority: 'High', assignee: { name: 'Mike Ross', avatar: 'https://picsum.photos/seed/user2/100/100' } },
-  { id: 'TASK-8723', title: 'On-site safety inspection', status: 'Backlog', priority: 'Medium', assignee: { name: 'Emily White', avatar: 'https://picsum.photos/seed/user5/100/100' } },
-];
-
 export const issues = [
   { id: 'ISS-001', title: 'Material delivery delay for steel beams', status: 'Open', priority: 'High', assignee: 'Mike Ross' },
   { id: 'ISS-002', title: 'Incorrect concrete mix delivered', status: 'In Progress', priority: 'High', assignee: 'John Smith' },

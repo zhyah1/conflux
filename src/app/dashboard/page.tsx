@@ -1,3 +1,5 @@
+'use client';
+
 import {
   Activity,
   ArrowUpRight,
@@ -25,11 +27,43 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { projects } from '@/lib/data';
 import { TasksChart } from './components/tasks-chart';
 import { BudgetChart } from './components/budget-chart';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Skeleton } from '@/components/ui/skeleton';
+
+type Project = {
+  id: string;
+  name: string;
+  status: string;
+  owner: string;
+  completion: number;
+};
 
 export default function Dashboard() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchRecentProjects() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id,name,status,owner,completion')
+        .limit(5)
+        .order('start_date', { ascending: false });
+
+      if (!error) {
+        setProjects(data as Project[]);
+      } else {
+        console.error('Error fetching recent projects:', error);
+      }
+      setLoading(false);
+    }
+    fetchRecentProjects();
+  }, []);
+
   return (
     <div className="flex flex-1 flex-col gap-4 md:gap-8">
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
@@ -116,30 +150,40 @@ export default function Dashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {projects.slice(0, 5).map((project) => (
-                <TableRow key={project.id}>
-                  <TableCell>
-                    <div className="font-medium">{project.name}</div>
-                    <div className="hidden text-sm text-muted-foreground md:inline">
-                      {project.owner}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        project.status === 'Completed'
-                          ? 'default'
-                          : project.status === 'Delayed'
-                          ? 'destructive'
-                          : 'secondary'
-                      }
-                    >
-                      {project.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">{project.completion}%</TableCell>
-                </TableRow>
-              ))}
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                projects.map((project) => (
+                  <TableRow key={project.id}>
+                    <TableCell>
+                      <div className="font-medium">{project.name}</div>
+                      <div className="hidden text-sm text-muted-foreground md:inline">
+                        {project.owner}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          project.status === 'Completed'
+                            ? 'default'
+                            : project.status === 'Delayed'
+                            ? 'destructive'
+                            : 'secondary'
+                        }
+                      >
+                        {project.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{project.completion}%</TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
