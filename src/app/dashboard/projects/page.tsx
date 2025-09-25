@@ -15,35 +15,30 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import { PageHeader } from '../components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddProjectForm } from './add-project-form';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ProjectActions } from './project-actions';
 
-type User = {
+export type User = {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
 };
 
-type Project = {
+export type Project = {
   id: string;
   name: string;
   status: string;
   owner: string;
   budget: number;
   completion: number;
+  start_date: string;
+  end_date: string;
   users: User | null; // Can be a user object or null
 };
 
@@ -62,6 +57,16 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const channel = supabase
+      .channel('projects-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, 
+        (payload) => {
+          console.log('Change received!', payload);
+          fetchProjects();
+        }
+      )
+      .subscribe()
+
     async function fetchProjects() {
       setLoading(true);
       const { data, error } = await supabase
@@ -84,6 +89,11 @@ export default function ProjectsPage() {
       setLoading(false);
     }
     fetchProjects();
+
+    return () => {
+      supabase.removeChannel(channel);
+    }
+
   }, []);
 
   return (
@@ -176,21 +186,7 @@ export default function ProjectsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">Archive</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <ProjectActions project={project} />
                     </TableCell>
                   </TableRow>
                 ))
