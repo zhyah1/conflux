@@ -2,7 +2,7 @@
 
 import { PageHeader } from '../components/page-header';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, MoreHorizontal } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -26,6 +26,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddTaskForm } from './add-task-form';
+import { EditTaskForm } from './edit-task-form';
 
 type User = {
   id: string;
@@ -33,12 +34,12 @@ type User = {
   avatar_url: string | null;
 };
 
-type Task = {
+export type Task = {
   id: string;
   title: string;
   status: string;
   priority: string;
-  users: User | null; // users can be null if no one is assigned
+  users: User | null; 
 };
 
 type TaskStatus = 'Backlog' | 'In Progress' | 'Done';
@@ -99,8 +100,11 @@ function TaskCard({ task }: { task: Task }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem>Edit Task</DropdownMenuItem>
-                <DropdownMenuItem>Change Assignee</DropdownMenuItem>
+                <EditTaskForm task={task}>
+                   <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
+                    Edit Task
+                   </button>
+                </EditTaskForm>
                 <DropdownMenuItem onClick={handleCheckDelay}>Check for Delays (AI)</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -129,13 +133,20 @@ function TaskCard({ task }: { task: Task }) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Automatic Delay Escalation Analysis</AlertDialogTitle>
-            <AlertDialogDescription>
-              {isLoading && 'Analyzing task data with AI to check for potential delays...'}
+             <AlertDialogDescription asChild>
+              <div className="space-y-4 pt-4">
+              {isLoading && (
+                 <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Analyzing task data with AI to check for potential delays...</span>
+                  </div>
+              )}
               {!isLoading &&
                 escalationResult &&
                 (escalationResult.shouldEscalate
                   ? 'Potential delay detected. Escalation is recommended.'
                   : 'No significant delay detected. The task appears to be on track.')}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           {!isLoading && escalationResult && (
@@ -168,8 +179,17 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const channel = supabase
+      .channel('tasks-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, 
+        (payload) => {
+          console.log('Change received!', payload);
+          fetchTasks();
+        }
+      )
+      .subscribe()
+
     async function fetchTasks() {
-      setLoading(true);
       // Fetch tasks and join with the users table to get assignee details
       const { data, error } = await supabase
         .from('tasks')
@@ -193,6 +213,10 @@ export default function TasksPage() {
       setLoading(false);
     }
     fetchTasks();
+
+    return () => {
+      supabase.removeChannel(channel);
+    }
   }, []);
 
   const getTasksByStatus = (status: TaskStatus) => {

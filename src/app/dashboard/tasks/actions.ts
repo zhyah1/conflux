@@ -33,8 +33,40 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
     return { error: 'Failed to create task in the database.' };
   }
   
-  // Revalidate the tasks page to show the new task
   revalidatePath('/dashboard/tasks');
 
   return { data };
+}
+
+const updateTaskSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1, 'Task title is required.'),
+  priority: z.string().min(1, 'Priority is required.'),
+  status: z.string().min(1, 'Status is required.'),
+  assignee_id: z.string().uuid().optional().nullable(),
+});
+
+export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
+    const parsedData = updateTaskSchema.safeParse(formData);
+
+    if (!parsedData.success) {
+        return { error: 'Invalid form data.' };
+    }
+
+    const { id, ...taskData } = parsedData.data;
+
+    const { data, error } = await supabase
+        .from('tasks')
+        .update(taskData)
+        .eq('id', id)
+        .select();
+
+    if (error) {
+        console.error('Supabase update error:', error);
+        return { error: 'Failed to update task in the database.' };
+    }
+
+    revalidatePath('/dashboard/tasks');
+
+    return { data };
 }
