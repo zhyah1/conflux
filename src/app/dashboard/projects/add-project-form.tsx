@@ -168,14 +168,16 @@ export function AddProjectForm({ children }: { children: React.ReactNode }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Assign To</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value || undefined}
+                  >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a user" />
+                        <SelectValue placeholder="Unassigned" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
                       {users.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.full_name}
@@ -198,7 +200,7 @@ export function AddProjectForm({ children }: { children: React.ReactNode }) {
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a status" />
-                      </SelectTrigger>
+                      </T_PROJ-002', name: 'Greenfield Industrial Park', status: 'On Track', owner: 'Innovate Corp', '2023-03-01', '2025-06-30', 12000000, 40),rigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Planning">Planning</SelectItem>
