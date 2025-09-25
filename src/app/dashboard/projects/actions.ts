@@ -12,6 +12,7 @@ const projectSchema = z.object({
   completion: z.number(),
   start_date: z.date(),
   end_date: z.date(),
+  assignee_id: z.string().uuid().optional().nullable(),
 });
 
 export async function addProject(formData: z.infer<typeof projectSchema>) {
@@ -21,14 +22,14 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
     return { error: 'Invalid form data.' };
   }
 
-  const { name, status, owner, budget, completion, start_date, end_date } = parsedData.data;
+  const { name, status, owner, budget, completion, start_date, end_date, assignee_id } = parsedData.data;
 
   // Generate a unique ID for the project
   const id = `PROJ-${Date.now()}`;
   
   const { data, error } = await supabase
     .from('projects')
-    .insert([{ id, name, status, owner, budget, completion, start_date: start_date.toISOString(), end_date: end_date.toISOString() }])
+    .insert([{ id, name, status, owner, budget, completion, start_date: start_date.toISOString(), end_date: end_date.toISOString(), assignee_id }])
     .select();
 
   if (error) {

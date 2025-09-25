@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -40,6 +40,12 @@ import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { supabase } from '@/lib/supabase';
+
+type User = {
+  id: string;
+  full_name: string | null;
+};
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required.'),
@@ -49,13 +55,29 @@ const projectSchema = z.object({
   completion: z.coerce.number().min(0).max(100, 'Completion must be between 0 and 100.'),
   start_date: z.date({ required_error: 'Start date is required.' }),
   end_date: z.date({ required_error: 'End date is required.' }),
+  assignee_id: z.string().uuid().optional().nullable(),
 });
 
 export function AddProjectForm({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
   const { toast } = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    async function fetchUsers() {
+      const { data, error } = await supabase.from('users').select('id, full_name');
+      if (error) {
+        console.error('Error fetching users for form', error);
+      } else {
+        setUsers(data);
+      }
+    }
+    if (open) {
+      fetchUsers();
+    }
+  }, [open]);
 
   const form = useForm<z.infer<typeof projectSchema>>({
     resolver: zodResolver(projectSchema),
@@ -65,6 +87,7 @@ export function AddProjectForm({ children }: { children: React.ReactNode }) {
       owner: '',
       budget: 0,
       completion: 0,
+      assignee_id: null,
     },
   });
 
@@ -125,11 +148,37 @@ export function AddProjectForm({ children }: { children: React.ReactNode }) {
               control={form.control}
               name="owner"
               render={({ field }) => (
-                <FormItem className="col-span-2">
+                <FormItem>
                   <FormLabel>Project Owner</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Nexus Properties" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="assignee_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assign To</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a user" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Unassigned</SelectItem>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -205,7 +254,7 @@ export function AddProjectForm({ children }: { children: React.ReactNode }) {
                         selected={field.value}
                         onSelect={field.onChange}
                         disabled={(date) =>
-                          date > (form.getValues('end_date') || new Date()) || date < new Date("1900-01-01")
+                          date > (form.getValues('end_date') || new Date('2999-01-01')) 
                         }
                         initialFocus
                       />
