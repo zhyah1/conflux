@@ -27,13 +27,18 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 
+type User = {
+  id: string;
+  full_name: string;
+  avatar_url: string | null;
+};
+
 type Task = {
   id: string;
   title: string;
   status: string;
   priority: string;
-  assignee_name: string;
-  assignee_avatar: string;
+  users: User | null; // users can be null if no one is assigned
 };
 
 type TaskStatus = 'Backlog' | 'In Progress' | 'Done';
@@ -48,6 +53,19 @@ function TaskCard({ task }: { task: Task }) {
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
   const [escalationResult, setEscalationResult] = React.useState<any>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  
+  const assigneeName = task.users?.full_name || 'Unassigned';
+  const assigneeAvatar = task.users?.avatar_url || `https://ui-avatars.com/api/?name=${assigneeName}&background=random`;
+  
+  const getInitials = (name: string) => {
+    if (!name) return '';
+    const names = name.split(' ');
+    if (names.length > 1) {
+      return names[0][0] + names[names.length - 1][0];
+    }
+    return name.substring(0, 2);
+  };
+
 
   const handleCheckDelay = async () => {
     setIsAlertOpen(true);
@@ -61,7 +79,7 @@ function TaskCard({ task }: { task: Task }) {
       dueDate: '2024-12-31',
       currentProgress: task.status === 'Done' ? 100 : task.status === 'In Progress' ? 50 : 0,
       dependencies: [],
-      resourcesAllocated: [task.assignee_name],
+      resourcesAllocated: [assigneeName],
       issuesReported: [],
     });
     setEscalationResult(result);
@@ -100,8 +118,8 @@ function TaskCard({ task }: { task: Task }) {
               {task.priority}
             </Badge>
             <Avatar className="h-6 w-6">
-              <AvatarImage src={task.assignee_avatar} alt={task.assignee_name} />
-              <AvatarFallback>{task.assignee_name.charAt(0)}</AvatarFallback>
+              <AvatarImage src={assigneeAvatar} alt={assigneeName} />
+              <AvatarFallback>{getInitials(assigneeName)}</AvatarFallback>
             </Avatar>
           </div>
         </CardContent>
@@ -152,7 +170,21 @@ export default function TasksPage() {
   useEffect(() => {
     async function fetchTasks() {
       setLoading(true);
-      const { data, error } = await supabase.from('tasks').select('*');
+      // Fetch tasks and join with the users table to get assignee details
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          id,
+          title,
+          status,
+          priority,
+          users (
+            id,
+            full_name,
+            avatar_url
+          )
+        `);
+
       if (!error) {
         setTasks(data as Task[]);
       } else {
