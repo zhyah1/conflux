@@ -200,7 +200,7 @@ export function AddProjectForm({ children }: { children: React.ReactNode }) {
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a status" />
-                      </T_PROJ-002', name: 'Greenfield Industrial Park', status: 'On Track', owner: 'Innovate Corp', '2023-03-01', '2025-06-30', 12000000, 40),rigger>
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Planning">Planning</SelectItem>
