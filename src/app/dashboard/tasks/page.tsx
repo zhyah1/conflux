@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -26,6 +25,7 @@ import { automaticDelayEscalation } from '@/ai/flows/automatic-delay-escalation'
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AddTaskForm } from './add-task-form';
 
 type User = {
   id: string;
@@ -202,10 +202,12 @@ export default function TasksPage() {
   return (
     <div className="flex flex-col h-full">
       <PageHeader title="Tasks" description="Manage and track tasks using the Kanban board.">
-        <Button size="sm" className="gap-1">
-          <PlusCircle className="h-4 w-4" />
-          Add Task
-        </Button>
+        <AddTaskForm>
+          <Button size="sm" className="gap-1">
+            <PlusCircle className="h-4 w-4" />
+            Add Task
+          </Button>
+        </AddTaskForm>
       </PageHeader>
       <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         {statusColumns.map(({ status, title }) => (
