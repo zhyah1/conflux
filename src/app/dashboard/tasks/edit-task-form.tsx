@@ -154,6 +154,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
                     <SelectContent>
                       <SelectItem value="Backlog">Backlog</SelectItem>
                       <SelectItem value="In Progress">In Progress</SelectItem>
+                      <SelectItem value="Blocked">Blocked</SelectItem>
                       <SelectItem value="Done">Done</SelectItem>
                     </SelectContent>
                   </Select>
@@ -193,7 +194,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
                   <FormLabel>Assign To</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value || ""}
+                    defaultValue={field.value || undefined}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -201,7 +202,8 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {users.map((user) => (
+                       <SelectItem value="null">Unassigned</SelectItem>
+                       {users.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.full_name}
                         </SelectItem>

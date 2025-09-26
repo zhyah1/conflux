@@ -50,7 +50,7 @@ const taskSchema = z.object({
   project_id: z.string().min(1, 'Project ID is required.'),
 });
 
-export function AddTaskForm({ children, projectId }: { children: React.ReactNode, projectId: string }) {
+export function AddTaskForm({ children, projectId, status = 'Backlog' }: { children: React.ReactNode, projectId: string, status?: string }) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
@@ -80,11 +80,20 @@ export function AddTaskForm({ children, projectId }: { children: React.ReactNode
     defaultValues: {
       title: '',
       priority: 'Medium',
-      status: 'Backlog',
+      status: status,
       assignee_id: null,
       project_id: projectId,
     },
   });
+
+  // Reset form status when the prop changes
+  useEffect(() => {
+    form.reset({
+      ...form.getValues(),
+      status,
+    });
+  }, [status, form, open]);
+
 
   const onSubmit = async (values: z.infer<typeof taskSchema>) => {
     setIsSubmitting(true);
@@ -153,6 +162,7 @@ export function AddTaskForm({ children, projectId }: { children: React.ReactNode
                     <SelectContent>
                       <SelectItem value="Backlog">Backlog</SelectItem>
                       <SelectItem value="In Progress">In Progress</SelectItem>
+                      <SelectItem value="Blocked">Blocked</SelectItem>
                       <SelectItem value="Done">Done</SelectItem>
                     </SelectContent>
                   </Select>
