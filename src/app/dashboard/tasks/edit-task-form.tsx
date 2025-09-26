@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { updateTask } from './actions';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import type { Task } from './page';
+import type { Task } from './[id]/page';
 
 type User = {
   id: string;
@@ -49,6 +49,7 @@ const updateTaskSchema = z.object({
   priority: z.string().min(1, 'Priority is required.'),
   status: z.string().min(1, 'Status is required.'),
   assignee_id: z.string().uuid().optional().nullable(),
+  project_id: z.string().min(1, "Project ID is required."),
 });
 
 export function EditTaskForm({ children, task }: { children: React.ReactNode; task: Task }) {
@@ -84,6 +85,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
       priority: task.priority,
       status: task.status,
       assignee_id: task.users?.id || null,
+      project_id: task.project_id,
     },
   });
 
@@ -191,7 +193,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
                   <FormLabel>Assign To</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value || undefined}
+                    defaultValue={field.value || ""}
                   >
                     <FormControl>
                       <SelectTrigger>

@@ -47,9 +47,10 @@ const taskSchema = z.object({
   priority: z.string().min(1, 'Priority is required.'),
   status: z.string().min(1, 'Status is required.'),
   assignee_id: z.string().uuid().optional().nullable(),
+  project_id: z.string().min(1, 'Project ID is required.'),
 });
 
-export function AddTaskForm({ children }: { children: React.ReactNode }) {
+export function AddTaskForm({ children, projectId }: { children: React.ReactNode, projectId: string }) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
@@ -81,6 +82,7 @@ export function AddTaskForm({ children }: { children: React.ReactNode }) {
       priority: 'Medium',
       status: 'Backlog',
       assignee_id: null,
+      project_id: projectId,
     },
   });
 
