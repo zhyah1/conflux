@@ -4,6 +4,7 @@ import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { supabase as supabaseAdmin } from '@/lib/supabase-server';
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required.'),
@@ -29,7 +30,7 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
   // Generate a unique ID for the project
   const id = `PROJ-${Date.now()}`;
   
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('projects')
     .insert([{ id, name, status, owner, budget, completion, start_date: start_date.toISOString(), end_date: end_date.toISOString(), assignee_id }])
     .select();
@@ -60,7 +61,7 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
      const { start_date, end_date, ...restOfData } = projectData;
 
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('projects')
         .update({
           ...restOfData,
@@ -82,8 +83,7 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
 }
 
 export async function deleteProject(id: string) {
-    const supabase = createServerActionClient({ cookies });
-    const { error } = await supabase.from('projects').delete().eq('id', id);
+    const { error } = await supabaseAdmin.from('projects').delete().eq('id', id);
 
     if (error) {
         console.error('Supabase delete error:', error);
@@ -94,18 +94,33 @@ export async function deleteProject(id: string) {
     return { success: true };
 }
 
+async function getUserRole() {
+    const supabase = createServerActionClient({ cookies });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    // The role is stored in user_metadata, which is accessible via the user object
+    return user.user_metadata.role || null;
+}
+
+
 export async function getProjects() {
     const supabase = createServerActionClient({ cookies });
+    const role = await getUserRole();
+
+    // If user is admin, use the admin client to bypass RLS and get all projects
+    if (role === 'admin') {
+         const { data, error } = await supabaseAdmin
+            .from('projects')
+            .select(`*, users (id, full_name, avatar_url)`)
+            .order('start_date', { ascending: false });
+        return { data, error: error?.message };
+    }
+
+    // For non-admins, use the standard client which will respect RLS
     const { data, error } = await supabase
         .from('projects')
-        .select(`
-          *,
-          users (
-            id,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select(`*, users (id, full_name, avatar_url)`)
         .order('start_date', { ascending: false });
 
     return { data, error: error?.message };
@@ -113,18 +128,26 @@ export async function getProjects() {
 
 export async function getProjectById(id: string) {
     const supabase = createServerActionClient({ cookies });
-    const { data, error } = await supabase
-      .from('projects')
-      .select(`
-        *,
-        users (
-          id,
-          full_name,
-          avatar_url
-        )
-      `)
-      .eq('id', id)
-      .single();
+    const role = await getUserRole();
 
+    let query;
+
+    // If user is admin, use the admin client to bypass RLS
+    if (role === 'admin') {
+      query = supabaseAdmin
+        .from('projects')
+        .select(`*, users (id, full_name, avatar_url)`)
+        .eq('id', id)
+        .single();
+    } else {
+    // For non-admins, use the standard client which will respect RLS
+      query = supabase
+        .from('projects')
+        .select(`*, users (id, full_name, avatar_url)`)
+        .eq('id', id)
+        .single();
+    }
+    
+    const { data, error } = await query;
     return { data, error: error?.message };
 }
