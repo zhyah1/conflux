@@ -101,7 +101,11 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
   const onSubmit = async (values: z.infer<typeof projectSchema>) => {
     setIsSubmitting(true);
     try {
-      const result = await addProject(values);
+      const submissionValues = {
+        ...values,
+        parent_id: values.parent_id === 'null' ? null : values.parent_id,
+      };
+      const result = await addProject(submissionValues);
       if (result.error) {
         throw new Error(result.error);
       }
@@ -157,7 +161,7 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Parent Project (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value || 'null'}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a parent project" />

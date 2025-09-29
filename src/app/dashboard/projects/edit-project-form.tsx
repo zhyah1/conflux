@@ -125,7 +125,13 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
   const onSubmit = async (values: z.infer<typeof updateProjectSchema>) => {
     setIsSubmitting(true);
     try {
-      const result = await updateProject(values);
+      // If parent_id is the string "null", convert it to actual null
+      const submissionValues = {
+        ...values,
+        parent_id: values.parent_id === 'null' ? null : values.parent_id,
+      };
+
+      const result = await updateProject(submissionValues);
       if (result.error) {
         throw new Error(result.error);
       }
@@ -176,14 +182,14 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Parent Project (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                  <Select onValueChange={field.onChange} value={field.value || 'null'}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a parent project" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">None (This is a master project)</SelectItem>
+                      <SelectItem value="null">None (This is a master project)</SelectItem>
                       {allProjects
                         .filter(p => p.id !== project.id) // Can't be its own parent
                         .map((p) => (
