@@ -230,11 +230,12 @@ export default function Dashboard() {
                       <Badge
                         variant={
                           project.status === 'Completed'
-                            ? 'default'
+                            ? 'outline'
                             : project.status === 'Delayed'
                             ? 'destructive'
                             : 'secondary'
                         }
+                        className={project.status === 'On Track' ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' : ''}
                       >
                         {project.status}
                       </Badge>
