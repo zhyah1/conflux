@@ -50,7 +50,6 @@ const updateProjectSchema = projectSchema.extend({
 });
 
 export async function updateProject(formData: z.infer<typeof updateProjectSchema>) {
-    const supabase = createServerActionClient({ cookies });
     const parsedData = updateProjectSchema.safeParse(formData);
 
     if (!parsedData.success) {
