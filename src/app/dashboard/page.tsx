@@ -33,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { TasksChart } from './components/tasks-chart';
+import { ProjectProgressChart } from './components/project-progress-chart';
 import { BudgetChart } from './components/budget-chart';
 import { useEffect, useState }from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -169,10 +169,11 @@ export default function Dashboard() {
       <div className="grid gap-4 md:gap-8 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="font-headline">Task Status Overview</CardTitle>
+            <CardTitle className="font-headline">Project Progress</CardTitle>
+            <CardDescription>Completion percentage for active projects.</CardDescription>
           </CardHeader>
           <CardContent>
-            <TasksChart />
+            <ProjectProgressChart data={projects} />
           </CardContent>
         </Card>
         <Card>
