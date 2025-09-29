@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { updateProject } from './actions';
+import { updateProject, getProjects } from './actions';
 import { Loader2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
@@ -56,6 +56,7 @@ const updateProjectSchema = z.object({
   start_date: z.date({ required_error: 'Start date is required.' }),
   end_date: z.date({ required_error: 'End date is required.' }),
   assignee_id: z.string().uuid().optional().nullable(),
+  parent_id: z.string().optional().nullable(),
 });
 
 type EditProjectFormProps = {
@@ -67,23 +68,25 @@ type EditProjectFormProps = {
 export function EditProjectForm({ project, open, onOpenChange }: EditProjectFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
-    async function fetchUsers() {
-      const { data, error } = await supabase
+    async function fetchData() {
+      const { data: usersData, error: usersError } = await supabase
         .from('users')
         .select('id, full_name')
         .in('role', ['pmc', 'contractor', 'subcontractor']);
 
-      if (error) {
-        console.error('Error fetching users for form', error);
-      } else {
-        setUsers(data);
-      }
+      if (usersError) console.error('Error fetching users for form', usersError);
+      else setUsers(usersData);
+
+      const { data: projectsData, error: projectsError } = await getProjects();
+      if (projectsError) console.error('Error fetching projects for form', projectsError);
+      else setAllProjects(projectsData as Project[]);
     }
     if (open) {
-      fetchUsers();
+      fetchData();
     }
   }, [open]);
 
@@ -99,10 +102,10 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
       start_date: new Date(project.start_date),
       end_date: new Date(project.end_date),
       assignee_id: project.users?.id || null,
+      parent_id: project.parent_id,
     },
   });
   
-  // Watch for changes in the passed project prop to reset the form
   useEffect(() => {
     form.reset({
       id: project.id,
@@ -114,6 +117,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
       start_date: new Date(project.start_date),
       end_date: new Date(project.end_date),
       assignee_id: project.users?.id || null,
+      parent_id: project.parent_id,
     });
   }, [project, form]);
 
@@ -162,6 +166,33 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
                   <FormControl>
                     <Input placeholder="e.g., Downtown Tower Renovation" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="parent_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Parent Project (Optional)</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a parent project" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">None (This is a master project)</SelectItem>
+                      {allProjects
+                        .filter(p => p.id !== project.id) // Can't be its own parent
+                        .map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

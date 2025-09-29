@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Building, ChevronDown, ChevronRight, Folder } from 'lucide-react';
 import { PageHeader } from '../components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -40,7 +40,9 @@ export type Project = {
   completion: number;
   start_date: string;
   end_date: string;
+  parent_id: string | null;
   users: User | null; // Can be a user object or null
+  subProjects?: Project[];
 };
 
 const getInitials = (name?: string | null) => {
@@ -50,6 +52,82 @@ const getInitials = (name?: string | null) => {
     return names[0][0] + names[names.length - 1][0];
   }
   return name.substring(0, 2);
+};
+
+const ProjectRow = ({ project, level = 0 }: { project: Project; level?: number }) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const hasSubProjects = project.subProjects && project.subProjects.length > 0;
+
+  return (
+    <>
+      <TableRow key={project.id}>
+        <TableCell style={{ paddingLeft: `${level * 2}rem` }}>
+          <div className="flex items-center gap-2">
+             {hasSubProjects ? (
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsExpanded(!isExpanded)}>
+                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
+            ) : (
+               <span className="w-6 h-6" /> // Placeholder for alignment
+            )}
+            {level === 0 ? <Folder className="h-5 w-5 text-muted-foreground" /> : <Building className="h-5 w-5 text-muted-foreground" />}
+            <div className="font-medium">
+              {project.name}
+              {level === 0 && <div className="text-sm text-muted-foreground">{project.owner}</div>}
+            </div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <Badge
+            variant={
+              project.status === 'Completed'
+                ? 'outline'
+                : project.status === 'Delayed'
+                ? 'destructive'
+                : 'secondary'
+            }
+            className={project.status === 'On Track' ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' : ''}
+          >
+            {project.status}
+          </Badge>
+        </TableCell>
+        <TableCell className="hidden md:table-cell">
+          {new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            maximumFractionDigits: 0,
+          }).format(project.budget)}
+        </TableCell>
+        <TableCell className="hidden lg:table-cell">
+          {project.users ? (
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={project.users.avatar_url || ''} alt={project.users.full_name || ''} />
+                <AvatarFallback>{getInitials(project.users.full_name)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-medium">{project.users.full_name}</div>
+              </div>
+            </div>
+          ) : (
+            <span className="text-muted-foreground">Unassigned</span>
+          )}
+        </TableCell>
+        <TableCell className="hidden md:table-cell">
+          <div className="flex items-center gap-2">
+             <Progress value={project.completion} className="h-2" />
+             <span>{project.completion}%</span>
+          </div>
+        </TableCell>
+        <TableCell>
+          <ProjectActions project={project} />
+        </TableCell>
+      </TableRow>
+      {isExpanded && hasSubProjects && project.subProjects?.map(sub => (
+          <ProjectRow key={sub.id} project={sub} level={level + 1} />
+      ))}
+    </>
+  );
 };
 
 
@@ -62,8 +140,23 @@ export default function ProjectsPage() {
     async function fetchProjects() {
       setLoading(true);
       const { data, error } = await getProjects();
-      if (!error) {
-        setProjects(data as unknown as Project[]);
+      if (!error && data) {
+        const allProjects = data as unknown as Project[];
+        // Create a map for easy lookup
+        const projectMap = new Map(allProjects.map(p => [p.id, { ...p, subProjects: [] }]));
+        
+        const hierarchicalProjects: Project[] = [];
+
+        allProjects.forEach(p => {
+          if (p.parent_id && projectMap.has(p.parent_id)) {
+            const parent = projectMap.get(p.parent_id);
+            parent?.subProjects?.push(projectMap.get(p.id)!);
+          } else {
+            hierarchicalProjects.push(projectMap.get(p.id)!);
+          }
+        });
+        
+        setProjects(hierarchicalProjects);
       } else {
         console.error('Error fetching projects:', error);
       }
@@ -76,10 +169,10 @@ export default function ProjectsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Projects"
-        description="Manage all your master projects."
+        description="Manage all your master projects and their sub-phases."
       >
         {profile?.role === 'admin' && (
-          <AddProjectForm>
+          <AddProjectForm allProjects={projects}>
             <Button size="sm" className="gap-1">
               <PlusCircle className="h-4 w-4" />
               Add Project
@@ -116,57 +209,7 @@ export default function ProjectsPage() {
                 ))
               ) : (
                 projects.map((project) => (
-                  <TableRow key={project.id}>
-                    <TableCell className="font-medium">
-                      {project.name}
-                      <div className="text-sm text-muted-foreground">{project.owner}</div>
-                    </TableCell>
-                    <TableCell>
-                       <Badge
-                        variant={
-                          project.status === 'Completed'
-                            ? 'outline'
-                            : project.status === 'Delayed'
-                            ? 'destructive'
-                            : 'secondary'
-                        }
-                        className={project.status === 'On Track' ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' : ''}
-                      >
-                        {project.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: 'USD',
-                        maximumFractionDigits: 0,
-                      }).format(project.budget)}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {project.users ? (
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={project.users.avatar_url || ''} alt={project.users.full_name || ''} />
-                            <AvatarFallback>{getInitials(project.users.full_name)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">{project.users.full_name}</div>
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">Unassigned</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <div className="flex items-center gap-2">
-                         <Progress value={project.completion} className="h-2" />
-                         <span>{project.completion}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <ProjectActions project={project} />
-                    </TableCell>
-                  </TableRow>
+                  <ProjectRow key={project.id} project={project} />
                 ))
               )}
             </TableBody>

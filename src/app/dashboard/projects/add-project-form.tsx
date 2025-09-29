@@ -41,6 +41,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
+import type { Project } from './page';
 
 type User = {
   id: string;
@@ -56,9 +57,10 @@ const projectSchema = z.object({
   start_date: z.date({ required_error: 'Start date is required.' }),
   end_date: z.date({ required_error: 'End date is required.' }),
   assignee_id: z.string().uuid().optional().nullable(),
+  parent_id: z.string().optional().nullable(),
 });
 
-export function AddProjectForm({ children }: { children: React.ReactNode }) {
+export function AddProjectForm({ children, allProjects }: { children: React.ReactNode, allProjects: Project[] }) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
@@ -92,6 +94,7 @@ export function AddProjectForm({ children }: { children: React.ReactNode }) {
       budget: 0,
       completion: 0,
       assignee_id: null,
+      parent_id: null,
     },
   });
 
@@ -148,6 +151,32 @@ export function AddProjectForm({ children }: { children: React.ReactNode }) {
               )}
             />
             
+            <FormField
+              control={form.control}
+              name="parent_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Parent Project (Optional)</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a parent project" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="null">None (This is a master project)</SelectItem>
+                      {allProjects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="owner"
