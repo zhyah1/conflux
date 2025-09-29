@@ -1,6 +1,7 @@
 'use server';
 
-import { supabase } from '@/lib/supabase-server';
+import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
@@ -16,6 +17,7 @@ const projectSchema = z.object({
 });
 
 export async function addProject(formData: z.infer<typeof projectSchema>) {
+  const supabase = createServerActionClient({ cookies });
   const parsedData = projectSchema.safeParse(formData);
 
   if (!parsedData.success) {
@@ -47,6 +49,7 @@ const updateProjectSchema = projectSchema.extend({
 });
 
 export async function updateProject(formData: z.infer<typeof updateProjectSchema>) {
+    const supabase = createServerActionClient({ cookies });
     const parsedData = updateProjectSchema.safeParse(formData);
 
     if (!parsedData.success) {
@@ -79,6 +82,7 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
 }
 
 export async function deleteProject(id: string) {
+    const supabase = createServerActionClient({ cookies });
     const { error } = await supabase.from('projects').delete().eq('id', id);
 
     if (error) {
@@ -91,6 +95,7 @@ export async function deleteProject(id: string) {
 }
 
 export async function getProjects() {
+    const supabase = createServerActionClient({ cookies });
     const { data, error } = await supabase
         .from('projects')
         .select(`
@@ -107,6 +112,7 @@ export async function getProjects() {
 }
 
 export async function getProjectById(id: string) {
+    const supabase = createServerActionClient({ cookies });
     const { data, error } = await supabase
       .from('projects')
       .select(`

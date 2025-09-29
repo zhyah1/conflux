@@ -1,10 +1,15 @@
 'use server';
 
-import { supabase } from '@/lib/supabase-server';
+import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 
 
 export async function inviteUser(email: string, role: string) {
+  const supabase = createServerActionClient({ cookies }, {
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY
+  });
   
   // Create the user in Supabase Auth
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({

@@ -1,8 +1,9 @@
 'use server';
 
-import { supabase } from '@/lib/supabase-server';
+import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Task title is required.'),
@@ -13,6 +14,7 @@ const taskSchema = z.object({
 });
 
 export async function addTask(formData: z.infer<typeof taskSchema>) {
+  const supabase = createServerActionClient({ cookies });
   const parsedData = taskSchema.safeParse(formData);
 
   if (!parsedData.success) {
@@ -49,6 +51,7 @@ const updateTaskSchema = z.object({
 });
 
 export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
+    const supabase = createServerActionClient({ cookies });
     const parsedData = updateTaskSchema.safeParse(formData);
 
     if (!parsedData.success) {
