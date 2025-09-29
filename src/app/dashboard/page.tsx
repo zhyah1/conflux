@@ -34,7 +34,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ProjectProgressChart } from './components/project-progress-chart';
-import { TasksChart } from './components/tasks-chart';
+import { IssuesPieChart } from './components/issues-pie-chart';
 import { useEffect, useState }from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getProjects } from './projects/actions';
@@ -171,11 +171,11 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="font-headline">Task Status Overview</CardTitle>
-            <CardDescription>A summary of task statuses across all projects.</CardDescription>
+            <CardTitle className="font-headline">Issues by Priority</CardTitle>
+            <CardDescription>A summary of issue priorities across all projects.</CardDescription>
           </CardHeader>
           <CardContent>
-            <TasksChart />
+            <IssuesPieChart />
           </CardContent>
         </Card>
       </div>
