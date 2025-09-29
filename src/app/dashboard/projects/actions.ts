@@ -92,13 +92,25 @@ export async function deleteProject(id: string) {
     return { success: true };
 }
 
+// This is a more reliable way to get the user's role on the server
 async function getUserRole() {
     const supabase = createServerActionClient({ cookies });
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    // Use the user_metadata from the JWT claims, which is more reliable server-side.
-    return user.user_metadata?.role || null;
+    // Query the public 'users' table to get the role, which is more reliable server-side.
+    const { data: profile, error } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (error || !profile) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+
+    return profile.role;
 }
 
 
