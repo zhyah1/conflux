@@ -42,12 +42,24 @@ export function ProjectProgressChart({ data }: ProjectProgressChartProps) {
       <ResponsiveContainer width="100%" height="100%">
         <BarChart 
           data={chartData} 
-          margin={{ top: 5, right: 20, left: -15, bottom: 5 }}
-          layout="vertical"
+          margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
         >
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-          <XAxis type="number" dataKey="completion" tickFormatter={(value) => `${value}%`} tickLine={false} axisLine={false} tickMargin={8} fontSize={12} domain={[0, 100]} />
-          <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} width={80} />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis 
+            dataKey="name" 
+            tickLine={false} 
+            axisLine={false} 
+            tickMargin={8} 
+            fontSize={12} 
+          />
+          <YAxis 
+            tickFormatter={(value) => `${value}%`} 
+            tickLine={false} 
+            axisLine={false} 
+            tickMargin={8} 
+            fontSize={12} 
+            domain={[0, 100]} 
+          />
           <Tooltip
             cursor={{ fill: 'hsl(var(--muted))' }}
             content={<ChartTooltipContent
@@ -60,7 +72,7 @@ export function ProjectProgressChart({ data }: ProjectProgressChartProps) {
                 nameKey="name"
             />}
           />
-          <Bar dataKey="completion" radius={[0, 4, 4, 0]}>
+          <Bar dataKey="completion" radius={[4, 4, 0, 0]}>
              {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.fill} />
             ))}
