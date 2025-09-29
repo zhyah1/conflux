@@ -6,7 +6,7 @@ import { ThemeProvider } from './theme-provider';
 import { UserProvider } from './user-provider';
 
 export const metadata: Metadata = {
-  title: 'Conflux',
+  title: 'Construx',
   description: 'Construction Project Management',
 };
 

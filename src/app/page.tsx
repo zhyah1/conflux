@@ -88,7 +88,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
            <Logo className="h-10 w-10 text-primary mx-auto mb-2" />
-          <CardTitle className="font-headline">{isSignUp ? 'Create Account' : 'Welcome to Conflux'}</CardTitle>
+          <CardTitle className="font-headline">{isSignUp ? 'Create Account' : 'Welcome to Construx'}</CardTitle>
           <CardDescription>
             {isSignUp 
               ? 'Create your account to get started' 
