@@ -97,8 +97,8 @@ async function getUserRole() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    // The role is stored in user_metadata, which is accessible via the user object
-    return user.user_metadata.role || null;
+    // Use the user_metadata from the JWT claims, which is more reliable server-side.
+    return user.user_metadata?.role || null;
 }
 
 
@@ -106,21 +106,14 @@ export async function getProjects() {
     const supabase = createServerActionClient({ cookies });
     const role = await getUserRole();
 
-    // If user is admin, use the admin client to bypass RLS and get all projects
-    if (role === 'admin') {
-         const { data, error } = await supabaseAdmin
-            .from('projects')
-            .select(`*, users (id, full_name, avatar_url)`)
-            .order('start_date', { ascending: false });
-        return { data, error: error?.message };
-    }
+    // Use the admin client for admins to bypass RLS, otherwise use the user's client.
+    const dbClient = role === 'admin' ? supabaseAdmin : supabase;
 
-    // For non-admins, use the standard client which will respect RLS
-    const { data, error } = await supabase
+    const { data, error } = await dbClient
         .from('projects')
         .select(`*, users (id, full_name, avatar_url)`)
         .order('start_date', { ascending: false });
-
+        
     return { data, error: error?.message };
 }
 
@@ -128,24 +121,14 @@ export async function getProjectById(id: string) {
     const supabase = createServerActionClient({ cookies });
     const role = await getUserRole();
 
-    let query;
+    // Use the admin client for admins to bypass RLS, otherwise use the user's client.
+    const dbClient = role === 'admin' ? supabaseAdmin : supabase;
 
-    // If user is admin, use the admin client to bypass RLS
-    if (role === 'admin') {
-      query = supabaseAdmin
+    const { data, error } = await dbClient
         .from('projects')
         .select(`*, users (id, full_name, avatar_url)`)
         .eq('id', id)
         .single();
-    } else {
-    // For non-admins, use the standard client which will respect RLS
-      query = supabase
-        .from('projects')
-        .select(`*, users (id, full_name, avatar_url)`)
-        .eq('id', id)
-        .single();
-    }
     
-    const { data, error } = await query;
     return { data, error: error?.message };
 }
