@@ -58,85 +58,30 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const checkAuthentication = async () => {
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      console.log('Session check:', session);
-      console.log('Session error:', error);
-      
-      if (error) {
-        console.error('Auth session error:', error);
-        return false;
-      }
-      
-      if (!session || !session.user) {
-        console.log('No active session found');
-        return false;
-      }
-      
-      console.log('Authenticated user:', session.user);
-      return true;
-    } catch (err) {
-      console.error('Authentication check failed:', err);
-      return false;
-    }
-  };
-
   const fetchUsers = async () => {
     setLoading(true);
-    
-    try {
-      // First check authentication
-      const authCheck = await checkAuthentication();
-      
-      if (!authCheck) {
-        console.log('User not authenticated, redirecting to login');
-        toast({ 
-          variant: 'destructive', 
-          title: 'Authentication Required', 
-          description: 'Please log in to access the users page.' 
-        });
-        router.push('/'); 
-        return;
-      }
-      
-      setIsAuthenticated(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    const userIsAuthenticated = !!session?.user;
+    setIsAuthenticated(userIsAuthenticated);
 
-      // Now try to fetch users
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, full_name, role, email');
-      
-      console.log('Supabase query result:', { data, error });
+    if (!userIsAuthenticated) {
+      setLoading(false);
+      return;
+    }
 
-      if (error) {
-        console.error('Error fetching users:', error);
-        console.error('Error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
-        
-        toast({ 
-          variant: 'destructive', 
-          title: 'Error', 
-          description: `Failed to fetch users: ${error.message}` 
-        });
-        setUsers([]);
-      } else {
-        console.log('Successfully fetched users:', data);
-        setUsers(data || []);
-      }
-    } catch (err) {
-      console.error('Unexpected error:', err);
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, full_name, role, email');
+
+    if (error) {
       toast({ 
         variant: 'destructive', 
         title: 'Error', 
-        description: 'An unexpected error occurred while fetching users.' 
+        description: `Failed to fetch users: ${error.message}` 
       });
       setUsers([]);
+    } else {
+      setUsers(data || []);
     }
     
     setLoading(false);
@@ -145,10 +90,8 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers();
 
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Auth state changed:', event, session);
         if (event === 'SIGNED_IN') {
           setIsAuthenticated(true);
           fetchUsers();
@@ -161,19 +104,10 @@ export default function UsersPage() {
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [router]);
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!isAuthenticated) {
-      toast({ 
-        variant: 'destructive', 
-        title: 'Authentication Required', 
-        description: 'Please log in to invite users.' 
-      });
-      return;
-    }
     
     if (!inviteEmail) {
       toast({ variant: 'destructive', title: 'Error', description: 'Email is required.' });
@@ -187,11 +121,11 @@ export default function UsersPage() {
     } else {
       toast({ title: 'Success', description: `Invitation sent to ${inviteEmail}.` });
       setInviteEmail('');
-      fetchUsers();
+      await fetchUsers(); // Re-fetch users to show the newly invited one.
     }
   };
 
-  // Show login prompt if not authenticated
+  // Show login prompt if not authenticated and not loading
   if (!loading && !isAuthenticated) {
     return (
       <div className="flex flex-col gap-6">
@@ -203,7 +137,7 @@ export default function UsersPage() {
           <CardContent className="py-8">
             <div className="text-center">
               <p className="text-muted-foreground mb-4">
-                You need to be logged in to access the users page.
+                You need to be logged in to access this page.
               </p>
               <Button onClick={() => router.push('/')}>
                 Go to Login
@@ -255,7 +189,7 @@ export default function UsersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" disabled={loading || !isAuthenticated}>
+              <Button type="submit">
                 Invite User
               </Button>
           </form>
