@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from './auth-provider';
 import { ThemeProvider } from './theme-provider';
+import { UserProvider } from './user-provider';
 
 export const metadata: Metadata = {
   title: 'Conflux',
@@ -36,7 +37,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            {children}
+            <UserProvider>
+              {children}
+            </UserProvider>
           </AuthProvider>
           <Toaster />
         </ThemeProvider>

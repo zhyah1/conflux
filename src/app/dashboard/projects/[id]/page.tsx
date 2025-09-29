@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { PageHeader } from '../../components/page-header';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar, CircleDollarSign, Percent, Tag, Loader2 } from 'lucide-react';
@@ -25,7 +24,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { deleteProject } from '../actions';
+import { deleteProject, getProjectById } from '../actions';
 
 
 const getInitials = (name?: string | null) => {
@@ -51,18 +50,7 @@ export default function ProjectDetailsPage() {
     if (id) {
       const fetchProject = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-          .from('projects')
-          .select(`
-            *,
-            users (
-              id,
-              full_name,
-              avatar_url
-            )
-          `)
-          .eq('id', id)
-          .single();
+        const { data, error } = await getProjectById(id as string);
 
         if (error) {
           console.error('Error fetching project:', error);

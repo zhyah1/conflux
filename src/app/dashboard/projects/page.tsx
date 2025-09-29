@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -23,6 +22,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AddProjectForm } from './add-project-form';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ProjectActions } from './project-actions';
+import { getProjects } from './actions';
+import { useUser } from '@/app/user-provider';
 
 export type User = {
   id: string;
@@ -55,32 +56,12 @@ const getInitials = (name?: string | null) => {
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const { profile } = useUser();
 
   useEffect(() => {
-    const channel = supabase
-      .channel('projects-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, 
-        (payload) => {
-          console.log('Change received!', payload);
-          fetchProjects();
-        }
-      )
-      .subscribe()
-
     async function fetchProjects() {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          users (
-            id,
-            full_name,
-            avatar_url
-          )
-        `)
-        .order('start_date', { ascending: false });
-
+      const { data, error } = await getProjects();
       if (!error) {
         setProjects(data as unknown as Project[]);
       } else {
@@ -89,11 +70,6 @@ export default function ProjectsPage() {
       setLoading(false);
     }
     fetchProjects();
-
-    return () => {
-      supabase.removeChannel(channel);
-    }
-
   }, []);
 
   return (
@@ -102,12 +78,14 @@ export default function ProjectsPage() {
         title="Projects"
         description="Manage all your master projects."
       >
-        <AddProjectForm>
-          <Button size="sm" className="gap-1">
-            <PlusCircle className="h-4 w-4" />
-            Add Project
-          </Button>
-        </AddProjectForm>
+        {profile?.role === 'admin' && (
+          <AddProjectForm>
+            <Button size="sm" className="gap-1">
+              <PlusCircle className="h-4 w-4" />
+              Add Project
+            </Button>
+          </AddProjectForm>
+        )}
       </PageHeader>
       <Card>
         <CardContent className="pt-6">

@@ -89,3 +89,36 @@ export async function deleteProject(id: string) {
     revalidatePath('/dashboard/projects');
     return { success: true };
 }
+
+export async function getProjects() {
+    const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          users (
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .order('start_date', { ascending: false });
+
+    return { data, error: error?.message };
+}
+
+export async function getProjectById(id: string) {
+    const { data, error } = await supabase
+      .from('projects')
+      .select(`
+        *,
+        users (
+          id,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    return { data, error: error?.message };
+}
