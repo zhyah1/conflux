@@ -18,7 +18,6 @@ const projectSchema = z.object({
 });
 
 export async function addProject(formData: z.infer<typeof projectSchema>) {
-  const supabase = createServerActionClient({ cookies });
   const parsedData = projectSchema.safeParse(formData);
 
   if (!parsedData.success) {
