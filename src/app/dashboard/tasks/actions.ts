@@ -56,10 +56,16 @@ export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
     }
 
     const { id, project_id, ...taskData } = parsedData.data;
+    
+    const updateData: { [key: string]: any } = { ...taskData };
+    if (taskData.assignee_id === 'null') {
+      updateData.assignee_id = null;
+    }
+
 
     const { data, error } = await supabase
         .from('tasks')
-        .update(taskData)
+        .update(updateData)
         .eq('id', id)
         .select();
 

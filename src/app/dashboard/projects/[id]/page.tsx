@@ -66,6 +66,11 @@ export default function ProjectDetailsPage() {
 
         if (error) {
           console.error('Error fetching project:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not fetch project details. You may not have the required permissions.'
+          })
           setProject(null);
         } else {
           setProject(data as unknown as Project);
@@ -74,7 +79,7 @@ export default function ProjectDetailsPage() {
       };
       fetchProject();
     }
-  }, [id]);
+  }, [id, toast]);
 
   const handleArchive = async () => {
     if (!project) return;
@@ -127,7 +132,7 @@ export default function ProjectDetailsPage() {
   if (!project) {
     return (
       <div>
-        <PageHeader title="Project not found" />
+        <PageHeader title="Project not found" description="This project may not exist or you may not have permission to view it."/>
         <Button onClick={() => router.push('/dashboard/projects')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Projects

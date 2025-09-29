@@ -1,41 +1,53 @@
 'use server';
 
-import { createClient } from '@supabase/supabase-js';
-import { randomBytes } from 'crypto';
+import { supabase } from '@/lib/supabase-server';
+import { revalidatePath } from 'next/cache';
 
-// This server action now uses the service_role key to create a special admin client.
-// This is the correct and secure way to perform admin-level operations.
+
 export async function inviteUser(email: string, role: string) {
-  // Note: We are not using the helper here, but creating a new client
-  // with the service role key to grant admin privileges.
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
-
-  // Generate a secure random password
-  const temporaryPassword = randomBytes(16).toString('hex');
-
-  // Create the user directly with the temporary password
-  const { data: createUserData, error: createUserError } = await supabase.auth.admin.createUser({
+  
+  // Create the user in Supabase Auth
+  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email,
-    password: temporaryPassword,
-    email_confirm: true, // Auto-confirm the email
-    user_metadata: { role: role, full_name: 'Invited User' },
+    email_confirm: true, // Auto-confirm email for simplicity in this app
+    user_metadata: { 
+      role: role,
+      full_name: email.split('@')[0] // Default name
+    },
   });
 
-  if (createUserError) {
-    console.error('Error creating user:', createUserError);
-    return { error: createUserError.message };
+  if (authError) {
+    console.error('Error creating user in Auth:', authError);
+    return { error: `Auth Error: ${authError.message}` };
   }
-  
-  // Immediately send a password reset email so the user can set their own password
+
+  const userId = authData.user.id;
+
+  // Insert the user profile into the public 'users' table
+  // This step is often handled by a database trigger, but we do it manually here
+  // to ensure it's created. Your trigger might be failing or non-existent.
+  const { error: profileError } = await supabase.from('users').insert({
+    id: userId,
+    email: email,
+    role: role,
+    full_name: email.split('@')[0], // Default name
+  });
+
+  if (profileError) {
+      // If the user already exists in the profiles table, this might fail.
+      // We can choose to ignore it or handle it, but for now, we'll log it.
+      console.error('Error inserting user profile (might be a duplicate, which is okay):', profileError);
+      
+       // Attempt to send password reset even if profile insert fails
+       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email);
+       if (resetError) {
+           console.error('Error sending password reset email:', resetError);
+           return { error: `User created, but failed to send password reset email: ${resetError.message}` };
+       }
+  }
+
+
+  // Send a password reset email so the user can set their own password
   const { error: resetError } = await supabase.auth.resetPasswordForEmail(email);
 
   if (resetError) {
@@ -44,6 +56,6 @@ export async function inviteUser(email: string, role: string) {
     return { error: `User created, but failed to send password reset email: ${resetError.message}` };
   }
 
-
-  return { data: createUserData };
+  revalidatePath('/dashboard/users');
+  return { data: authData };
 }
