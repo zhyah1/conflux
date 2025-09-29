@@ -1,28 +1,44 @@
+
 "use client";
 
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts';
 import {
   ChartContainer,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-
-type Project = {
-  name: string;
-  completion: number;
-};
+import type { Project } from '../projects/page';
+import type { ChartConfig } from '@/components/ui/chart';
 
 type ProjectProgressChartProps = {
   data: Project[];
 };
 
+const chartColors = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+];
+
 export function ProjectProgressChart({ data }: ProjectProgressChartProps) {
-  const chartData = data.map(project => ({
+  const chartData = data.map((project, index) => ({
     name: project.name.split(' ').slice(0, 2).join(' '), // Shorten name for chart label
     completion: project.completion,
+    fill: chartColors[index % chartColors.length],
   }));
 
+  const chartConfig = chartData.reduce((acc, project) => {
+    acc[project.name] = {
+      label: project.name,
+      color: project.fill,
+    };
+    return acc;
+  }, {} as ChartConfig);
+
+
   return (
-    <ChartContainer config={{}} className="h-[250px] w-full">
+    <ChartContainer config={chartConfig} className="h-[250px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart 
           data={chartData} 
@@ -35,14 +51,20 @@ export function ProjectProgressChart({ data }: ProjectProgressChartProps) {
           <Tooltip
             cursor={{ fill: 'hsl(var(--muted))' }}
             content={<ChartTooltipContent
-              formatter={(value, name) => (
-                <div className="flex flex-col">
-                  <span className="font-bold">{value}%</span>
-                </div>
-              )}
+                formatter={(value, name) => (
+                    <div>
+                        <div className="font-bold">{name}</div>
+                        <div>{value}% Complete</div>
+                    </div>
+                )}
+                nameKey="name"
             />}
           />
-          <Bar dataKey="completion" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+          <Bar dataKey="completion" radius={[0, 4, 4, 0]}>
+             {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.fill} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </ChartContainer>

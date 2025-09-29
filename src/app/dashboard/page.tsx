@@ -38,15 +38,8 @@ import { BudgetChart } from './components/budget-chart';
 import { useEffect, useState }from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getProjects } from './projects/actions';
+import type { Project } from './projects/page';
 
-type Project = {
-  id: string;
-  name: string;
-  status: string;
-  owner: string;
-  completion: number;
-  budget: number;
-};
 
 export default function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
