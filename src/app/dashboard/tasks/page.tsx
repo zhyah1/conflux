@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { PageHeader } from '../components/page-header';
 import {
   Card,
@@ -17,6 +16,7 @@ import { ArrowRight } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { getProjects } from '../projects/actions';
 
 export default function TasksProjectListPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -25,19 +25,7 @@ export default function TasksProjectListPage() {
   useEffect(() => {
     async function fetchProjects() {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('projects')
-        .select(
-          `
-          *,
-          users (
-            id,
-            full_name,
-            avatar_url
-          )
-        `
-        )
-        .order('start_date', { ascending: false });
+      const { data, error } = await getProjects();
 
       if (!error) {
         setProjects(data as unknown as Project[]);

@@ -20,6 +20,7 @@ import { useParams, useRouter } from 'next/navigation';
 import type { Project } from '../../projects/page';
 import { Input } from '@/components/ui/input';
 import { AddTaskForm } from '../add-task-form';
+import { getProjectById } from '../../projects/actions';
 
 type User = {
   id: string;
@@ -129,14 +130,12 @@ export default function TaskBoardPage() {
 
     async function fetchTasksAndProject() {
       setLoading(true);
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .single();
       
-      if (projectError) {
-        console.error('Error fetching project:', projectError);
+      const { data: projectData, error: projectError } = await getProjectById(projectId);
+      
+      if (projectError || !projectData) {
+        console.error('Error fetching project or user not authorized:', projectError);
+        setProject(null);
       } else {
         setProject(projectData as Project);
       }
@@ -204,7 +203,7 @@ export default function TaskBoardPage() {
   if (!project) {
     return (
          <div className="flex flex-col items-center justify-center h-full text-center">
-            <PageHeader title="Project not found" description="The project you are looking for does not exist." />
+            <PageHeader title="Project not found" description="The project you are looking for does not exist or you do not have permission to view it." />
              <Button onClick={() => router.push('/dashboard/tasks')} variant="outline">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Projects List
