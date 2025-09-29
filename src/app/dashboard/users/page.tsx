@@ -38,7 +38,6 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { inviteUser } from './actions';
-import { useRouter } from 'next/navigation';
 
 type User = {
   id: string;
@@ -51,7 +50,6 @@ const roles = ['admin', 'pmc', 'owner', 'contractor', 'subcontractor'];
 
 export default function UsersPage() {
   const { toast } = useToast();
-  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');
   const [selectedRole, setSelectedRole] = useState('contractor');
@@ -98,13 +96,12 @@ export default function UsersPage() {
         } else if (event === 'SIGNED_OUT') {
           setIsAuthenticated(false);
           setUsers([]);
-          router.push('/');
         }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, [router]);
+  }, []);
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,7 +136,7 @@ export default function UsersPage() {
               <p className="text-muted-foreground mb-4">
                 You need to be logged in to access this page.
               </p>
-              <Button onClick={() => router.push('/')}>
+              <Button onClick={() => (window.location.href = '/')}>
                 Go to Login
               </Button>
             </div>
