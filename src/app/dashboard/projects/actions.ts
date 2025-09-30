@@ -133,7 +133,10 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
     // If user is a PMC, they can only edit projects assigned to them.
     if (profile.role === 'pmc') {
       query = query.eq('assignee_id', user.id);
+    } else if (!['admin', 'owner'].includes(profile.role)) {
+        return { error: 'You do not have permission to update projects.' };
     }
+
 
     const { data, error } = await query.select();
 
@@ -180,7 +183,6 @@ export async function getProjects() {
         return { data: [], error: 'User not authenticated' };
     }
 
-    // This is now safe because we removed the recursive policies.
     const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('role')
@@ -197,22 +199,11 @@ export async function getProjects() {
         .from('projects')
         .select(`*, users (id, full_name, avatar_url)`);
 
-    // Manually apply security rules in the application layer
+    // Manually apply security rules in the application layer since RLS is disabled for SELECT
     if (userRole === 'pmc') {
-      // PMC sees projects they are assigned to and all sub-projects under those.
-      const { data: assignedProjects, error: assignedError } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('assignee_id', user.id);
-
-      if (assignedError) {
-        return { data: [], error: 'Could not fetch PMC projects.' };
-      }
-      const assignedProjectIds = assignedProjects.map(p => p.id);
-      query = query.or(`id.in.(${assignedProjectIds.join(',')}),parent_id.in.(${assignedProjectIds.join(',')})`);
-
+      query = query.eq('assignee_id', user.id);
     } else if (['contractor', 'subcontractor'].includes(userRole)) {
-      // Contractors see projects where they have an assigned task.
+      // 1. Find all project_ids for tasks assigned to this user
       const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
         .select('project_id')
@@ -223,13 +214,18 @@ export async function getProjects() {
         return { data: [], error: 'Could not fetch user tasks.'};
       }
       
+      // 2. Get a unique list of project IDs
       const projectIdsFromTasks = [...new Set(tasks ? tasks.map(t => t.project_id) : [])];
+
+      // 3. If the user has no tasks, return no projects.
       if (projectIdsFromTasks.length === 0) {
-        return { data: [], error: null }; // Return empty, not an error
+        return { data: [], error: null };
       }
+      
+      // 4. Fetch all projects where the ID is in the list of project IDs from tasks.
       query = query.in('id', projectIdsFromTasks);
     }
-    // Admins, owners, and clients don't get any extra filters, so they see all projects.
+    // For admins, owners, and clients, the query remains unfiltered, so they see all projects.
 
     const { data, error } = await query.order('start_date', { ascending: false });
         
@@ -241,8 +237,7 @@ export async function getProjectById(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: 'Not authenticated' };
 
-    // We can fetch the project first, then validate if the user has access.
-    // This is safe because we will not return the data if they don't.
+    // Fetch the project first
     const { data, error } = await supabase
         .from('projects')
         .select(`*, users (id, full_name, avatar_url)`)
@@ -259,7 +254,7 @@ export async function getProjectById(id: string) {
     // Now, apply security check in code
     const userRole = profile.role;
     if (['admin', 'owner', 'client'].includes(userRole)) {
-      return { data, error: null }; // These roles can see everything
+      return { data, error: null };
     }
 
     if (userRole === 'pmc' && data.assignee_id === user.id) {
@@ -269,12 +264,15 @@ export async function getProjectById(id: string) {
     if (['contractor', 'subcontractor'].includes(userRole)) {
       const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
-        .select('project_id')
+        .select('project_id', { count: 'exact', head: true })
         .eq('project_id', id)
-        .eq('assignee_id', user.id)
-        .limit(1);
+        .eq('assignee_id', user.id);
       
-      if (tasks && tasks.length > 0) {
+      if (tasksError) {
+        return { data: null, error: `Could not verify task assignment: ${tasksError.message}` };
+      }
+
+      if (tasks) {
         return { data, error: null };
       }
     }
