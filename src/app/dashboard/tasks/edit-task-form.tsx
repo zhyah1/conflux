@@ -37,6 +37,7 @@ import { updateTask } from './actions';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Task } from './[id]/page';
+import { useUser } from '@/app/user-provider';
 
 type User = {
   id: string;
@@ -58,13 +59,16 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
   const [users, setUsers] = useState<User[]>([]);
   const { toast } = useToast();
   const router = useRouter();
+  const { profile } = useUser();
+
+  const isContractor = profile?.role === 'contractor' || profile?.role === 'subcontractor';
 
   useEffect(() => {
     async function fetchUsers() {
       const { data, error } = await supabase
         .from('users')
         .select('id, full_name')
-        .in('role', ['pmc', 'contractor', 'subcontractor']);
+        .in('role', ['pmc', 'contractor', 'subcontractor', 'admin', 'owner']);
 
       if (error) {
         console.error('Error fetching users for form', error);
@@ -132,7 +136,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
                 <FormItem>
                   <FormLabel>Task Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Install window frames" {...field} />
+                    <Input placeholder="e.g., Install window frames" {...field} disabled={isContractor} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -169,7 +173,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Priority</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isContractor}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a priority" />
@@ -195,6 +199,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value || undefined}
+                    disabled={isContractor}
                   >
                     <FormControl>
                       <SelectTrigger>

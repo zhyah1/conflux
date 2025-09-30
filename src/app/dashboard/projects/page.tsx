@@ -164,6 +164,8 @@ export default function ProjectsPage() {
     }
     fetchProjects();
   }, []);
+  
+  const canAddProject = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'pmc';
 
   return (
     <div className="flex flex-col gap-6">
@@ -171,7 +173,7 @@ export default function ProjectsPage() {
         title="Projects"
         description="Manage all your master projects and their sub-phases."
       >
-        {profile?.role === 'admin' && (
+        {canAddProject && (
           <AddProjectForm allProjects={projects}>
             <Button size="sm" className="gap-1">
               <PlusCircle className="h-4 w-4" />

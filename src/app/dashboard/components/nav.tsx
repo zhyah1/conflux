@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { usePathname } from 'next/navigation';
 import {
@@ -35,9 +35,9 @@ const navItems = [
 
 export function Nav() {
   const pathname = usePathname();
-  const { user, profile } = useUser();
+  const { profile } = useUser();
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
 
   return (
     <>
@@ -70,7 +70,7 @@ export function Nav() {
           })}
         </SidebarMenu>
       </SidebarContent>
-       <SidebarFooter>
+      <SidebarFooter>
         <ThemeToggle />
       </SidebarFooter>
     </>

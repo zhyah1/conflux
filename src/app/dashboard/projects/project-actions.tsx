@@ -26,10 +26,12 @@ import { MoreHorizontal, Loader2 } from 'lucide-react';
 import { type Project } from './page';
 import { deleteProject } from './actions';
 import { EditProjectForm } from './edit-project-form';
+import { useUser } from '@/app/user-provider';
 
 export function ProjectActions({ project }: { project: Project }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { profile } = useUser();
   const [isArchiveAlertOpen, setIsArchiveAlertOpen] = React.useState(false);
   const [isArchiving, setIsArchiving] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -58,6 +60,9 @@ export function ProjectActions({ project }: { project: Project }) {
     }
   };
 
+  const canEdit = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'pmc';
+  const canDelete = profile?.role === 'admin' || profile?.role === 'owner';
+
   return (
     <>
       <DropdownMenu>
@@ -72,20 +77,28 @@ export function ProjectActions({ project }: { project: Project }) {
           <DropdownMenuItem onClick={() => router.push(`/dashboard/projects/${project.id}`)}>
             View Details
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-destructive"
-            onSelect={() => setIsArchiveAlertOpen(true)}
-          >
-            Archive
-          </DropdownMenuItem>
+          {canEdit && (
+            <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
+              Edit
+            </DropdownMenuItem>
+          )}
+          {canDelete && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive"
+                onSelect={() => setIsArchiveAlertOpen(true)}
+              >
+                Archive
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <EditProjectForm project={project} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} />
+      {canEdit && (
+        <EditProjectForm project={project} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} />
+      )}
 
       <AlertDialog open={isArchiveAlertOpen} onOpenChange={setIsArchiveAlertOpen}>
         <AlertDialogContent>

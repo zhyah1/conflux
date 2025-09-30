@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
+import { useUser } from '@/app/user-provider';
 
 
 type User = {
@@ -52,6 +53,7 @@ const statusColumns: { status: TaskStatus; title: string, color: string }[] = [
 ];
 
 function TaskCard({ task }: { task: Task }) {
+  const { profile } = useUser();
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
   const [escalationResult, setEscalationResult] = React.useState<any>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -74,27 +76,32 @@ function TaskCard({ task }: { task: Task }) {
     setEscalationResult(result);
     setIsLoading(false);
   };
+  
+  const canEditTask = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'pmc' || (profile && task.users?.id === profile.id);
+  const canCheckDelays = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'pmc';
 
   return (
     <Card className="mb-4 shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="p-3">
         <div className="flex justify-between items-start mb-2">
           <p className="font-semibold text-sm">{task.title}</p>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <EditTaskForm task={task}>
-                 <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
-                  Edit Task
-                 </button>
-              </EditTaskForm>
-              <DropdownMenuItem onClick={handleCheckDelay}>Check for Delays (AI)</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+           {canEditTask && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <EditTaskForm task={task}>
+                     <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
+                      Edit Task
+                     </button>
+                  </EditTaskForm>
+                  {canCheckDelays && <DropdownMenuItem onClick={handleCheckDelay}>Check for Delays (AI)</DropdownMenuItem>}
+                </DropdownMenuContent>
+              </DropdownMenu>
+           )}
         </div>
         <Badge
           variant={
@@ -113,8 +120,11 @@ function TaskCard({ task }: { task: Task }) {
 }
 
 function KanbanBoard({ projectId, project }: { projectId: string, project: Project }) {
+  const { profile } = useUser();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const canManageTasks = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'pmc';
 
   useEffect(() => {
     const channel = supabase
@@ -216,11 +226,13 @@ function KanbanBoard({ projectId, project }: { projectId: string, project: Proje
                 <span className="font-semibold text-sm">{title}</span>
                 <Badge className={`rounded-full ${color} text-white`}>{taskCounts[status]}</Badge>
               </div>
-              <AddTaskForm projectId={projectId} status={status}>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <Plus className="h-4 w-4"/>
-                </Button>
-              </AddTaskForm>
+              {canManageTasks && (
+                <AddTaskForm projectId={projectId} status={status}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <Plus className="h-4 w-4"/>
+                  </Button>
+                </AddTaskForm>
+              )}
             </div>
             <div className="p-4 flex-1">
               {loading ? (
@@ -295,24 +307,24 @@ export default function TaskBoardPage() {
     async function fetchProjectData() {
       setLoading(true);
       
-      // Fetch the current project
       const { data: projectData, error: projectError } = await getProjectById(projectId);
       
       if (projectError || !projectData) {
         console.error('Error fetching project or user not authorized:', projectError);
         setProject(null);
-      } else {
-        const currentProject = projectData as Project;
-        setProject(currentProject);
+        setLoading(false);
+        return;
+      } 
+      
+      const currentProject = projectData as Project;
+      setProject(currentProject);
 
-        // Fetch all projects to find children
-        const { data: allProjectsData, error: allProjectsError } = await getProjects();
-        if (allProjectsError) {
-          console.error('Error fetching all projects:', allProjectsError);
-        } else if (allProjectsData) {
-            const children = (allProjectsData as Project[]).filter(p => p.parent_id === projectId);
-            setSubProjects(children);
-        }
+      const { data: allProjectsData, error: allProjectsError } = await getProjects();
+      if (allProjectsError) {
+        console.error('Error fetching all projects:', allProjectsError);
+      } else if (allProjectsData) {
+          const children = (allProjectsData as Project[]).filter(p => p.parent_id === projectId);
+          setSubProjects(children);
       }
 
       setLoading(false);
@@ -341,7 +353,7 @@ export default function TaskBoardPage() {
     return (
          <div className="flex flex-col items-center justify-center h-full text-center">
             <PageHeader title="Project not found" description="The project you are looking for does not exist or you do not have permission to view it." />
-             <Button onClick={() => router.push('/dashboard/tasks')} variant="outline">
+             <Button onClick={() => router.push('/dashboard/projects')} variant="outline">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Projects List
              </Button>

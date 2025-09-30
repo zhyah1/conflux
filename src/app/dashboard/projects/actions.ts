@@ -4,7 +4,6 @@ import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { supabase as supabaseAdmin } from '@/lib/supabase-server';
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required.'),
@@ -20,6 +19,7 @@ const projectSchema = z.object({
 });
 
 export async function addProject(formData: z.infer<typeof projectSchema>) {
+  const supabase = createServerActionClient({ cookies });
   const parsedData = projectSchema.safeParse(formData);
 
   if (!parsedData.success) {
@@ -27,14 +27,13 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
   }
 
   const { create_sub_phases, ...projectData } = parsedData.data;
-  const newProjectId = `PROJ-${Date.now()}`;
 
   // Insert the main/parent project first
-  const { data: newProject, error: projectError } = await supabaseAdmin
+  const { data: newProject, error: projectError } = await supabase
     .from('projects')
     .insert([{
       ...projectData,
-      id: newProjectId,
+      id: `PROJ-${Date.now()}`,
       start_date: projectData.start_date.toISOString(),
       end_date: projectData.end_date.toISOString(),
     }])
@@ -43,8 +42,10 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
 
   if (projectError) {
     console.error('Supabase error creating project:', projectError);
-    return { error: 'Failed to create project.' };
+    return { error: `Failed to create project: ${projectError.message}` };
   }
+  
+  const newProjectId = newProject.id;
 
   // If the checkbox was checked, create the standard sub-phases
   if (create_sub_phases) {
@@ -70,15 +71,13 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
         parent_id: newProjectId,
     }));
 
-    const { error: subPhaseError } = await supabaseAdmin
+    const { error: subPhaseError } = await supabase
       .from('projects')
       .insert(subPhasesToInsert);
 
     if (subPhaseError) {
       console.error('Supabase error creating sub-phases:', subPhaseError);
-      // We don't return here, as the main project was still created.
-      // We could add logic to delete the main project if sub-phase creation fails.
-      return { error: 'Project was created, but failed to create its sub-phases.' };
+      return { error: `Project was created, but failed to create its sub-phases: ${subPhaseError.message}` };
     }
   }
 
@@ -92,6 +91,7 @@ const updateProjectSchema = projectSchema.extend({
 });
 
 export async function updateProject(formData: z.infer<typeof updateProjectSchema>) {
+    const supabase = createServerActionClient({ cookies });
     const parsedData = updateProjectSchema.safeParse(formData);
 
     if (!parsedData.success) {
@@ -102,7 +102,7 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
      const { start_date, end_date, ...restOfData } = projectData;
 
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
         .from('projects')
         .update({
           ...restOfData,
@@ -114,7 +114,7 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
 
     if (error) {
         console.error('Supabase update error:', error);
-        return { error: 'Failed to update project in the database.' };
+        return { error: `Failed to update project: ${error.message}` };
     }
 
     revalidatePath('/dashboard/projects');
@@ -124,44 +124,22 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
 }
 
 export async function deleteProject(id: string) {
-    const { error } = await supabaseAdmin.from('projects').delete().eq('id', id);
+    const supabase = createServerActionClient({ cookies });
+    const { error } = await supabase.from('projects').delete().eq('id', id);
 
     if (error) {
         console.error('Supabase delete error:', error);
-        return { error: 'Failed to delete project from the database.' };
+        return { error: `Failed to delete project: ${error.message}` };
     }
     
     revalidatePath('/dashboard/projects');
     return { success: true };
 }
 
-async function getUserRole() {
-    const supabase = createServerActionClient({ cookies });
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-
-    const { data: profile, error } = await supabaseAdmin
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (error || !profile) {
-      console.error('Error fetching user profile:', error);
-      return null;
-    }
-
-    return profile.role;
-}
-
-
 export async function getProjects() {
     const supabase = createServerActionClient({ cookies });
-    const role = await getUserRole();
-
-    const dbClient = role === 'admin' ? supabaseAdmin : supabase;
-
-    const { data, error } = await dbClient
+    
+    const { data, error } = await supabase
         .from('projects')
         .select(`*, users (id, full_name, avatar_url)`)
         .order('start_date', { ascending: false });
@@ -171,11 +149,8 @@ export async function getProjects() {
 
 export async function getProjectById(id: string) {
     const supabase = createServerActionClient({ cookies });
-    const role = await getUserRole();
 
-    const dbClient = role === 'admin' ? supabaseAdmin : supabase;
-
-    const { data, error } = await dbClient
+    const { data, error } = await supabase
         .from('projects')
         .select(`*, users (id, full_name, avatar_url)`)
         .eq('id', id)

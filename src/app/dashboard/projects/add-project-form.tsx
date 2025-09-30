@@ -44,6 +44,7 @@ import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import type { Project } from './page';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useUser } from '@/app/user-provider';
 
 type User = {
   id: string;
@@ -69,13 +70,16 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
   const [users, setUsers] = useState<User[]>([]);
   const { toast } = useToast();
   const router = useRouter();
+  const { profile } = useUser();
+
+  const isPMC = profile?.role === 'pmc';
 
   useEffect(() => {
     async function fetchUsers() {
       const { data, error } = await supabase
         .from('users')
         .select('id, full_name')
-        .in('role', ['pmc', 'contractor', 'subcontractor']);
+        .in('role', ['pmc', 'contractor', 'subcontractor', 'admin', 'owner']);
 
       if (error) {
         console.error('Error fetching users for form', error);
@@ -97,14 +101,20 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
       budget: 0,
       completion: 0,
       assignee_id: null,
-      parent_id: null,
+      parent_id: isPMC ? undefined : null, // PMCs must select a parent
       create_sub_phases: false,
     },
   });
 
+  const parentId = form.watch('parent_id');
+
   const onSubmit = async (values: z.infer<typeof projectSchema>) => {
     setIsSubmitting(true);
     try {
+      if (isPMC && !values.parent_id) {
+          throw new Error('Project Managers must assign a parent project.');
+      }
+
       const submissionValues = {
         ...values,
         parent_id: values.parent_id === 'null' ? null : values.parent_id,
@@ -119,7 +129,6 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
       });
       setOpen(false);
       form.reset();
-      // Refreshes the page to show the new project
       router.refresh(); 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
@@ -164,22 +173,23 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
               name="parent_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Parent Project (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value || 'null'}>
+                  <FormLabel>Parent Project {isPMC ? '' : '(Optional)'}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value || 'null'} disabled={isPMC && !allProjects.length}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a parent project" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="null">None (This is a master project)</SelectItem>
-                      {allProjects.map((project) => (
+                       {!isPMC && <SelectItem value="null">None (This is a master project)</SelectItem>}
+                       {allProjects.filter(p => !p.parent_id).map((project) => (
                         <SelectItem key={project.id} value={project.id}>
                           {project.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                   {isPMC && <FormDescription>PMCs can only create sub-projects.</FormDescription>}
                   <FormMessage />
                 </FormItem>
               )}

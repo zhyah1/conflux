@@ -38,6 +38,8 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { inviteUser } from './actions';
+import { useUser } from '@/app/user-provider';
+import { useRouter } from 'next/navigation';
 
 type User = {
   id: string;
@@ -46,23 +48,23 @@ type User = {
   email: string;
 };
 
-const roles = ['admin', 'pmc', 'owner', 'contractor', 'subcontractor'];
+const roles = ['owner', 'admin', 'pmc', 'contractor', 'subcontractor', 'client'];
 
 export default function UsersPage() {
   const { toast } = useToast();
+  const router = useRouter();
+  const { profile } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');
   const [selectedRole, setSelectedRole] = useState('contractor');
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    const userIsAuthenticated = !!session?.user;
-    setIsAuthenticated(userIsAuthenticated);
-
-    if (!userIsAuthenticated) {
+    
+    if (!isAdmin) {
       setLoading(false);
       return;
     }
@@ -86,22 +88,14 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    fetchUsers();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN') {
-          setIsAuthenticated(true);
-          fetchUsers();
-        } else if (event === 'SIGNED_OUT') {
-          setIsAuthenticated(false);
-          setUsers([]);
+    if (profile) { // Wait for profile to be loaded
+        if (!isAdmin) {
+            router.push('/dashboard');
+        } else {
+            fetchUsers();
         }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
+    }
+  }, [profile, isAdmin, router]);
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,33 +112,37 @@ export default function UsersPage() {
     } else {
       toast({ title: 'Success', description: `Invitation sent to ${inviteEmail}.` });
       setInviteEmail('');
-      await fetchUsers(); // Re-fetch users to show the newly invited one.
+      await fetchUsers();
     }
   };
 
-  // Show login prompt if not authenticated and not loading
-  if (!loading && !isAuthenticated) {
-    return (
+  if (loading) {
+     return (
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Users"
-          description="Please log in to manage your team members."
+          description="Manage your team members and their roles."
         />
         <Card>
-          <CardContent className="py-8">
-            <div className="text-center">
-              <p className="text-muted-foreground mb-4">
-                You need to be logged in to access this page.
-              </p>
-              <Button onClick={() => (window.location.href = '/')}>
-                Go to Login
-              </Button>
-            </div>
-          </CardContent>
+            <CardContent className="py-8">
+                <div className="text-center text-muted-foreground">Loading users...</div>
+            </CardContent>
         </Card>
       </div>
     );
   }
+
+  if (!isAdmin) {
+    return (
+       <div className="flex flex-col gap-6">
+        <PageHeader
+          title="Access Denied"
+          description="You do not have permission to view this page."
+        />
+      </div>
+    )
+  }
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -217,7 +215,7 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">{user.role}</Badge>
+                      <Badge variant={user.role === 'admin' || user.role === 'owner' ? 'default' : 'secondary'} className="capitalize">{user.role}</Badge>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
