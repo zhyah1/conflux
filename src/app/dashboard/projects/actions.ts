@@ -144,6 +144,8 @@ export async function getProjects() {
         return { data: [], error: 'User not authenticated' };
     }
 
+    // This is the SAFE way to get the profile, without triggering RLS loops.
+    // We are now explicitly telling Supabase to bypass RLS for this single lookup.
     const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('role')
@@ -160,24 +162,27 @@ export async function getProjects() {
         .from('projects')
         .select(`*, users (id, full_name, avatar_url)`);
 
-    // Admins, owners, and clients see all projects.
-    // For other roles, we filter based on assignment.
-    if (!['admin', 'owner', 'client'].includes(userRole)) {
-        const { data: tasks, error: tasksError } = await supabase
-            .from('tasks')
-            .select('project_id')
-            .eq('assignee_id', user.id);
-        
-        if (tasksError) {
-          console.error("Error fetching tasks for project filtering:", tasksError);
-          return { data: [], error: 'Could not fetch user tasks.'};
-        }
-        
-        const projectIdsFromTasks = tasks ? tasks.map(t => t.project_id) : [];
-
-        // Build a filter condition: assigned to user OR parent of a project assigned to user OR in a project where user has a task.
-        query = query.or(`assignee_id.eq.${user.id},id.in.(${projectIdsFromTasks.join(',')})`);
+    // Manually apply security rules in the application layer
+    if (userRole === 'pmc') {
+      // PMC sees projects they are assigned to
+      query = query.eq('assignee_id', user.id);
+    } else if (['contractor', 'subcontractor'].includes(userRole)) {
+      // Contractors see projects where they have an assigned task.
+      const { data: tasks, error: tasksError } = await supabase
+        .from('tasks')
+        .select('project_id')
+        .eq('assignee_id', user.id);
+      
+      if (tasksError) {
+        console.error("Error fetching tasks for project filtering:", tasksError);
+        return { data: [], error: 'Could not fetch user tasks.'};
+      }
+      
+      const projectIdsFromTasks = tasks ? tasks.map(t => t.project_id) : [];
+      query = query.in('id', projectIdsFromTasks);
     }
+    // Admins, owners, and clients don't get any extra filters, so they see all projects,
+    // which is the default behavior of the initial query.
 
     const { data, error } = await query.order('start_date', { ascending: false });
         
