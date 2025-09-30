@@ -168,6 +168,11 @@ export async function getProjects() {
             .select('project_id')
             .eq('assignee_id', user.id);
         
+        if (tasksError) {
+          console.error("Error fetching tasks for project filtering:", tasksError);
+          return { data: [], error: 'Could not fetch user tasks.'};
+        }
+        
         const projectIdsFromTasks = tasks ? tasks.map(t => t.project_id) : [];
 
         // Build a filter condition: assigned to user OR parent of a project assigned to user OR in a project where user has a task.
