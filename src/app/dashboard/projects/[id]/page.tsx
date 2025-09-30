@@ -29,6 +29,7 @@ import { deleteProject, getProjectById } from '../actions';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { useUser } from '@/app/user-provider';
 
 
 const getInitials = (name?: string | null) => {
@@ -50,6 +51,7 @@ export default function ProjectDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [isArchiveAlertOpen, setIsArchiveAlertOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
+  const { profile } = useUser();
 
   useEffect(() => {
     if (id) {
@@ -69,7 +71,7 @@ export default function ProjectDetailsPage() {
           const currentProject = projectData as unknown as Project;
           setProject(currentProject);
 
-          // Fetch sub-projects separately
+          // Fetch sub-projects separately based on permissions
           const { data: childrenData, error: childrenError } = await supabase
             .from('projects')
             .select(`*, users (id, full_name, avatar_url)`)
@@ -114,6 +116,8 @@ export default function ProjectDetailsPage() {
     }
   };
 
+  const canDeleteProject = profile?.role === 'admin' || profile?.role === 'owner';
+
 
   if (loading) {
     return (
@@ -157,9 +161,11 @@ export default function ProjectDetailsPage() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Projects
             </Button>
+            {canDeleteProject && (
              <Button onClick={() => setIsArchiveAlertOpen(true)} variant="destructive" size="sm">
                 Delete Project
             </Button>
+            )}
           </div>
         </PageHeader>
         

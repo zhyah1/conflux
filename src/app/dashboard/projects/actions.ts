@@ -139,6 +139,8 @@ export async function deleteProject(id: string) {
 export async function getProjects() {
     const supabase = createServerActionClient({ cookies });
     
+    // RLS will handle filtering projects based on the user's role and assignments.
+    // We fetch all projects the user is allowed to see.
     const { data, error } = await supabase
         .from('projects')
         .select(`*, users (id, full_name, avatar_url)`)
