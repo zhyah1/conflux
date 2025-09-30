@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '../../components/page-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Calendar, CircleDollarSign, Percent, Tag, Loader2 } from 'lucide-react';
+import { ArrowLeft, Calendar, CircleDollarSign, Percent, Tag, Loader2, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,7 +24,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { deleteProject, getProjectById } from '../actions';
+import { deleteProject, getProjectById, getProjects } from '../actions';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import Link from 'next/link';
 
 
 const getInitials = (name?: string | null) => {
@@ -42,6 +44,7 @@ export default function ProjectDetailsPage() {
   const { id } = params;
   const { toast } = useToast();
   const [project, setProject] = useState<Project | null>(null);
+  const [subProjects, setSubProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isArchiveAlertOpen, setIsArchiveAlertOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
@@ -50,10 +53,13 @@ export default function ProjectDetailsPage() {
     if (id) {
       const fetchProject = async () => {
         setLoading(true);
-        const { data, error } = await getProjectById(id as string);
+        const [{ data: projectData, error: projectError }, { data: allProjectsData, error: allProjectsError }] = await Promise.all([
+          getProjectById(id as string),
+          getProjects() // Fetch all projects to find sub-projects
+        ]);
 
-        if (error) {
-          console.error('Error fetching project:', error);
+        if (projectError) {
+          console.error('Error fetching project:', projectError);
           toast({
             variant: 'destructive',
             title: 'Error',
@@ -61,8 +67,16 @@ export default function ProjectDetailsPage() {
           })
           setProject(null);
         } else {
-          setProject(data as unknown as Project);
+          setProject(projectData as unknown as Project);
         }
+        
+        if (allProjectsError) {
+            console.error('Error fetching all projects:', allProjectsError);
+        } else if (allProjectsData) {
+            const children = (allProjectsData as Project[]).filter(p => p.parent_id === id);
+            setSubProjects(children);
+        }
+
         setLoading(false);
       };
       fetchProject();
@@ -200,27 +214,67 @@ export default function ProjectDetailsPage() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-              <CardTitle className="font-headline">Assigned To</CardTitle>
-          </CardHeader>
-          <CardContent>
-              {project.users ? (
-                  <div className="flex items-center gap-4">
-                      <Avatar className="h-16 w-16">
-                          <AvatarImage src={project.users.avatar_url || ''} alt={project.users.full_name || ''} />
-                          <AvatarFallback>{getInitials(project.users.full_name)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                          <div className="font-bold text-lg">{project.users.full_name}</div>
-                          <div className="text-sm text-muted-foreground">Lead for this project</div>
-                      </div>
-                  </div>
-              ) : (
-                  <p className="text-muted-foreground">This project is not yet assigned.</p>
-              )}
-          </CardContent>
-        </Card>
+        <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Assigned To</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {project.users ? (
+                        <div className="flex items-center gap-4">
+                            <Avatar className="h-16 w-16">
+                                <AvatarImage src={project.users.avatar_url || ''} alt={project.users.full_name || ''} />
+                                <AvatarFallback>{getInitials(project.users.full_name)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <div className="font-bold text-lg">{project.users.full_name}</div>
+                                <div className="text-sm text-muted-foreground">Lead for this project</div>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground">This project is not yet assigned.</p>
+                    )}
+                </CardContent>
+            </Card>
+
+            {subProjects.length > 0 && (
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Sub-Phases</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                         <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Phase Name</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Completion</TableHead>
+                                    <TableHead className="w-12"><span className="sr-only">View</span></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {subProjects.map(sub => (
+                                    <TableRow key={sub.id}>
+                                        <TableCell className="font-medium">{sub.name}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={sub.status === 'Delayed' ? 'destructive' : 'secondary'}>{sub.status}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">{sub.completion}%</TableCell>
+                                        <TableCell>
+                                            <Button asChild variant="outline" size="icon" className="h-8 w-8">
+                                                <Link href={`/dashboard/tasks/${sub.id}`}>
+                                                    <ArrowRight className="h-4 w-4" />
+                                                </Link>
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                         </Table>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
       </div>
 
        <AlertDialog open={isArchiveAlertOpen} onOpenChange={setIsArchiveAlertOpen}>
@@ -247,3 +301,5 @@ export default function ProjectDetailsPage() {
     </>
   );
 }
+
+    
