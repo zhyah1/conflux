@@ -20,6 +20,19 @@ const projectSchema = z.object({
 
 export async function addProject(formData: z.infer<typeof projectSchema>) {
   const supabase = createServerActionClient({ cookies });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+  if (!profile) return { error: 'Profile not found' };
+
+  if (!['admin', 'owner', 'pmc'].includes(profile.role)) {
+    return { error: 'You do not have permission to create projects.' };
+  }
+  if (profile.role === 'pmc' && !formData.parent_id) {
+    return { error: 'Project Managers can only create sub-phases.' };
+  }
+
   const parsedData = projectSchema.safeParse(formData);
 
   if (!parsedData.success) {
@@ -92,6 +105,16 @@ const updateProjectSchema = projectSchema.extend({
 
 export async function updateProject(formData: z.infer<typeof updateProjectSchema>) {
     const supabase = createServerActionClient({ cookies });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not authenticated' };
+
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+    if (!profile) return { error: 'Profile not found' };
+
+    if (!['admin', 'owner', 'pmc'].includes(profile.role)) {
+        return { error: 'You do not have permission to update projects.' };
+    }
+
     const parsedData = updateProjectSchema.safeParse(formData);
 
     if (!parsedData.success) {
@@ -101,16 +124,19 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
     const { id, create_sub_phases, ...projectData } = parsedData.data;
      const { start_date, end_date, ...restOfData } = projectData;
 
+    let query = supabase.from('projects').update({
+      ...restOfData,
+      start_date: start_date.toISOString(),
+      end_date: end_date.toISOString()
+    }).eq('id', id);
 
-    const { data, error } = await supabase
-        .from('projects')
-        .update({
-          ...restOfData,
-          start_date: start_date.toISOString(),
-          end_date: end_date.toISOString()
-        })
-        .eq('id', id)
-        .select();
+    // If user is a PMC, they can only edit projects assigned to them.
+    if (profile.role === 'pmc') {
+      query = query.eq('assignee_id', user.id);
+    }
+
+    const { data, error } = await query.select();
+
 
     if (error) {
         console.error('Supabase update error:', error);
@@ -125,6 +151,16 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
 
 export async function deleteProject(id: string) {
     const supabase = createServerActionClient({ cookies });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not authenticated' };
+
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+    if (!profile) return { error: 'Profile not found' };
+
+    if (!['admin', 'owner'].includes(profile.role)) {
+        return { error: 'You do not have permission to delete projects.' };
+    }
+
     const { error } = await supabase.from('projects').delete().eq('id', id);
 
     if (error) {
@@ -144,8 +180,7 @@ export async function getProjects() {
         return { data: [], error: 'User not authenticated' };
     }
 
-    // This is the SAFE way to get the profile, without triggering RLS loops.
-    // We are now explicitly telling Supabase to bypass RLS for this single lookup.
+    // This is now safe because we removed the recursive policies.
     const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('role')
@@ -164,8 +199,18 @@ export async function getProjects() {
 
     // Manually apply security rules in the application layer
     if (userRole === 'pmc') {
-      // PMC sees projects they are assigned to
-      query = query.eq('assignee_id', user.id);
+      // PMC sees projects they are assigned to and all sub-projects under those.
+      const { data: assignedProjects, error: assignedError } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('assignee_id', user.id);
+
+      if (assignedError) {
+        return { data: [], error: 'Could not fetch PMC projects.' };
+      }
+      const assignedProjectIds = assignedProjects.map(p => p.id);
+      query = query.or(`id.in.(${assignedProjectIds.join(',')}),parent_id.in.(${assignedProjectIds.join(',')})`);
+
     } else if (['contractor', 'subcontractor'].includes(userRole)) {
       // Contractors see projects where they have an assigned task.
       const { data: tasks, error: tasksError } = await supabase
@@ -178,11 +223,13 @@ export async function getProjects() {
         return { data: [], error: 'Could not fetch user tasks.'};
       }
       
-      const projectIdsFromTasks = tasks ? tasks.map(t => t.project_id) : [];
+      const projectIdsFromTasks = [...new Set(tasks ? tasks.map(t => t.project_id) : [])];
+      if (projectIdsFromTasks.length === 0) {
+        return { data: [], error: null }; // Return empty, not an error
+      }
       query = query.in('id', projectIdsFromTasks);
     }
-    // Admins, owners, and clients don't get any extra filters, so they see all projects,
-    // which is the default behavior of the initial query.
+    // Admins, owners, and clients don't get any extra filters, so they see all projects.
 
     const { data, error } = await query.order('start_date', { ascending: false });
         
@@ -191,12 +238,47 @@ export async function getProjects() {
 
 export async function getProjectById(id: string) {
     const supabase = createServerActionClient({ cookies });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Not authenticated' };
 
+    // We can fetch the project first, then validate if the user has access.
+    // This is safe because we will not return the data if they don't.
     const { data, error } = await supabase
         .from('projects')
         .select(`*, users (id, full_name, avatar_url)`)
         .eq('id', id)
         .single();
     
-    return { data, error: error?.message };
+    if (error) {
+      return { data: null, error: error.message };
+    }
+
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+    if (!profile) return { data: null, error: 'Profile not found' };
+
+    // Now, apply security check in code
+    const userRole = profile.role;
+    if (['admin', 'owner', 'client'].includes(userRole)) {
+      return { data, error: null }; // These roles can see everything
+    }
+
+    if (userRole === 'pmc' && data.assignee_id === user.id) {
+       return { data, error: null };
+    }
+
+    if (['contractor', 'subcontractor'].includes(userRole)) {
+      const { data: tasks, error: tasksError } = await supabase
+        .from('tasks')
+        .select('project_id')
+        .eq('project_id', id)
+        .eq('assignee_id', user.id)
+        .limit(1);
+      
+      if (tasks && tasks.length > 0) {
+        return { data, error: null };
+      }
+    }
+    
+    // If no rule matched, user does not have access.
+    return { data: null, error: 'You do not have permission to view this project.' };
 }

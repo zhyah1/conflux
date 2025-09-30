@@ -15,6 +15,16 @@ const taskSchema = z.object({
 
 export async function addTask(formData: z.infer<typeof taskSchema>) {
   const supabase = createServerActionClient({ cookies });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+  if (!profile) return { error: 'Profile not found' };
+
+  if (!['admin', 'owner', 'pmc'].includes(profile.role)) {
+    return { error: 'You do not have permission to create tasks.' };
+  }
+
   const parsedData = taskSchema.safeParse(formData);
 
   if (!parsedData.success) {
@@ -52,6 +62,12 @@ const updateTaskSchema = z.object({
 
 export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
     const supabase = createServerActionClient({ cookies });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not authenticated' };
+
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+    if (!profile) return { error: 'Profile not found' };
+
     const parsedData = updateTaskSchema.safeParse(formData);
 
     if (!parsedData.success) {
@@ -60,6 +76,22 @@ export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
 
     const { id, project_id, ...taskData } = parsedData.data;
     
+    // Authorization check
+    if (['contractor', 'subcontractor'].includes(profile.role)) {
+      const { data: originalTask, error: taskError } = await supabase
+        .from('tasks')
+        .select('assignee_id')
+        .eq('id', id)
+        .single();
+      
+      if (taskError || originalTask.assignee_id !== user.id) {
+        return { error: 'You can only update tasks assigned to you.' };
+      }
+    } else if (!['admin', 'owner', 'pmc'].includes(profile.role)) {
+       return { error: 'You do not have permission to update tasks.' };
+    }
+
+
     const updateData: { [key: string]: any } = { ...taskData };
     if (taskData.assignee_id === 'null') {
       updateData.assignee_id = null;
