@@ -138,13 +138,43 @@ export async function deleteProject(id: string) {
 
 export async function getProjects() {
     const supabase = createServerActionClient({ cookies });
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { data: [], error: 'User not authenticated' };
+    }
+
+    const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
     
-    // RLS will handle filtering projects based on the user's role and assignments.
-    // We fetch all projects the user is allowed to see.
-    const { data, error } = await supabase
+    if (profileError) {
+        return { data: [], error: `Could not fetch user profile: ${profileError.message}` };
+    }
+
+    const userRole = profile.role;
+    
+    let query = supabase
         .from('projects')
-        .select(`*, users (id, full_name, avatar_url)`)
-        .order('start_date', { ascending: false });
+        .select(`*, users (id, full_name, avatar_url)`);
+
+    // Admins, owners, and clients see all projects.
+    // For other roles, we filter based on assignment.
+    if (!['admin', 'owner', 'client'].includes(userRole)) {
+        const { data: tasks, error: tasksError } = await supabase
+            .from('tasks')
+            .select('project_id')
+            .eq('assignee_id', user.id);
+        
+        const projectIdsFromTasks = tasks ? tasks.map(t => t.project_id) : [];
+
+        // Build a filter condition: assigned to user OR parent of a project assigned to user OR in a project where user has a task.
+        query = query.or(`assignee_id.eq.${user.id},id.in.(${projectIdsFromTasks.join(',')})`);
+    }
+
+    const { data, error } = await query.order('start_date', { ascending: false });
         
     return { data, error: error?.message };
 }
