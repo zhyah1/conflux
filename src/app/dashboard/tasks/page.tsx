@@ -27,8 +27,10 @@ export default function TasksProjectListPage() {
       setLoading(true);
       const { data, error } = await getProjects();
 
-      if (!error) {
-        setProjects(data as unknown as Project[]);
+      if (!error && data) {
+        // Filter for main projects only (no parent_id)
+        const mainProjects = (data as unknown as Project[]).filter(p => !p.parent_id);
+        setProjects(mainProjects);
       } else {
         console.error('Error fetching projects:', error);
       }
@@ -41,7 +43,7 @@ export default function TasksProjectListPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Task Boards"
-        description="Select a project to view its Kanban board and manage tasks."
+        description="Select a project to view its phases and manage tasks."
       />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {loading
@@ -76,7 +78,7 @@ export default function TasksProjectListPage() {
                     href={`/dashboard/tasks/${project.id}`}
                     className={cn(buttonVariants({ variant: 'outline' }), 'w-full')}
                   >
-                    View Board <ArrowRight className="ml-2 h-4 w-4" />
+                    View Phases <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </CardContent>
               </Card>
