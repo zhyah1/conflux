@@ -1,3 +1,4 @@
+
 'use server';
 
 import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
@@ -22,28 +23,54 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
   const parsedData = projectSchema.safeParse(formData);
 
   if (!parsedData.success) {
-    return { error: 'Invalid form data.' };
+    return { error: `Invalid form data: ${parsedData.error.message}` };
   }
 
-  const { name, status, owner, budget, completion, start_date, end_date, assignee_id, parent_id } = parsedData.data;
+  const { parent_id, ...projectData } = parsedData.data;
 
-  // Generate a unique ID for the project
-  const id = `PROJ-${Date.now()}`;
-  
-  const { data, error } = await supabaseAdmin
-    .from('projects')
-    .insert([{ id, name, status, owner, budget, completion, start_date: start_date.toISOString(), end_date: end_date.toISOString(), assignee_id, parent_id }])
-    .select();
+  // If it's a sub-project, insert it normally.
+  if (parent_id) {
+    const { data, error } = await supabaseAdmin
+      .from('projects')
+      .insert([{ 
+        ...projectData, 
+        id: `PROJ-${Date.now()}`,
+        start_date: projectData.start_date.toISOString(),
+        end_date: projectData.end_date.toISOString(),
+        parent_id 
+      }])
+      .select();
+
+    if (error) {
+      console.error('Supabase error (sub-project):', error);
+      return { error: 'Failed to create sub-project.' };
+    }
+    revalidatePath('/dashboard/projects');
+    return { data };
+  }
+
+  // If it's a master project, call the database function to create it with sub-phases.
+  const { name, status, owner, budget, completion, start_date, end_date, assignee_id } = projectData;
+  const { data, error } = await supabaseAdmin.rpc('create_project_with_subphases', {
+    name_in: name,
+    status_in: status,
+    owner_in: owner,
+    budget_in: budget,
+    completion_in: completion,
+    start_date_in: start_date.toISOString(),
+    end_date_in: end_date.toISOString(),
+    assignee_id_in: assignee_id,
+  });
 
   if (error) {
-    console.error('Supabase error:', error);
-    return { error: 'Failed to create project in the database.' };
+    console.error('Supabase RPC error (master project):', error);
+    return { error: 'Failed to create master project with sub-phases.' };
   }
-  
-  revalidatePath('/dashboard/projects');
 
+  revalidatePath('/dashboard/projects');
   return { data };
 }
+
 
 const updateProjectSchema = projectSchema.extend({
     id: z.string(),
@@ -93,13 +120,11 @@ export async function deleteProject(id: string) {
     return { success: true };
 }
 
-// This is a more reliable way to get the user's role on the server
 async function getUserRole() {
     const supabase = createServerActionClient({ cookies });
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    // Query the public 'users' table to get the role, which is more reliable server-side.
     const { data: profile, error } = await supabaseAdmin
       .from('users')
       .select('role')
@@ -119,7 +144,6 @@ export async function getProjects() {
     const supabase = createServerActionClient({ cookies });
     const role = await getUserRole();
 
-    // Use the admin client for admins to bypass RLS, otherwise use the user's client.
     const dbClient = role === 'admin' ? supabaseAdmin : supabase;
 
     const { data, error } = await dbClient
@@ -134,7 +158,6 @@ export async function getProjectById(id: string) {
     const supabase = createServerActionClient({ cookies });
     const role = await getUserRole();
 
-    // Use the admin client for admins to bypass RLS, otherwise use the user's client.
     const dbClient = role === 'admin' ? supabaseAdmin : supabase;
 
     const { data, error } = await dbClient
