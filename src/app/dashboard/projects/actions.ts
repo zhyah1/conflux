@@ -133,7 +133,8 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
     // If user is a PMC, they can only edit projects assigned to them.
     if (profile.role === 'pmc') {
       query = query.eq('assignee_id', user.id);
-    } else if (!['admin', 'owner'].includes(profile.role)) {
+    } else if (profile.role !== 'admin' && profile.role !== 'owner') {
+        // Redundant check, but good for safety
         return { error: 'You do not have permission to update projects.' };
     }
 
@@ -183,6 +184,7 @@ export async function getProjects() {
         return { data: [], error: 'User not authenticated' };
     }
 
+    // Since RLS is not fully reliable for complex reads, we fetch the role and filter in code.
     const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('role')
@@ -195,15 +197,16 @@ export async function getProjects() {
 
     const userRole = profile.role;
     
-    let query = supabase
-        .from('projects')
-        .select(`*, users (id, full_name, avatar_url)`);
+    let query = supabase.from('projects').select(`*, users (id, full_name, avatar_url)`);
 
-    // Manually apply security rules in the application layer since RLS is disabled for SELECT
-    if (userRole === 'pmc') {
+    // Apply security rules in the application layer.
+    if (['admin', 'owner', 'client'].includes(userRole)) {
+      // Admins, owners, and clients can see all projects, so no filter is needed.
+    } else if (userRole === 'pmc') {
+      // PMCs see projects directly assigned to them.
       query = query.eq('assignee_id', user.id);
     } else if (['contractor', 'subcontractor'].includes(userRole)) {
-      // 1. Find all project_ids for tasks assigned to this user
+      // Contractors/subcontractors see projects where they have assigned tasks.
       const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
         .select('project_id')
@@ -214,18 +217,17 @@ export async function getProjects() {
         return { data: [], error: 'Could not fetch user tasks.'};
       }
       
-      // 2. Get a unique list of project IDs
-      const projectIdsFromTasks = [...new Set(tasks ? tasks.map(t => t.project_id) : [])];
+      const projectIdsFromTasks = [...new Set(tasks.map(t => t.project_id))];
 
-      // 3. If the user has no tasks, return no projects.
       if (projectIdsFromTasks.length === 0) {
-        return { data: [], error: null };
+        return { data: [], error: null }; // Return empty list if no tasks assigned
       }
       
-      // 4. Fetch all projects where the ID is in the list of project IDs from tasks.
       query = query.in('id', projectIdsFromTasks);
+    } else {
+        // Default to no projects if role is unrecognized
+        return { data: [], error: null };
     }
-    // For admins, owners, and clients, the query remains unfiltered, so they see all projects.
 
     const { data, error } = await query.order('start_date', { ascending: false });
         
@@ -237,19 +239,21 @@ export async function getProjectById(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: 'Not authenticated' };
 
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+    if (!profile) return { data: null, error: 'Profile not found' };
+
     // Fetch the project first
-    const { data, error } = await supabase
+    let projectQuery = supabase
         .from('projects')
         .select(`*, users (id, full_name, avatar_url)`)
         .eq('id', id)
         .single();
     
+    const { data, error } = await projectQuery;
+    
     if (error) {
       return { data: null, error: error.message };
     }
-
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-    if (!profile) return { data: null, error: 'Profile not found' };
 
     // Now, apply security check in code
     const userRole = profile.role;
@@ -272,7 +276,7 @@ export async function getProjectById(id: string) {
         return { data: null, error: `Could not verify task assignment: ${tasksError.message}` };
       }
 
-      if (tasks) {
+      if (tasks && tasks.length > 0) {
         return { data, error: null };
       }
     }
