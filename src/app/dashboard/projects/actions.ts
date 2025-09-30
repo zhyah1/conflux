@@ -1,4 +1,3 @@
-
 'use server';
 
 import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
@@ -17,6 +16,7 @@ const projectSchema = z.object({
   end_date: z.date({ required_error: 'End date is required.' }),
   assignee_id: z.string().uuid().optional().nullable(),
   parent_id: z.string().optional().nullable(),
+  create_sub_phases: z.boolean().optional(),
 });
 
 export async function addProject(formData: z.infer<typeof projectSchema>) {
@@ -26,49 +26,64 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
     return { error: `Invalid form data: ${parsedData.error.message}` };
   }
 
-  const { parent_id, ...projectData } = parsedData.data;
+  const { create_sub_phases, ...projectData } = parsedData.data;
+  const newProjectId = `PROJ-${Date.now()}`;
 
-  // If it's a sub-project, insert it normally.
-  if (parent_id) {
-    const { data, error } = await supabaseAdmin
-      .from('projects')
-      .insert([{ 
-        ...projectData, 
-        id: `PROJ-${Date.now()}`,
-        start_date: projectData.start_date.toISOString(),
-        end_date: projectData.end_date.toISOString(),
-        parent_id 
-      }])
-      .select();
+  // Insert the main/parent project first
+  const { data: newProject, error: projectError } = await supabaseAdmin
+    .from('projects')
+    .insert([{
+      ...projectData,
+      id: newProjectId,
+      start_date: projectData.start_date.toISOString(),
+      end_date: projectData.end_date.toISOString(),
+    }])
+    .select()
+    .single();
 
-    if (error) {
-      console.error('Supabase error (sub-project):', error);
-      return { error: 'Failed to create sub-project.' };
-    }
-    revalidatePath('/dashboard/projects');
-    return { data };
+  if (projectError) {
+    console.error('Supabase error creating project:', projectError);
+    return { error: 'Failed to create project.' };
   }
 
-  // If it's a master project, call the database function to create it with sub-phases.
-  const { name, status, owner, budget, completion, start_date, end_date, assignee_id } = projectData;
-  const { data, error } = await supabaseAdmin.rpc('create_project_with_subphases', {
-    name_in: name,
-    status_in: status,
-    owner_in: owner,
-    budget_in: budget,
-    completion_in: completion,
-    start_date_in: start_date.toISOString(),
-    end_date_in: end_date.toISOString(),
-    assignee_id_in: assignee_id,
-  });
+  // If the checkbox was checked, create the standard sub-phases
+  if (create_sub_phases) {
+    const subphase_names = [
+        'Preconstruction',
+        'Structural Work',
+        'MEP Core Services',
+        'Interior and Finishes',
+        'Soft Finishes and Landscaping',
+        'Testing, Commissioning and Hand Over'
+    ];
 
-  if (error) {
-    console.error('Supabase RPC error (master project):', error);
-    return { error: 'Failed to create master project with sub-phases.' };
+    const subPhasesToInsert = subphase_names.map((name, index) => ({
+        id: `PROJ-${Date.now() + index + 1}`,
+        name: name,
+        status: 'Planning',
+        owner: projectData.owner,
+        budget: 0,
+        completion: 0,
+        start_date: projectData.start_date.toISOString(),
+        end_date: projectData.end_date.toISOString(),
+        assignee_id: projectData.assignee_id,
+        parent_id: newProjectId,
+    }));
+
+    const { error: subPhaseError } = await supabaseAdmin
+      .from('projects')
+      .insert(subPhasesToInsert);
+
+    if (subPhaseError) {
+      console.error('Supabase error creating sub-phases:', subPhaseError);
+      // We don't return here, as the main project was still created.
+      // We could add logic to delete the main project if sub-phase creation fails.
+      return { error: 'Project was created, but failed to create its sub-phases.' };
+    }
   }
 
   revalidatePath('/dashboard/projects');
-  return { data };
+  return { data: newProject };
 }
 
 
@@ -83,7 +98,7 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
         return { error: 'Invalid form data.' };
     }
 
-    const { id, ...projectData } = parsedData.data;
+    const { id, create_sub_phases, ...projectData } = parsedData.data;
      const { start_date, end_date, ...restOfData } = projectData;
 
 

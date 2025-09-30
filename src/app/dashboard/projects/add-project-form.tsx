@@ -23,6 +23,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
@@ -42,6 +43,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import type { Project } from './page';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type User = {
   id: string;
@@ -58,6 +60,7 @@ const projectSchema = z.object({
   end_date: z.date({ required_error: 'End date is required.' }),
   assignee_id: z.string().uuid().optional().nullable(),
   parent_id: z.string().optional().nullable(),
+  create_sub_phases: z.boolean().optional(),
 });
 
 export function AddProjectForm({ children, allProjects }: { children: React.ReactNode, allProjects: Project[] }) {
@@ -95,6 +98,7 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
       completion: 0,
       assignee_id: null,
       parent_id: null,
+      create_sub_phases: false,
     },
   });
 
@@ -359,6 +363,30 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="create_sub_phases"
+              render={({ field }) => (
+                <FormItem className="col-span-2 flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Auto-create standard sub-phases
+                    </FormLabel>
+                    <FormDescription>
+                      This will automatically create the 6 standard phases (Preconstruction, Structural Work, etc.) for this project.
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+
 
             <DialogFooter className="col-span-2 mt-4">
               <DialogClose asChild>
