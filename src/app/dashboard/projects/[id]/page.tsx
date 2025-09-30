@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -24,9 +25,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { deleteProject, getProjectById, getProjects } from '../actions';
+import { deleteProject, getProjectById } from '../actions';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
 
 const getInitials = (name?: string | null) => {
@@ -53,10 +55,7 @@ export default function ProjectDetailsPage() {
     if (id) {
       const fetchProject = async () => {
         setLoading(true);
-        const [{ data: projectData, error: projectError }, { data: allProjectsData, error: allProjectsError }] = await Promise.all([
-          getProjectById(id as string),
-          getProjects() // Fetch all projects to find sub-projects
-        ]);
+        const { data: projectData, error: projectError } = await getProjectById(id as string);
 
         if (projectError) {
           console.error('Error fetching project:', projectError);
@@ -67,16 +66,22 @@ export default function ProjectDetailsPage() {
           })
           setProject(null);
         } else {
-          setProject(projectData as unknown as Project);
+          const currentProject = projectData as unknown as Project;
+          setProject(currentProject);
+
+          // Fetch sub-projects separately
+          const { data: childrenData, error: childrenError } = await supabase
+            .from('projects')
+            .select(`*, users (id, full_name, avatar_url)`)
+            .eq('parent_id', currentProject.id);
+
+          if (childrenError) {
+            console.error('Error fetching sub-projects:', childrenError);
+          } else {
+            setSubProjects(childrenData as Project[]);
+          }
         }
         
-        if (allProjectsError) {
-            console.error('Error fetching all projects:', allProjectsError);
-        } else if (allProjectsData) {
-            const children = (allProjectsData as Project[]).filter(p => p.parent_id === id);
-            setSubProjects(children);
-        }
-
         setLoading(false);
       };
       fetchProject();
