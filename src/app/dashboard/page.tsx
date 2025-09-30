@@ -105,6 +105,8 @@ export default function Dashboard() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+  
+  const mainProjects = projects.filter(p => !p.parent_id);
 
   return (
     <div className="flex flex-1 flex-col gap-4 md:gap-8">
@@ -166,7 +168,7 @@ export default function Dashboard() {
             <CardDescription>Completion percentage for active projects.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ProjectProgressChart data={projects} />
+            <ProjectProgressChart data={mainProjects} />
           </CardContent>
         </Card>
         <Card>
