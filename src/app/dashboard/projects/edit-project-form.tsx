@@ -276,7 +276,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
               name="budget"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Budget ($)</FormLabel>
+                  <FormLabel>Budget (₹)</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="e.g., 5000000" {...field} />
                   </FormControl>

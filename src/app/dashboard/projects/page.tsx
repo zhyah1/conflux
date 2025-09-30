@@ -92,9 +92,9 @@ const ProjectRow = ({ project, level = 0 }: { project: Project; level?: number }
           </Badge>
         </TableCell>
         <TableCell className="hidden md:table-cell">
-          {new Intl.NumberFormat('en-US', {
+          {new Intl.NumberFormat('en-IN', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'INR',
             maximumFractionDigits: 0,
           }).format(project.budget)}
         </TableCell>

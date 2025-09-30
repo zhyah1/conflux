@@ -183,9 +183,9 @@ export default function ProjectDetailsPage() {
               </CardHeader>
               <CardContent>
                   <div className="text-2xl font-bold">
-                      {new Intl.NumberFormat('en-US', {
+                      {new Intl.NumberFormat('en-IN', {
                           style: 'currency',
-                          currency: 'USD',
+                          currency: 'INR',
                           maximumFractionDigits: 0,
                       }).format(project.budget)}
                   </div>

@@ -257,7 +257,7 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
               name="budget"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Budget ($)</FormLabel>
+                  <FormLabel>Budget (₹)</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="e.g., 5000000" {...field} />
                   </FormControl>
