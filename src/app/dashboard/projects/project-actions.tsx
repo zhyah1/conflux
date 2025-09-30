@@ -44,15 +44,16 @@ export function ProjectActions({ project }: { project: Project }) {
         throw new Error(result.error);
       }
       toast({
-        title: 'Project Archived',
-        description: `Project "${project.name}" has been archived.`,
+        title: 'Project Deleted',
+        description: `Project "${project.name}" has been deleted.`,
       });
       setIsArchiveAlertOpen(false);
+      // No need to call router.refresh(), revalidation should handle it.
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       toast({
         variant: 'destructive',
-        title: 'Error archiving project',
+        title: 'Error deleting project',
         description: errorMessage,
       });
     } finally {
@@ -60,8 +61,13 @@ export function ProjectActions({ project }: { project: Project }) {
     }
   };
 
-  const canEdit = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'pmc';
-  const canDelete = profile?.role === 'admin' || profile?.role === 'owner';
+  const isOwnerOrAdmin = profile?.role === 'admin' || profile?.role === 'owner';
+  
+  // A PMC can edit a project if they are assigned to it.
+  const isAssignedPMC = profile?.role === 'pmc' && project.users?.id === profile.id;
+
+  const canEdit = isOwnerOrAdmin || isAssignedPMC;
+  const canDelete = isOwnerOrAdmin;
 
   return (
     <>
@@ -89,7 +95,7 @@ export function ProjectActions({ project }: { project: Project }) {
                 className="text-destructive"
                 onSelect={() => setIsArchiveAlertOpen(true)}
               >
-                Archive
+                Delete
               </DropdownMenuItem>
             </>
           )}
@@ -106,7 +112,7 @@ export function ProjectActions({ project }: { project: Project }) {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the project
-              <span className="font-semibold"> {project.name}</span>.
+              <span className="font-semibold"> {project.name}</span> and all its associated tasks and sub-projects.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -116,7 +122,7 @@ export function ProjectActions({ project }: { project: Project }) {
               onClick={handleArchive}
               disabled={isArchiving}
             >
-              {isArchiving ? <Loader2 className="animate-spin" /> : 'Archive'}
+              {isArchiving ? <Loader2 className="animate-spin" /> : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
