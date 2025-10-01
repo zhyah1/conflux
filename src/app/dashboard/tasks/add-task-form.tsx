@@ -58,7 +58,7 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
   const [assignableUsers, setAssignableUsers] = useState<User[]>([]);
   const { toast } = useToast();
   const router = useRouter();
-  const { profile } = useUser();
+  const { profile, user } = useUser();
 
   useEffect(() => {
     async function fetchUsers() {
@@ -68,7 +68,18 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
       switch (profile.role) {
         case 'owner':
         case 'admin':
-          targetRoles = ['pmc', 'contractor', 'subcontractor'];
+          // Admins/owners can assign to anyone in the project
+          const { data: projectUsers, error: projectUsersError } = await supabase
+            .from('project_users')
+            .select('users(id, full_name, role)')
+            .eq('project_id', projectId);
+            
+          if (projectUsersError) {
+             console.error('Error fetching project users for form', projectUsersError);
+          } else {
+             setAssignableUsers(projectUsers.map((pu: any) => pu.users).filter(Boolean));
+             return;
+          }
           break;
         case 'pmc':
           targetRoles = ['contractor', 'subcontractor'];
@@ -76,6 +87,12 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
         case 'contractor':
           targetRoles = ['subcontractor'];
           break;
+        case 'subcontractor':
+            // Subcontractors can only assign to themselves
+            if(user && profile) {
+                setAssignableUsers([{id: user.id, full_name: profile.full_name, role: profile.role}]);
+            }
+            return;
       }
       
       if (targetRoles.length === 0) {
@@ -97,7 +114,7 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
     if (open) {
       fetchUsers();
     }
-  }, [open, profile]);
+  }, [open, profile, projectId, user]);
 
   const form = useForm<z.infer<typeof taskSchema>>({
     resolver: zodResolver(taskSchema),
@@ -105,7 +122,7 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
       title: '',
       priority: 'Medium',
       status: status,
-      assignee_id: null,
+      assignee_id: profile?.role === 'subcontractor' ? user?.id : null,
       project_id: projectId,
     },
   });
@@ -115,8 +132,10 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
     form.reset({
       ...form.getValues(),
       status,
+      project_id: projectId,
+       assignee_id: profile?.role === 'subcontractor' ? user?.id : null,
     });
-  }, [status, form, open]);
+  }, [status, projectId, form, open, profile, user]);
 
 
   const onSubmit = async (values: z.infer<typeof taskSchema>) => {
@@ -227,6 +246,7 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value || undefined}
+                    disabled={profile?.role === 'subcontractor'}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -234,6 +254,7 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="null">Unassigned</SelectItem>
                       {assignableUsers.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.full_name} ({user.role})

@@ -21,7 +21,7 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  if (!['owner', 'admin', 'pmc', 'contractor'].includes(profile.role)) {
+  if (!['owner', 'admin', 'pmc', 'contractor', 'subcontractor'].includes(profile.role)) {
     return { error: 'You do not have permission to create tasks.' };
   }
 
@@ -33,15 +33,22 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
 
   // Hierarchical check
   if (profile.role === 'contractor') {
+    if (parsedData.data.assignee_id) {
       const { data: assigneeProfile } = await supabase.from('users').select('role').eq('id', parsedData.data.assignee_id).single();
       if(assigneeProfile && assigneeProfile.role !== 'subcontractor'){
          return { error: 'Contractors can only assign tasks to subcontractors.' };
       }
-  }
-  if (profile.role === 'pmc') {
+    }
+  } else if (profile.role === 'pmc') {
+    if (parsedData.data.assignee_id) {
       const { data: assigneeProfile } = await supabase.from('users').select('role').eq('id', parsedData.data.assignee_id).single();
       if(assigneeProfile && !['contractor', 'subcontractor'].includes(assigneeProfile.role)){
          return { error: 'PMCs can only assign tasks to contractors or subcontractors.' };
+      }
+    }
+  } else if (profile.role === 'subcontractor') {
+      if (parsedData.data.assignee_id && parsedData.data.assignee_id !== user.id) {
+          return { error: 'Subcontractors can only assign tasks to themselves.' };
       }
   }
 
@@ -89,16 +96,16 @@ export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
     }
     
     // Permission Check
-    const isOwnerOrAdminOrPMC = ['owner', 'admin', 'pmc'].includes(profile.role);
-    const { data: task, error: taskError } = await supabase.from('tasks').select('assignee_id').eq('id', parsedData.data.id).single();
+    const { data: task, error: taskError } = await supabase.from('tasks').select('assignee_id, project_id').eq('id', parsedData.data.id).single();
 
     if (taskError) {
         return { error: 'Task not found.' };
     }
-
-    const isAssigned = task.assignee_id === user.id;
-
-    if (!isOwnerOrAdminOrPMC && !isAssigned) {
+    
+    const { data: projectMembers } = await supabase.from('project_users').select('user_id').eq('project_id', task.project_id);
+    const isMember = projectMembers?.some(m => m.user_id === user.id) ?? false;
+    
+    if (!['owner', 'admin', 'pmc'].includes(profile.role) && !isMember) {
       return { error: 'You do not have permission to update this task.' };
     }
 
