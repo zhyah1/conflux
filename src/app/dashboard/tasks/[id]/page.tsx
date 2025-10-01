@@ -29,6 +29,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { getTasksByProjectId } from '../actions';
 
 
 type User = {
@@ -157,29 +158,26 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
   
   const canManageTasks = profile?.role === 'owner' || profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor' || projectUsers.includes(profile.id);
 
-  useEffect(() => {
-    const fetchTasks = async () => {
-      setLoading(true);
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select(`id, title, status, priority, project_id, users (id, full_name, avatar_url)`)
-        .eq('project_id', projectId);
+  const fetchTasks = async () => {
+    setLoading(true);
+    const { data: tasksData, error: tasksError } = await getTasksByProjectId(projectId);
 
-      if (!tasksError) {
-        setTasks(tasksData as Task[]);
-      } else {
-        console.error('Error fetching tasks:', tasksError);
-      }
-      setLoading(false);
+    if (!tasksError) {
+      setTasks(tasksData as Task[]);
+    } else {
+      console.error('Error fetching tasks:', tasksError);
     }
-    
+    setLoading(false);
+  }
+
+  useEffect(() => {
     fetchTasks();
     
     const channel = supabase
       .channel(`tasks-changes-${projectId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `project_id=eq.${projectId}` }, 
         (payload) => {
-          fetchTasks();
+          fetchTasks(); // Refetch tasks on any change
         }
       )
       .subscribe();
@@ -387,3 +385,5 @@ export default function TaskBoardPage() {
     </div>
   );
 }
+
+    

@@ -4,6 +4,7 @@ import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Task title is required.'),
@@ -103,3 +104,25 @@ export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
 
     return { data };
 }
+
+export async function getTasksByProjectId(projectId: string) {
+  // Use the admin client to bypass RLS for this server-side fetch.
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data, error } = await supabaseAdmin
+    .from('tasks')
+    .select(`id, title, status, priority, project_id, users (id, full_name, avatar_url)`)
+    .eq('project_id', projectId);
+  
+  if (error) {
+    console.error("Server-side error fetching tasks: ", error);
+    return { data: null, error: `Failed to fetch tasks: ${error.message}` };
+  }
+
+  return { data, error: null };
+}
+
+    
