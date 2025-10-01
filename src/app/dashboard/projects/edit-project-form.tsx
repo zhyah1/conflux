@@ -77,6 +77,8 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
 
   const canEditAllFields = profile && ['owner', 'admin', 'pmc'].includes(profile.role);
   const canEditAssignments = profile && ['owner', 'admin', 'pmc', 'contractor'].includes(profile.role);
+  const isContractorOrSub = profile && ['contractor', 'subcontractor'].includes(profile.role);
+
   
   useEffect(() => {
     async function fetchData() {
@@ -89,22 +91,24 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
           targetRoles = ['pmc', 'contractor', 'subcontractor', 'client'];
           break;
         case 'pmc':
-          // PMCs can assign contractors and subcontractors
           targetRoles = ['contractor', 'subcontractor'];
           break;
         case 'contractor':
-           // Contractors can assign subcontractors
           targetRoles = ['subcontractor'];
           break;
       }
 
-      const { data: usersData, error: usersError } = await supabase
-        .from('users')
-        .select('id, full_name, role')
-        .in('role', targetRoles);
+      if (targetRoles.length > 0) {
+        const { data: usersData, error: usersError } = await supabase
+          .from('users')
+          .select('id, full_name, role')
+          .in('role', targetRoles);
 
-      if (usersError) console.error('Error fetching users for form', usersError);
-      else setAssignableUsers(usersData || []);
+        if (usersError) console.error('Error fetching users for form', usersError);
+        else setAssignableUsers(usersData || []);
+      } else {
+        setAssignableUsers([]);
+      }
 
 
       const { data: projectsData, error: projectsError } = await getProjects();

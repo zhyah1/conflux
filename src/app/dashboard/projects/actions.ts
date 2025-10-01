@@ -118,17 +118,12 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
     
     const { id, create_sub_phases, assignee_ids, ...projectData } = parsedData.data;
 
-    // Permissions check
-    const { data: projectMembers, error: memberCheckError } = await supabase
+    const { data: projectMembers } = await supabase
       .from('project_users')
       .select('user_id')
       .eq('project_id', id);
 
-    if (memberCheckError) {
-      return { error: 'Could not verify project membership.' };
-    }
-
-    const isMember = projectMembers.some(m => m.user_id === user.id);
+    const isMember = projectMembers?.some(m => m.user_id === user.id);
 
     if (!['owner', 'admin'].includes(profile.role) && !isMember) {
       return { error: 'You do not have permission to edit this project.' };
@@ -147,12 +142,11 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
         return { error: `Failed to update project: ${error.message}` };
     }
 
-    // Handle user assignments update only if the user has permission
     if (['owner', 'admin', 'pmc', 'contractor'].includes(profile.role)) {
       const { error: deleteError } = await supabase.from('project_users').delete().eq('project_id', id);
       if (deleteError) {
           console.error('Error clearing old assignments', deleteError);
-          return { error: 'Failed to update user assignments.' };
+          return { error: `Failed to update user assignments: ${deleteError.message}` };
       }
 
       if (assignee_ids && assignee_ids.length > 0) {
@@ -160,7 +154,7 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
           const { error: assignmentError } = await supabase.from('project_users').insert(userAssignments);
           if (assignmentError) {
               console.error('Supabase error re-assigning users:', assignmentError);
-              return { error: 'Failed to update user assignments.' };
+              return { error: `Failed to update user assignments: ${assignmentError.message}` };
           }
       }
     }
@@ -219,8 +213,6 @@ export async function getProjects() {
             )
         `);
 
-    // Admins, Owners, and Clients can see all projects.
-    // Other roles only see projects they are assigned to.
     if (!['admin', 'owner', 'client'].includes(profile.role)) {
       const { data: userProjects, error: userProjectsError } = await supabase
         .from('project_users')
@@ -234,7 +226,7 @@ export async function getProjects() {
       
       const projectIds = userProjects.map(p => p.project_id);
        if (projectIds.length === 0) {
-        return { data: [], error: null }; // Return empty array if no projects are assigned
+        return { data: [], error: null };
       }
       query = query.in('id', projectIds);
     }
@@ -260,7 +252,7 @@ export async function getProjectById(id: string) {
      const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: 'Not authenticated' };
     
-    const { data, error } = await supabase
+    let query = supabase
         .from('projects')
         .select(`
             *,
@@ -268,8 +260,9 @@ export async function getProjectById(id: string) {
                 users(id, full_name, avatar_url, role)
             )
         `)
-        .eq('id', id)
-        .single();
+        .eq('id', id);
+
+    const { data, error } = await query.single();
     
      if (error) {
         return { data: null, error: `Could not fetch project: ${error.message}` };
@@ -278,7 +271,7 @@ export async function getProjectById(id: string) {
     const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
 
     if (!['admin', 'owner', 'client'].includes(profile!.role)) {
-      const isMember = data.users.some((u: any) => u.users.id === user.id);
+      const isMember = data.users.some((u: any) => u.users && u.users.id === user.id);
       if (!isMember) {
         return { data: null, error: "You don't have permission to view this project." };
       }
@@ -286,7 +279,7 @@ export async function getProjectById(id: string) {
 
     const formattedData = {
         ...data,
-        users: data.users.map((u: any) => u.users)
+        users: data.users.map((u: any) => u.users).filter(Boolean) // Filter out null/undefined users
     };
     
     return { data: formattedData, error: null };
