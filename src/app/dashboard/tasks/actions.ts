@@ -28,22 +28,36 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   }
   
   const { title, priority, status, assignee_id, project_id } = parsedData.data;
-
-  // =================================================================
-  // NEW SERVER-SIDE PERMISSION CHECK TO FIX THE DATABASE ERROR
-  // =================================================================
+  
+  // Server-side permission check
   const allowedRoles = ['owner', 'admin', 'pmc', 'contractor', 'subcontractor'];
   if (!allowedRoles.includes(profile.role)) {
     return { error: 'You do not have permission to create tasks.' };
   }
   
-  // For non-admins, verify they are a member of the project.
   if (!['owner', 'admin'].includes(profile.role)) {
+    // Check if user is member of the project OR the parent project
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('parent_id')
+      .eq('id', project_id)
+      .single();
+
+    if (projectError) {
+      return { error: 'Could not find the specified project.' };
+    }
+    
+    const projectIdsToCheck = [project_id];
+    if (project.parent_id) {
+      projectIdsToCheck.push(project.parent_id);
+    }
+    
     const { data: projectMembership, error: membershipError } = await supabase
       .from('project_users')
       .select('user_id')
-      .eq('project_id', project_id)
+      .in('project_id', projectIdsToCheck)
       .eq('user_id', user.id)
+      .limit(1)
       .maybeSingle();
 
     if (membershipError) {
@@ -55,10 +69,9 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
         return { error: 'You can only add tasks to projects you are a member of.'};
     }
   }
-  // =================================================================
 
 
-  // Hierarchical assignment check (remains the same)
+  // Hierarchical assignment check
   if (profile.role === 'contractor') {
     if (parsedData.data.assignee_id) {
       const { data: assigneeProfile } = await supabase.from('users').select('role').eq('id', parsedData.data.assignee_id).single();
