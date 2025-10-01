@@ -69,7 +69,6 @@ export default function ProjectDetailsPage() {
           const currentProject = projectData as unknown as Project;
           setProject(currentProject);
 
-          // Fetch sub-projects separately based on permissions
           const { data: childrenData, error: childrenError } = await supabase
             .from('projects')
             .select(`*, users (id, full_name, avatar_url)`)
@@ -114,7 +113,7 @@ export default function ProjectDetailsPage() {
     }
   };
 
-  const canDeleteProject = profile?.role === 'admin';
+  const canDeleteProject = profile?.role === 'admin' || profile?.role === 'owner';
 
 
   if (loading) {
@@ -310,5 +309,3 @@ export default function ProjectDetailsPage() {
     </>
   );
 }
-
-    

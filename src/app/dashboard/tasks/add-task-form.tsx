@@ -62,7 +62,7 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
       const { data, error } = await supabase
         .from('users')
         .select('id, full_name')
-        .in('role', ['pmc', 'contractor', 'subcontractor']);
+        .in('role', ['owner', 'admin', 'pmc', 'contractor', 'subcontractor']);
 
       if (error) {
         console.error('Error fetching users for form', error);

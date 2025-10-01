@@ -77,8 +77,12 @@ function TaskCard({ task }: { task: Task }) {
     setIsLoading(false);
   };
   
-  const canEditTask = profile?.role === 'admin' || profile?.role === 'pmc' || (profile && task.users?.id === profile.id);
-  const canCheckDelays = profile?.role === 'admin' || profile?.role === 'pmc';
+  const isOwnerOrAdmin = profile?.role === 'owner' || profile?.role === 'admin';
+  const isPMC = profile?.role === 'pmc';
+  const isAssigned = profile && task.users?.id === profile.id;
+
+  const canEditTask = isOwnerOrAdmin || isPMC || isAssigned;
+  const canCheckDelays = isOwnerOrAdmin || isPMC;
 
   return (
     <Card className="mb-4 shadow-sm hover:shadow-md transition-shadow">
@@ -124,7 +128,7 @@ function KanbanBoard({ projectId, project }: { projectId: string, project: Proje
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc';
+  const canManageTasks = profile?.role === 'owner' || profile?.role === 'admin' || profile?.role === 'pmc';
 
   useEffect(() => {
     const channel = supabase

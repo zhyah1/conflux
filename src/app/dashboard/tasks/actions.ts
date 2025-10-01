@@ -21,7 +21,7 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  if (!['admin', 'owner', 'pmc'].includes(profile.role)) {
+  if (!['owner', 'admin', 'pmc'].includes(profile.role)) {
     return { error: 'You do not have permission to create tasks.' };
   }
 
@@ -77,20 +77,21 @@ export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
     const { id, project_id, ...taskData } = parsedData.data;
     
     // Authorization check
-    if (['contractor', 'subcontractor'].includes(profile.role)) {
-      const { data: originalTask, error: taskError } = await supabase
-        .from('tasks')
-        .select('assignee_id')
-        .eq('id', id)
-        .single();
-      
-      if (taskError || originalTask.assignee_id !== user.id) {
-        return { error: 'You can only update tasks assigned to you.' };
+    if (!['owner', 'admin', 'pmc'].includes(profile.role)) {
+      if (['contractor', 'subcontractor'].includes(profile.role)) {
+        const { data: originalTask, error: taskError } = await supabase
+          .from('tasks')
+          .select('assignee_id')
+          .eq('id', id)
+          .single();
+        
+        if (taskError || originalTask.assignee_id !== user.id) {
+          return { error: 'You can only update tasks assigned to you.' };
+        }
+      } else {
+        return { error: 'You do not have permission to update tasks.' };
       }
-    } else if (!['admin', 'owner', 'pmc'].includes(profile.role)) {
-       return { error: 'You do not have permission to update tasks.' };
     }
-
 
     const updateData: { [key: string]: any } = { ...taskData };
     if (taskData.assignee_id === 'null') {

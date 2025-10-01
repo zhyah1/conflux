@@ -68,7 +68,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
       const { data, error } = await supabase
         .from('users')
         .select('id, full_name')
-        .in('role', ['pmc', 'contractor', 'subcontractor', 'admin']);
+        .in('role', ['owner', 'admin', 'pmc', 'contractor', 'subcontractor']);
 
       if (error) {
         console.error('Error fetching users for form', error);

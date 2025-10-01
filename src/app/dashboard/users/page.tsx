@@ -59,12 +59,12 @@ export default function UsersPage() {
   const [selectedRole, setSelectedRole] = useState('contractor');
   const [loading, setLoading] = useState(true);
 
-  const isAdmin = profile?.role === 'admin';
+  const canManageUsers = profile?.role === 'admin' || profile?.role === 'owner';
 
   const fetchUsers = async () => {
     setLoading(true);
     
-    if (!isAdmin) {
+    if (!canManageUsers) {
       setLoading(false);
       return;
     }
@@ -89,13 +89,13 @@ export default function UsersPage() {
 
   useEffect(() => {
     if (profile) { // Wait for profile to be loaded
-        if (!isAdmin) {
+        if (!canManageUsers) {
             router.push('/dashboard');
         } else {
             fetchUsers();
         }
     }
-  }, [profile, isAdmin, router]);
+  }, [profile, canManageUsers, router]);
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,7 +132,7 @@ export default function UsersPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canManageUsers) {
     return (
        <div className="flex flex-col gap-6">
         <PageHeader
@@ -215,7 +215,7 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">{user.role}</Badge>
+                      <Badge variant={user.role === 'admin' || user.role === 'owner' ? 'default' : 'secondary'} className="capitalize">{user.role}</Badge>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

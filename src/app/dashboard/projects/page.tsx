@@ -142,8 +142,7 @@ export default function ProjectsPage() {
       const { data, error } = await getProjects();
       if (!error && data) {
         const allProjects = data as unknown as Project[];
-        // Create a map for easy lookup
-        const projectMap = new Map(allProjects.map(p => [p.id, { ...p, subProjects: [] }]));
+        const projectMap = new Map(allProjects.map(p => [p.id, { ...p, subProjects: [] as Project[] }]));
         
         const hierarchicalProjects: Project[] = [];
 
@@ -165,7 +164,7 @@ export default function ProjectsPage() {
     fetchProjects();
   }, []);
   
-  const canAddProject = profile?.role === 'admin' || profile?.role === 'pmc';
+  const canAddProject = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'pmc';
 
   return (
     <div className="flex flex-col gap-6">

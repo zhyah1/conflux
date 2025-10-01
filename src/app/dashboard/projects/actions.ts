@@ -26,7 +26,7 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  if (!['admin', 'owner', 'pmc'].includes(profile.role)) {
+  if (!['owner', 'admin', 'pmc'].includes(profile.role)) {
     return { error: 'You do not have permission to create projects.' };
   }
   if (profile.role === 'pmc' && !formData.parent_id) {
@@ -41,7 +41,6 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
 
   const { create_sub_phases, ...projectData } = parsedData.data;
 
-  // Insert the main/parent project first
   const { data: newProject, error: projectError } = await supabase
     .from('projects')
     .insert([{
@@ -60,7 +59,6 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
   
   const newProjectId = newProject.id;
 
-  // If the checkbox was checked, create the standard sub-phases
   if (create_sub_phases) {
     const subphase_names = [
         'Preconstruction',
@@ -111,10 +109,6 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
     const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
     if (!profile) return { error: 'Profile not found' };
 
-    if (!['admin', 'owner', 'pmc'].includes(profile.role)) {
-        return { error: 'You do not have permission to update projects.' };
-    }
-
     const parsedData = updateProjectSchema.safeParse(formData);
 
     if (!parsedData.success) {
@@ -130,12 +124,12 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
       end_date: end_date.toISOString()
     }).eq('id', id);
 
-    // If user is a PMC, they can only edit projects assigned to them.
-    if (profile.role === 'pmc') {
-      query = query.eq('assignee_id', user.id);
-    } else if (profile.role !== 'admin' && profile.role !== 'owner') {
-        // Redundant check, but good for safety
-        return { error: 'You do not have permission to update projects.' };
+    if (!['owner', 'admin'].includes(profile.role)) {
+      if (profile.role === 'pmc') {
+         query = query.eq('assignee_id', user.id);
+      } else {
+         return { error: 'You do not have permission to update projects.' };
+      }
     }
 
 
@@ -161,7 +155,7 @@ export async function deleteProject(id: string) {
     const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
     if (!profile) return { error: 'Profile not found' };
 
-    if (!['admin', 'owner'].includes(profile.role)) {
+    if (!['owner', 'admin'].includes(profile.role)) {
         return { error: 'You do not have permission to delete projects.' };
     }
 
@@ -183,53 +177,12 @@ export async function getProjects() {
     if (!user) {
         return { data: [], error: 'User not authenticated' };
     }
-
-    // Since RLS is not fully reliable for complex reads, we fetch the role and filter in code.
-    const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single();
     
-    if (profileError) {
-        return { data: [], error: `Could not fetch user profile: ${profileError.message}` };
-    }
-
-    const userRole = profile.role;
-    
-    let query = supabase.from('projects').select(`*, users (id, full_name, avatar_url)`);
-
-    // Apply security rules in the application layer.
-    if (['admin', 'owner', 'client'].includes(userRole)) {
-      // Admins, owners, and clients can see all projects, so no filter is needed.
-    } else if (userRole === 'pmc') {
-      // PMCs see projects directly assigned to them.
-      query = query.eq('assignee_id', user.id);
-    } else if (['contractor', 'subcontractor'].includes(userRole)) {
-      // Contractors/subcontractors see projects where they have assigned tasks.
-      const { data: tasks, error: tasksError } = await supabase
-        .from('tasks')
-        .select('project_id')
-        .eq('assignee_id', user.id);
-      
-      if (tasksError) {
-        console.error("Error fetching tasks for project filtering:", tasksError);
-        return { data: [], error: 'Could not fetch user tasks.'};
-      }
-      
-      const projectIdsFromTasks = [...new Set(tasks.map(t => t.project_id))];
-
-      if (projectIdsFromTasks.length === 0) {
-        return { data: [], error: null }; // Return empty list if no tasks assigned
-      }
-      
-      query = query.in('id', projectIdsFromTasks);
-    } else {
-        // Default to no projects if role is unrecognized
-        return { data: [], error: null };
-    }
-
-    const { data, error } = await query.order('start_date', { ascending: false });
+    // RLS is now active and will handle filtering, so we can select directly.
+    const { data, error } = await supabase
+      .from('projects')
+      .select(`*, users (id, full_name, avatar_url)`)
+      .order('start_date', { ascending: false });
         
     return { data, error: error?.message };
 }
@@ -239,48 +192,16 @@ export async function getProjectById(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: 'Not authenticated' };
 
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-    if (!profile) return { data: null, error: 'Profile not found' };
-
-    // Fetch the project first
-    let projectQuery = supabase
+    // RLS will enforce that the user can only fetch projects they are allowed to see.
+    const { data, error } = await supabase
         .from('projects')
         .select(`*, users (id, full_name, avatar_url)`)
         .eq('id', id)
         .single();
     
-    const { data, error } = await projectQuery;
-    
     if (error) {
-      return { data: null, error: error.message };
+      return { data: null, error: `Project not found or access denied: ${error.message}` };
     }
 
-    // Now, apply security check in code
-    const userRole = profile.role;
-    if (['admin', 'owner', 'client'].includes(userRole)) {
-      return { data, error: null };
-    }
-
-    if (userRole === 'pmc' && data.assignee_id === user.id) {
-       return { data, error: null };
-    }
-
-    if (['contractor', 'subcontractor'].includes(userRole)) {
-      const { data: tasks, error: tasksError } = await supabase
-        .from('tasks')
-        .select('project_id', { count: 'exact', head: true })
-        .eq('project_id', id)
-        .eq('assignee_id', user.id);
-      
-      if (tasksError) {
-        return { data: null, error: `Could not verify task assignment: ${tasksError.message}` };
-      }
-
-      if (tasks && tasks.length > 0) {
-        return { data, error: null };
-      }
-    }
-    
-    // If no rule matched, user does not have access.
-    return { data: null, error: 'You do not have permission to view this project.' };
+    return { data, error: null };
 }

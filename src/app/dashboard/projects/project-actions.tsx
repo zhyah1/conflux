@@ -61,13 +61,12 @@ export function ProjectActions({ project }: { project: Project }) {
     }
   };
 
-  const isAdmin = profile?.role === 'admin';
-  
-  // A PMC can edit a project if they are assigned to it.
+  const isOwnerOrAdmin = profile?.role === 'owner' || profile?.role === 'admin';
   const isAssignedPMC = profile?.role === 'pmc' && project.users?.id === profile.id;
 
-  const canEdit = isAdmin || isAssignedPMC;
-  const canDelete = isAdmin;
+  const canEdit = isOwnerOrAdmin || isAssignedPMC;
+  const canDelete = isOwnerOrAdmin;
+  const canViewDetails = !!profile; // Any logged in user can view details
 
   return (
     <>
@@ -80,9 +79,11 @@ export function ProjectActions({ project }: { project: Project }) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => router.push(`/dashboard/projects/${project.id}`)}>
-            View Details
-          </DropdownMenuItem>
+          {canViewDetails && (
+            <DropdownMenuItem onClick={() => router.push(`/dashboard/projects/${project.id}`)}>
+              View Details
+            </DropdownMenuItem>
+          )}
           {canEdit && (
             <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
               Edit
