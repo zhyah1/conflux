@@ -114,7 +114,7 @@ export async function getTasksByProjectId(projectId: string) {
 
   const { data, error } = await supabaseAdmin
     .from('tasks')
-    .select(`id, title, status, priority, project_id, users (id, full_name, avatar_url)`)
+    .select(`id, title, status, priority, project_id, users:assignee_id (id, full_name, avatar_url)`)
     .eq('project_id', projectId);
   
   if (error) {
