@@ -26,11 +26,15 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found.' };
 
+  if (!['owner', 'admin', 'pmc'].includes(profile.role)) {
+    return { error: 'You do not have permission to add projects.' };
+  }
+  
   const parsedData = projectSchema.safeParse(formData);
   if (!parsedData.success) {
     return { error: `Invalid form data: ${parsedData.error.message}` };
   }
-
+  
   if (profile.role === 'pmc' && !parsedData.data.parent_id) {
     return { error: 'Project Managers must assign a parent project.' };
   }
@@ -115,20 +119,19 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
     const { id, create_sub_phases, assignee_ids, ...projectData } = parsedData.data;
 
     // Permissions check
-    if (!['owner', 'admin'].includes(profile.role)) {
-      if (profile.role === 'pmc' || profile.role === 'contractor') {
-        const { count, error: checkError } = await supabase
-          .from('project_users')
-          .select('*', { count: 'exact', head: true })
-          .eq('project_id', id)
-          .eq('user_id', user.id);
-        
-        if (checkError || count === 0) {
-          return { error: 'You do not have permission to edit this project.' };
-        }
-      } else {
-        return { error: 'You do not have permission to edit projects.' };
-      }
+    const { data: projectMembers, error: memberCheckError } = await supabase
+      .from('project_users')
+      .select('user_id')
+      .eq('project_id', id);
+
+    if (memberCheckError) {
+      return { error: 'Could not verify project membership.' };
+    }
+
+    const isMember = projectMembers.some(m => m.user_id === user.id);
+
+    if (!['owner', 'admin'].includes(profile.role) && !isMember) {
+      return { error: 'You do not have permission to edit this project.' };
     }
     
     const { start_date, end_date, ...restOfData } = projectData;
@@ -144,21 +147,24 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
         return { error: `Failed to update project: ${error.message}` };
     }
 
-    // Handle user assignments update by deleting old ones and inserting new ones
-    const { error: deleteError } = await supabase.from('project_users').delete().eq('project_id', id);
-    if (deleteError) {
-        console.error('Error clearing old assignments', deleteError);
-        return { error: 'Failed to update user assignments.' };
+    // Handle user assignments update only if the user has permission
+    if (['owner', 'admin', 'pmc', 'contractor'].includes(profile.role)) {
+      const { error: deleteError } = await supabase.from('project_users').delete().eq('project_id', id);
+      if (deleteError) {
+          console.error('Error clearing old assignments', deleteError);
+          return { error: 'Failed to update user assignments.' };
+      }
+
+      if (assignee_ids && assignee_ids.length > 0) {
+          const userAssignments = assignee_ids.map(user_id => ({ project_id: id, user_id }));
+          const { error: assignmentError } = await supabase.from('project_users').insert(userAssignments);
+          if (assignmentError) {
+              console.error('Supabase error re-assigning users:', assignmentError);
+              return { error: 'Failed to update user assignments.' };
+          }
+      }
     }
 
-    if (assignee_ids && assignee_ids.length > 0) {
-        const userAssignments = assignee_ids.map(user_id => ({ project_id: id, user_id }));
-        const { error: assignmentError } = await supabase.from('project_users').insert(userAssignments);
-        if (assignmentError) {
-            console.error('Supabase error re-assigning users:', assignmentError);
-            return { error: 'Failed to update user assignments.' };
-        }
-    }
 
     revalidatePath('/dashboard/projects');
     revalidatePath(`/dashboard/projects/${id}`);
@@ -227,6 +233,9 @@ export async function getProjects() {
       }
       
       const projectIds = userProjects.map(p => p.project_id);
+       if (projectIds.length === 0) {
+        return { data: [], error: null }; // Return empty array if no projects are assigned
+      }
       query = query.in('id', projectIds);
     }
     

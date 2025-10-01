@@ -41,6 +41,7 @@ import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import type { Project } from './page';
 import { MultiSelect } from '@/components/ui/multi-select';
+import { useUser } from '@/app/user-provider';
 
 type User = {
   id: string;
@@ -69,18 +70,42 @@ type EditProjectFormProps = {
 
 export function EditProjectForm({ project, open, onOpenChange }: EditProjectFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
+  const [assignableUsers, setAssignableUsers] = useState<User[]>([]);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const { toast } = useToast();
+  const { profile } = useUser();
 
+  const canEditAllFields = profile && ['owner', 'admin', 'pmc'].includes(profile.role);
+  const canEditAssignments = profile && ['owner', 'admin', 'pmc', 'contractor'].includes(profile.role);
+  
   useEffect(() => {
     async function fetchData() {
+      if (!profile) return;
+
+      let targetRoles: string[] = [];
+       switch (profile.role) {
+        case 'owner':
+        case 'admin':
+          targetRoles = ['pmc', 'contractor', 'subcontractor', 'client'];
+          break;
+        case 'pmc':
+          // PMCs can assign contractors and subcontractors
+          targetRoles = ['contractor', 'subcontractor'];
+          break;
+        case 'contractor':
+           // Contractors can assign subcontractors
+          targetRoles = ['subcontractor'];
+          break;
+      }
+
       const { data: usersData, error: usersError } = await supabase
         .from('users')
-        .select('id, full_name, role');
+        .select('id, full_name, role')
+        .in('role', targetRoles);
 
       if (usersError) console.error('Error fetching users for form', usersError);
-      else setUsers(usersData);
+      else setAssignableUsers(usersData || []);
+
 
       const { data: projectsData, error: projectsError } = await getProjects();
       if (projectsError) console.error('Error fetching projects for form', projectsError);
@@ -89,7 +114,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
     if (open) {
       fetchData();
     }
-  }, [open]);
+  }, [open, profile]);
 
   const form = useForm<z.infer<typeof updateProjectSchema>>({
     resolver: zodResolver(updateProjectSchema),
@@ -152,7 +177,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
     }
   };
 
-  const userOptions = users.map(u => ({ value: u.id, label: `${u.full_name} (${u.role})`}));
+  const userOptions = assignableUsers.map(u => ({ value: u.id, label: `${u.full_name} (${u.role})`}));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -172,7 +197,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
                 <FormItem className="col-span-2">
                   <FormLabel>Project Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Downtown Tower Renovation" {...field} />
+                    <Input placeholder="e.g., Downtown Tower Renovation" {...field} disabled={!canEditAllFields}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -183,8 +208,8 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
               name="parent_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Parent Project (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || 'null'}>
+                  <FormLabel>Parent Project</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || 'null'} disabled={!canEditAllFields}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a parent project" />
@@ -213,7 +238,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
                 <FormItem>
                   <FormLabel>Project Owner</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Nexus Properties" {...field} />
+                    <Input placeholder="e.g., Nexus Properties" {...field} disabled={!canEditAllFields} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -231,6 +256,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
                       selected={field.value || []}
                       onChange={field.onChange}
                       placeholder="Select team members..."
+                      disabled={!canEditAssignments}
                     />
                   <FormMessage />
                 </FormItem>
@@ -269,7 +295,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
                 <FormItem>
                   <FormLabel>Budget (₹)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="e.g., 5000000" {...field} />
+                    <Input type="number" placeholder="e.g., 5000000" {...field} disabled={!canEditAllFields} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -291,6 +317,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
                             "w-full pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
+                          disabled={!canEditAllFields}
                         >
                           {field.value ? (
                             format(field.value, "PPP")
@@ -333,6 +360,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
                             "w-full pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
+                          disabled={!canEditAllFields}
                         >
                           {field.value ? (
                             format(field.value, "PPP")
