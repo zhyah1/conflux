@@ -30,33 +30,8 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  if (!['owner', 'admin'].includes(profile.role)) {
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('parent_id')
-      .eq('id', project_id)
-      .single();
-
-    if (projectError) {
-      return { error: 'Could not find the specified project.' };
-    }
-
-    const projectIdsToCheck = [project_id];
-    if (project.parent_id) {
-      projectIdsToCheck.push(project.parent_id);
-    }
-
-    const { data: projectMembership, error: membershipError } = await supabase
-      .from('project_users')
-      .select('user_id')
-      .in('project_id', projectIdsToCheck)
-      .eq('user_id', user.id)
-      .limit(1)
-      .maybeSingle();
-
-    if (membershipError || !projectMembership) {
-      return { error: 'You can only add tasks to projects you are a member of.' };
-    }
+  if (!['owner', 'admin', 'pmc', 'contractor', 'subcontractor'].includes(profile.role)) {
+     return { error: 'You do not have permission to add tasks.' };
   }
   
   const id = `TASK-${Date.now()}`;

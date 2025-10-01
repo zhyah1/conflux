@@ -78,13 +78,9 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
   };
   
   if (!profile) return null;
-
-  const isOwnerOrAdmin = profile.role === 'owner' || profile.role === 'admin';
-  const isPMC = profile.role === 'pmc';
-  const isProjectMember = projectUsers.includes(profile.id);
-
-  const canEditTask = isOwnerOrAdmin || isProjectMember;
-  const canCheckDelays = isOwnerOrAdmin || isPMC;
+  
+  const canEditTask = projectUsers.includes(profile.id);
+  const canCheckDelays = profile.role === 'owner' || profile.role === 'admin' || profile.role === 'pmc';
 
   return (
     <Card className="mb-4 shadow-sm hover:shadow-md transition-shadow">
@@ -129,20 +125,12 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
   const { profile } = useUser();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchKey, setFetchKey] = useState(0);
   
-  const canManageTasks = profile?.role === 'owner' || profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor';
+  const canManageTasks = profile?.role === 'owner' || profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor' || projectUsers.includes(profile.id);
 
   useEffect(() => {
-    const channel = supabase
-      .channel(`tasks-changes-${projectId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `project_id=eq.${projectId}` }, 
-        (payload) => {
-          fetchTasks();
-        }
-      )
-      .subscribe();
-
-    async function fetchTasks() {
+    const fetchTasks = async () => {
       setLoading(true);
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
@@ -156,13 +144,22 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
       }
       setLoading(false);
     }
-
+    
     fetchTasks();
+    
+    const channel = supabase
+      .channel(`tasks-changes-${projectId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `project_id=eq.${projectId}` }, 
+        (payload) => {
+          fetchTasks();
+        }
+      )
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     }
-  }, [projectId]);
+  }, [projectId, fetchKey]);
 
   const taskCounts = useMemo(() => {
     return statusColumns.reduce((acc, col) => {
