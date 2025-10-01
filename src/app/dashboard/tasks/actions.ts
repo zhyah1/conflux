@@ -26,13 +26,39 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   if (!parsedData.success) {
     return { error: 'Invalid form data.' };
   }
+  
+  const { title, priority, status, assignee_id, project_id } = parsedData.data;
 
-  // Application-level permission check for task creation
-  if (!['owner', 'admin', 'pmc', 'contractor', 'subcontractor'].includes(profile.role)) {
+  // =================================================================
+  // NEW SERVER-SIDE PERMISSION CHECK TO FIX THE DATABASE ERROR
+  // =================================================================
+  const allowedRoles = ['owner', 'admin', 'pmc', 'contractor', 'subcontractor'];
+  if (!allowedRoles.includes(profile.role)) {
     return { error: 'You do not have permission to create tasks.' };
   }
+  
+  // For non-admins, verify they are a member of the project.
+  if (!['owner', 'admin'].includes(profile.role)) {
+    const { data: projectMembership, error: membershipError } = await supabase
+      .from('project_users')
+      .select('user_id')
+      .eq('project_id', project_id)
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-  // Hierarchical assignment check
+    if (membershipError) {
+      console.error('Error checking project membership:', membershipError);
+      return { error: 'Could not verify your project membership.' };
+    }
+    
+    if (!projectMembership) {
+        return { error: 'You can only add tasks to projects you are a member of.'};
+    }
+  }
+  // =================================================================
+
+
+  // Hierarchical assignment check (remains the same)
   if (profile.role === 'contractor') {
     if (parsedData.data.assignee_id) {
       const { data: assigneeProfile } = await supabase.from('users').select('role').eq('id', parsedData.data.assignee_id).single();
@@ -52,9 +78,6 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
           return { error: 'Subcontractors can only assign tasks to themselves.' };
       }
   }
-
-
-  const { title, priority, status, assignee_id, project_id } = parsedData.data;
 
   const id = `TASK-${Date.now()}`;
   
