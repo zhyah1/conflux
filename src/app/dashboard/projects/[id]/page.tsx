@@ -59,16 +59,12 @@ export default function ProjectDetailsPage() {
 
         if (projectError) {
           console.error('Error fetching project:', projectError);
-          toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Could not fetch project details. You may not have the required permissions.'
-          })
           setProject(null);
         } else {
           const currentProject = projectData as unknown as Project;
           setProject(currentProject);
 
+          // Sub-projects are also governed by RLS. The user will only see the ones they have access to.
           const { data: childrenData, error: childrenError } = await supabase
             .from('projects')
             .select(`*, users (id, full_name, avatar_url)`)

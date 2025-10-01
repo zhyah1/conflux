@@ -23,14 +23,10 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
+  // RLS policies will handle permission checks, but we can have a basic check here.
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (!profile) return { error: 'Profile not found' };
-
-  if (!['owner', 'admin', 'pmc'].includes(profile.role)) {
+  if (!profile || !['owner', 'admin', 'pmc'].includes(profile.role)) {
     return { error: 'You do not have permission to create projects.' };
-  }
-  if (profile.role === 'pmc' && !formData.parent_id) {
-    return { error: 'Project Managers can only create sub-phases.' };
   }
 
   const parsedData = projectSchema.safeParse(formData);
@@ -106,35 +102,20 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Not authenticated' };
 
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-    if (!profile) return { error: 'Profile not found' };
-
     const parsedData = updateProjectSchema.safeParse(formData);
-
     if (!parsedData.success) {
         return { error: 'Invalid form data.' };
     }
 
+    // RLS handles the permissions, so we can proceed with the update.
     const { id, create_sub_phases, ...projectData } = parsedData.data;
-     const { start_date, end_date, ...restOfData } = projectData;
+    const { start_date, end_date, ...restOfData } = projectData;
 
-    let query = supabase.from('projects').update({
+    const { data, error } = await supabase.from('projects').update({
       ...restOfData,
       start_date: start_date.toISOString(),
       end_date: end_date.toISOString()
-    }).eq('id', id);
-
-    if (!['owner', 'admin'].includes(profile.role)) {
-      if (profile.role === 'pmc') {
-         query = query.eq('assignee_id', user.id);
-      } else {
-         return { error: 'You do not have permission to update projects.' };
-      }
-    }
-
-
-    const { data, error } = await query.select();
-
+    }).eq('id', id).select();
 
     if (error) {
         console.error('Supabase update error:', error);
@@ -152,13 +133,7 @@ export async function deleteProject(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Not authenticated' };
 
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-    if (!profile) return { error: 'Profile not found' };
-
-    if (!['owner', 'admin'].includes(profile.role)) {
-        return { error: 'You do not have permission to delete projects.' };
-    }
-
+    // RLS policies will ensure only authorized users can delete.
     const { error } = await supabase.from('projects').delete().eq('id', id);
 
     if (error) {
@@ -173,18 +148,21 @@ export async function deleteProject(id: string) {
 export async function getProjects() {
     const supabase = createServerActionClient({ cookies });
     const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        return { data: [], error: 'User not authenticated' };
-    }
+    if (!user) return { data: [], error: 'User not authenticated' };
     
-    // RLS is now active and will handle filtering, so we can select directly.
+    // RLS is now active and will handle all filtering logic.
+    // The database will only return rows the user is allowed to see.
     const { data, error } = await supabase
       .from('projects')
       .select(`*, users (id, full_name, avatar_url)`)
       .order('start_date', { ascending: false });
         
-    return { data, error: error?.message };
+    if (error) {
+      console.error('Error fetching projects:', error);
+      return { data: [], error: `Could not fetch projects: ${error.message}` };
+    }
+    
+    return { data, error: null };
 }
 
 export async function getProjectById(id: string) {
