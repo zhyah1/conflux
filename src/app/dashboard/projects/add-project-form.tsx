@@ -45,10 +45,12 @@ import { supabase } from '@/lib/supabase';
 import type { Project } from './page';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useUser } from '@/app/user-provider';
+import { MultiSelect } from '@/components/ui/multi-select';
 
 type User = {
   id: string;
   full_name: string | null;
+  role: string;
 };
 
 const projectSchema = z.object({
@@ -59,7 +61,7 @@ const projectSchema = z.object({
   completion: z.coerce.number().min(0).max(100, 'Completion must be between 0 and 100.'),
   start_date: z.date({ required_error: 'Start date is required.' }),
   end_date: z.date({ required_error: 'End date is required.' }),
-  assignee_id: z.string().uuid().optional().nullable(),
+  assignee_ids: z.array(z.string().uuid()).optional(),
   parent_id: z.string().optional().nullable(),
   create_sub_phases: z.boolean().optional(),
 });
@@ -78,8 +80,7 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
     async function fetchUsers() {
       const { data, error } = await supabase
         .from('users')
-        .select('id, full_name')
-        .in('role', ['pmc', 'contractor', 'subcontractor', 'admin', 'owner']);
+        .select('id, full_name, role');
 
       if (error) {
         console.error('Error fetching users for form', error);
@@ -100,7 +101,7 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
       owner: '',
       budget: 0,
       completion: 0,
-      assignee_id: null,
+      assignee_ids: [],
       parent_id: isPMC ? undefined : null, // PMCs must select a parent
       create_sub_phases: false,
     },
@@ -141,6 +142,8 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
       setIsSubmitting(false);
     }
   };
+
+  const userOptions = users.map(u => ({ value: u.id, label: `${u.full_name} (${u.role})`}));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -211,27 +214,16 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
 
             <FormField
               control={form.control}
-              name="assignee_id"
+              name="assignee_ids"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="col-span-2">
                   <FormLabel>Assign To</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value || undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Unassigned" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                   <MultiSelect
+                      options={userOptions}
+                      selected={field.value || []}
+                      onChange={field.onChange}
+                      placeholder="Select team members..."
+                    />
                   <FormMessage />
                 </FormItem>
               )}

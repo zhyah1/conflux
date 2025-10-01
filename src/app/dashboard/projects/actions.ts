@@ -13,7 +13,7 @@ const projectSchema = z.object({
   completion: z.coerce.number().min(0).max(100, 'Completion must be between 0 and 100.'),
   start_date: z.date({ required_error: 'Start date is required.' }),
   end_date: z.date({ required_error: 'End date is required.' }),
-  assignee_id: z.string().uuid().optional().nullable(),
+  assignee_ids: z.array(z.string().uuid()).optional(), // Changed to array
   parent_id: z.string().optional().nullable(),
   create_sub_phases: z.boolean().optional(),
 });
@@ -23,14 +23,7 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
-  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (!profile) return { error: 'Profile not found' };
-
-  // Permission Check
-  const canAddProject = ['owner', 'admin'].includes(profile.role) || (profile.role === 'pmc' && formData.parent_id);
-  if (!canAddProject) {
-    return { error: 'You do not have permission to create this type of project.' };
-  }
+  // Permission check is now in RLS policies
 
   const parsedData = projectSchema.safeParse(formData);
 
@@ -38,13 +31,15 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
     return { error: `Invalid form data: ${parsedData.error.message}` };
   }
 
-  const { create_sub_phases, ...projectData } = parsedData.data;
+  const { create_sub_phases, assignee_ids, ...projectData } = parsedData.data;
+
+  const newProjectId = `PROJ-${Date.now()}`;
 
   const { data: newProject, error: projectError } = await supabase
     .from('projects')
     .insert([{
       ...projectData,
-      id: `PROJ-${Date.now()}`,
+      id: newProjectId,
       start_date: projectData.start_date.toISOString(),
       end_date: projectData.end_date.toISOString(),
     }])
@@ -55,9 +50,16 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
     console.error('Supabase error creating project:', projectError);
     return { error: `Failed to create project: ${projectError.message}` };
   }
-  
-  const newProjectId = newProject.id;
 
+  if (assignee_ids && assignee_ids.length > 0) {
+    const userAssignments = assignee_ids.map(user_id => ({ project_id: newProjectId, user_id }));
+    const { error: assignmentError } = await supabase.from('project_users').insert(userAssignments);
+    if (assignmentError) {
+      console.error('Supabase error assigning users:', assignmentError);
+      // Don't block, just log the error
+    }
+  }
+  
   if (create_sub_phases) {
     const subphase_names = [
         'Preconstruction',
@@ -77,17 +79,14 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
         completion: 0,
         start_date: projectData.start_date.toISOString(),
         end_date: projectData.end_date.toISOString(),
-        assignee_id: projectData.assignee_id,
         parent_id: newProjectId,
     }));
 
-    const { error: subPhaseError } = await supabase
-      .from('projects')
-      .insert(subPhasesToInsert);
+    const { error: subPhaseError } = await supabase.from('projects').insert(subPhasesToInsert);
 
     if (subPhaseError) {
       console.error('Supabase error creating sub-phases:', subPhaseError);
-      return { error: `Project was created, but failed to create its sub-phases: ${subPhaseError.message}` };
+      return { error: `Project was created, but failed to create sub-phases: ${subPhaseError.message}` };
     }
   }
 
@@ -105,28 +104,14 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Not authenticated' };
     
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-    if (!profile) return { error: 'Profile not found' };
-
     const parsedData = updateProjectSchema.safeParse(formData);
     if (!parsedData.success) {
         return { error: 'Invalid form data.' };
     }
     
-    const { id, create_sub_phases, ...projectData } = parsedData.data;
+    const { id, create_sub_phases, assignee_ids, ...projectData } = parsedData.data;
 
-    // Permission Check
-    const { data: existingProject, error: fetchError } = await supabase.from('projects').select('assignee_id').eq('id', id).single();
-    if (fetchError) {
-        return { error: 'Could not find the project to update.' };
-    }
-    
-    const isOwnerOrAdmin = ['owner', 'admin'].includes(profile.role);
-    const isAssignedPMC = profile.role === 'pmc' && existingProject.assignee_id === user.id;
-
-    if (!isOwnerOrAdmin && !isAssignedPMC) {
-      return { error: 'You do not have permission to update this project.' };
-    }
+    // RLS policy will handle permission check
 
     const { start_date, end_date, ...restOfData } = projectData;
 
@@ -141,6 +126,23 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
         return { error: `Failed to update project: ${error.message}` };
     }
 
+    // Handle user assignments update
+    const { error: deleteError } = await supabase.from('project_users').delete().eq('project_id', id);
+    if (deleteError) {
+        console.error('Error clearing old assignments', deleteError);
+        return { error: 'Failed to update user assignments.' };
+    }
+
+    if (assignee_ids && assignee_ids.length > 0) {
+        const userAssignments = assignee_ids.map(user_id => ({ project_id: id, user_id }));
+        const { error: assignmentError } = await supabase.from('project_users').insert(userAssignments);
+        if (assignmentError) {
+            console.error('Supabase error re-assigning users:', assignmentError);
+            return { error: 'Failed to update user assignments.' };
+        }
+    }
+
+
     revalidatePath('/dashboard/projects');
     revalidatePath(`/dashboard/projects/${id}`);
 
@@ -152,12 +154,7 @@ export async function deleteProject(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Not authenticated' };
 
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-    if (!profile) return { error: 'Profile not found' };
-
-    if (!['owner', 'admin'].includes(profile.role)) {
-      return { error: 'You do not have permission to delete projects.' };
-    }
+    // RLS policy will handle permission check
 
     const { error } = await supabase.from('projects').delete().eq('id', id);
 
@@ -170,158 +167,63 @@ export async function deleteProject(id: string) {
     return { success: true };
 }
 
+// Simplified getProjects, relying on RLS
 export async function getProjects() {
     const supabase = createServerActionClient({ cookies });
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: [], error: 'User not authenticated' };
     
-    const { data: profile, error: profileError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError) {
-      return { data: [], error: `Could not fetch user profile: ${profileError.message}` };
-    }
-
-    const userRole = profile.role;
-
-    if (userRole === 'owner' || userRole === 'admin' || userRole === 'client') {
-      const { data, error } = await supabase.from('projects').select(`*, users (id, full_name, avatar_url)`).order('start_date', { ascending: false });
-      return { data, error: error?.message };
-    } 
-    
-    // For PMCs, Contractors, and Subcontractors
-    // 1. Get projects they are directly assigned to
-    const { data: assignedProjects, error: assignedProjectsError } = await supabase
-      .from('projects')
-      .select('id')
-      .eq('assignee_id', user.id);
-
-    if (assignedProjectsError) {
-      return { data: [], error: `Could not fetch assigned projects: ${assignedProjectsError.message}` };
-    }
-    const assignedProjectIds = assignedProjects.map(p => p.id);
-
-    // 2. Get projects where they have assigned tasks
-    const { data: tasks, error: tasksError } = await supabase
-      .from('tasks')
-      .select('project_id')
-      .eq('assignee_id', user.id);
-    
-    if (tasksError) {
-      return { data: [], error: `Could not fetch user's tasks: ${tasksError.message}` };
-    }
-    const taskProjectIds = tasks.map(t => t.project_id);
-
-    // 3. For PMCs, get projects where they have created tasks for others (delegated)
-    let managedProjectIds: string[] = [];
-    if (userRole === 'pmc') {
-      const { data: managedTasks, error: managedTasksError } = await supabase
-        .from('tasks')
-        .select('project_id')
-        .eq('created_by', user.id);
-
-      if (managedTasksError) {
-        console.error('Could not fetch managed tasks for PMC:', managedTasksError.message);
-      } else {
-        managedProjectIds = managedTasks.map(t => t.project_id);
-      }
-    }
-
-    const allVisibleProjectIds = [...new Set([...assignedProjectIds, ...taskProjectIds, ...managedProjectIds])];
-
-    if (allVisibleProjectIds.length === 0) {
-      return { data: [], error: null };
-    }
-
+    // The query is now much simpler. RLS on `projects` handles filtering.
+    // We join through project_users to get the array of assigned users.
     const { data, error } = await supabase
-      .from('projects')
-      .select(`*, users (id, full_name, avatar_url)`)
-      .in('id', allVisibleProjectIds)
-      .order('start_date', { ascending: false });
-        
+        .from('projects')
+        .select(`
+            *,
+            users:project_users(
+                id:user_id,
+                full_name,
+                avatar_url
+            )
+        `)
+        .order('start_date', { ascending: false });
+
     if (error) {
-      console.error('Error fetching projects:', error);
-      return { data: [], error: `Could not fetch projects: ${error.message}` };
+        return { data: null, error: `Could not fetch projects: ${error.message}` };
     }
     
-    return { data, error: null };
+    // The shape of `users` from Supabase will be { users: [{...}] }. We need to flatten it.
+    const formattedData = data.map(project => ({
+        ...project,
+        users: project.users.map((u: any) => u.users)
+    }));
+
+
+    return { data: formattedData, error: null };
 }
 
+// Simplified getProjectById, relying on RLS
 export async function getProjectById(id: string) {
     const supabase = createServerActionClient({ cookies });
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
-
-    const { data: profile, error: profileError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
     
-    if (profileError) return { data: null, error: `Could not fetch user profile: ${profileError.message}` };
-    
-    const userRole = profile.role;
-    
-    // Admin, owner, client can see any project
-    if (['owner', 'admin', 'client'].includes(userRole)) {
-        const { data, error } = await supabase
-            .from('projects')
-            .select(`*, users (id, full_name, avatar_url)`)
-            .eq('id', id)
-            .single();
-        return { data, error: error?.message };
-    }
-
-    // For other roles, fetch the project and then check if they should have access
-    const { data: projectData, error: projectError } = await supabase
+    const { data, error } = await supabase
         .from('projects')
-        .select(`*, users (id, full_name, avatar_url)`)
+        .select(`
+            *,
+            users:project_users(
+                id:user_id,
+                full_name,
+                avatar_url
+            )
+        `)
         .eq('id', id)
         .single();
     
-    if (projectError) {
-      return { data: null, error: `Project not found: ${projectError.message}` };
+     if (error) {
+        return { data: null, error: `Could not fetch project: ${error.message}` };
     }
+
+    const formattedData = {
+        ...data,
+        users: data.users.map((u: any) => u.users)
+    };
     
-    // Check direct assignment
-    if (projectData.assignee_id === user.id) {
-       return { data: projectData, error: null };
-    }
-
-    // Check if user has a task in this project
-    const { data: tasks, error: taskError } = await supabase
-      .from('tasks')
-      .select('id')
-      .eq('project_id', id)
-      .eq('assignee_id', user.id)
-      .limit(1);
-
-    if (taskError) {
-      return { data: null, error: `Error checking task assignments: ${taskError.message}` };
-    }
-    if (tasks && tasks.length > 0) {
-      return { data: projectData, error: null };
-    }
-
-    // For PMCs, check if they manage tasks in this project
-    if (userRole === 'pmc') {
-      const { data: managedTasks, error: managedTaskError } = await supabase
-        .from('tasks')
-        .select('id')
-        .eq('project_id', id)
-        .eq('created_by', user.id)
-        .limit(1);
-      
-      if (managedTaskError) {
-        return { data: null, error: `Error checking managed tasks: ${managedTaskError.message}` };
-      }
-      if (managedTasks && managedTasks.length > 0) {
-        return { data: projectData, error: null };
-      }
-    }
-
-    return { data: null, error: "You do not have permission to view this project." };
+    return { data: formattedData, error: null };
 }

@@ -60,13 +60,17 @@ export function ProjectActions({ project }: { project: Project }) {
     }
   };
 
-  const isOwnerOrAdmin = profile?.role === 'owner' || profile?.role === 'admin';
-  const isAssignedPMC = profile?.role === 'pmc' && project.users?.id === profile.id;
-  const isAssignedContractor = profile?.role === 'contractor' && project.users?.id === profile.id;
+  if (!profile) return null;
+
+  const isOwnerOrAdmin = profile.role === 'owner' || profile.role === 'admin';
+  const isAssigned = project.users.some(u => u.id === profile.id);
+  const isAssignedPMC = isAssigned && profile.role === 'pmc';
+  const isAssignedContractor = isAssigned && profile.role === 'contractor';
+
 
   const canEdit = isOwnerOrAdmin || isAssignedPMC || isAssignedContractor;
   const canDelete = isOwnerOrAdmin;
-  const canViewDetails = !!profile; // Any logged in user can view details
+  const canViewDetails = !!profile; 
 
   return (
     <>

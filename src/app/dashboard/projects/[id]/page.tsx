@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '../../components/page-header';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Calendar, CircleDollarSign, Percent, Tag, Loader2, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Calendar, CircleDollarSign, Percent, Tag, Loader2, ArrowRight, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,6 +28,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useUser } from '@/app/user-provider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const getInitials = (name?: string | null) => {
@@ -64,16 +65,20 @@ export default function ProjectDetailsPage() {
           const currentProject = projectData as unknown as Project;
           setProject(currentProject);
 
-          // Sub-projects are also governed by RLS. The user will only see the ones they have access to.
+          // RLS will ensure user only sees sub-projects they have access to.
           const { data: childrenData, error: childrenError } = await supabase
             .from('projects')
-            .select(`*, users (id, full_name, avatar_url)`)
+            .select(`*, users:project_users(user_id, users(id, full_name, avatar_url))`)
             .eq('parent_id', currentProject.id);
 
           if (childrenError) {
             console.error('Error fetching sub-projects:', childrenError);
           } else {
-            setSubProjects(childrenData as Project[]);
+             const formattedSubProjects = childrenData.map((p: any) => ({
+                ...p,
+                users: p.users.map((u: any) => u.users)
+            }));
+            setSubProjects(formattedSubProjects as Project[]);
           }
         }
         
@@ -221,19 +226,23 @@ export default function ProjectDetailsPage() {
         <div className="grid gap-6 md:grid-cols-2">
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">Assigned To</CardTitle>
+                    <CardTitle className="font-headline flex items-center gap-2"><User className="h-6 w-6"/> Assigned Team</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {project.users ? (
-                        <div className="flex items-center gap-4">
-                            <Avatar className="h-16 w-16">
-                                <AvatarImage src={project.users.avatar_url || ''} alt={project.users.full_name || ''} />
-                                <AvatarFallback>{getInitials(project.users.full_name)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <div className="font-bold text-lg">{project.users.full_name}</div>
-                                <div className="text-sm text-muted-foreground">Lead for this project</div>
-                            </div>
+                    {project.users && project.users.length > 0 ? (
+                        <div className="flex flex-wrap gap-4">
+                            {project.users.map(user => (
+                                <div key={user.id} className="flex items-center gap-3">
+                                    <Avatar>
+                                        <AvatarImage src={user.avatar_url || ''} alt={user.full_name || ''} />
+                                        <AvatarFallback>{getInitials(user.full_name)}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <div className="font-semibold">{user.full_name}</div>
+                                        <div className="text-sm text-muted-foreground capitalize">{user.role}</div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     ) : (
                         <p className="text-muted-foreground">This project is not yet assigned.</p>

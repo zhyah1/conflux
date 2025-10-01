@@ -40,10 +40,12 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import type { Project } from './page';
+import { MultiSelect } from '@/components/ui/multi-select';
 
 type User = {
   id: string;
   full_name: string | null;
+  role: string;
 };
 
 const updateProjectSchema = z.object({
@@ -55,7 +57,7 @@ const updateProjectSchema = z.object({
   completion: z.coerce.number().min(0).max(100, 'Completion must be between 0 and 100.'),
   start_date: z.date({ required_error: 'Start date is required.' }),
   end_date: z.date({ required_error: 'End date is required.' }),
-  assignee_id: z.string().uuid().optional().nullable(),
+  assignee_ids: z.array(z.string().uuid()).optional(),
   parent_id: z.string().optional().nullable(),
 });
 
@@ -75,8 +77,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
     async function fetchData() {
       const { data: usersData, error: usersError } = await supabase
         .from('users')
-        .select('id, full_name')
-        .in('role', ['pmc', 'contractor', 'subcontractor']);
+        .select('id, full_name, role');
 
       if (usersError) console.error('Error fetching users for form', usersError);
       else setUsers(usersData);
@@ -101,7 +102,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
       completion: project.completion,
       start_date: new Date(project.start_date),
       end_date: new Date(project.end_date),
-      assignee_id: project.users?.id || null,
+      assignee_ids: project.users.map(u => u.id),
       parent_id: project.parent_id,
     },
   });
@@ -116,7 +117,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
       completion: project.completion,
       start_date: new Date(project.start_date),
       end_date: new Date(project.end_date),
-      assignee_id: project.users?.id || null,
+      assignee_ids: project.users.map(u => u.id),
       parent_id: project.parent_id,
     });
   }, [project, form]);
@@ -125,7 +126,6 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
   const onSubmit = async (values: z.infer<typeof updateProjectSchema>) => {
     setIsSubmitting(true);
     try {
-      // If parent_id is the string "null", convert it to actual null
       const submissionValues = {
         ...values,
         parent_id: values.parent_id === 'null' ? null : values.parent_id,
@@ -151,6 +151,8 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
       setIsSubmitting(false);
     }
   };
+
+  const userOptions = users.map(u => ({ value: u.id, label: `${u.full_name} (${u.role})`}));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -191,7 +193,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
                     <SelectContent>
                       <SelectItem value="null">None (This is a master project)</SelectItem>
                       {allProjects
-                        .filter(p => p.id !== project.id) // Can't be its own parent
+                        .filter(p => p.id !== project.id && !p.parent_id) 
                         .map((p) => (
                         <SelectItem key={p.id} value={p.id}>
                           {p.name}
@@ -220,27 +222,16 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
 
             <FormField
               control={form.control}
-              name="assignee_id"
+              name="assignee_ids"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="col-span-2">
                   <FormLabel>Assign To</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value || ""}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Unassigned" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                       {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                   <MultiSelect
+                      options={userOptions}
+                      selected={field.value || []}
+                      onChange={field.onChange}
+                      placeholder="Select team members..."
+                    />
                   <FormMessage />
                 </FormItem>
               )}

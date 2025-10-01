@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Building, ChevronDown, ChevronRight, Folder } from 'lucide-react';
+import { PlusCircle, Building, ChevronDown, ChevronRight, Folder, Users } from 'lucide-react';
 import { PageHeader } from '../components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -24,11 +24,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ProjectActions } from './project-actions';
 import { getProjects } from './actions';
 import { useUser } from '@/app/user-provider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export type User = {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  role?: string;
 };
 
 export type Project = {
@@ -41,7 +43,7 @@ export type Project = {
   start_date: string;
   end_date: string;
   parent_id: string | null;
-  users: User | null; // Can be a user object or null
+  users: User[]; // Now an array of users
   subProjects?: Project[];
 };
 
@@ -99,15 +101,37 @@ const ProjectRow = ({ project, level = 0 }: { project: Project; level?: number }
           }).format(project.budget)}
         </TableCell>
         <TableCell className="hidden lg:table-cell">
-          {project.users ? (
-            <div className="flex items-center gap-2">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={project.users.avatar_url || ''} alt={project.users.full_name || ''} />
-                <AvatarFallback>{getInitials(project.users.full_name)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="font-medium">{project.users.full_name}</div>
-              </div>
+          {project.users && project.users.length > 0 ? (
+            <div className="flex items-center">
+              {project.users.slice(0, 3).map((user, index) => (
+                <TooltipProvider key={user.id}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Avatar className={`h-8 w-8 border-2 border-background -ml-2 first:ml-0`}>
+                        <AvatarImage src={user.avatar_url || ''} alt={user.full_name || ''} />
+                        <AvatarFallback>{getInitials(user.full_name)}</AvatarFallback>
+                      </Avatar>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{user.full_name}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ))}
+              {project.users.length > 3 && (
+                 <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Avatar className="h-8 w-8 border-2 border-background -ml-2">
+                        <AvatarFallback>+{project.users.length - 3}</AvatarFallback>
+                      </Avatar>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{project.users.slice(3).map(u => u.full_name).join(', ')}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           ) : (
             <span className="text-muted-foreground">Unassigned</span>
