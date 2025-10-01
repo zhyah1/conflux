@@ -52,7 +52,7 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   
   const { data, error } = await supabase
     .from('tasks')
-    .insert([{ id, title, priority, status, assignee_id, project_id }])
+    .insert([{ id, title, priority, status, assignee_id, project_id, created_by: user.id }])
     .select();
 
   if (error) {

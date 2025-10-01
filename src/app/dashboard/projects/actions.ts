@@ -186,50 +186,62 @@ export async function getProjects() {
       return { data: [], error: `Could not fetch user profile: ${profileError.message}` };
     }
 
-    let query = supabase.from('projects').select(`*, users (id, full_name, avatar_url)`);
-
     const userRole = profile.role;
 
     if (userRole === 'owner' || userRole === 'admin' || userRole === 'client') {
-      // These roles can see all projects.
-    } else if (userRole === 'pmc') {
-      // PMCs see projects they are directly assigned to.
-      query = query.eq('assignee_id', user.id);
-    } else if (userRole === 'contractor' || userRole === 'subcontractor') {
-      // Contractors/Subcontractors see projects where they have assigned tasks.
-      const { data: tasks, error: tasksError } = await supabase
+      const { data, error } = await supabase.from('projects').select(`*, users (id, full_name, avatar_url)`).order('start_date', { ascending: false });
+      return { data, error: error?.message };
+    } 
+    
+    // For PMCs, Contractors, and Subcontractors
+    // 1. Get projects they are directly assigned to
+    const { data: assignedProjects, error: assignedProjectsError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('assignee_id', user.id);
+
+    if (assignedProjectsError) {
+      return { data: [], error: `Could not fetch assigned projects: ${assignedProjectsError.message}` };
+    }
+    const assignedProjectIds = assignedProjects.map(p => p.id);
+
+    // 2. Get projects where they have assigned tasks
+    const { data: tasks, error: tasksError } = await supabase
+      .from('tasks')
+      .select('project_id')
+      .eq('assignee_id', user.id);
+    
+    if (tasksError) {
+      return { data: [], error: `Could not fetch user's tasks: ${tasksError.message}` };
+    }
+    const taskProjectIds = tasks.map(t => t.project_id);
+
+    // 3. For PMCs, get projects where they have assigned tasks to others
+    let managedProjectIds: string[] = [];
+    if (userRole === 'pmc') {
+      const { data: managedTasks, error: managedTasksError } = await supabase
         .from('tasks')
         .select('project_id')
-        .eq('assignee_id', user.id);
+        .eq('created_by', user.id); // Assuming a created_by column exists or logic to determine this
 
-      if (tasksError) {
-        return { data: [], error: `Could not fetch user's tasks: ${tasksError.message}` };
+      if (managedTasksError) {
+        console.error('Could not fetch managed tasks for PMC:', managedTasksError.message);
+      } else {
+        managedProjectIds = managedTasks.map(t => t.project_id);
       }
-      
-      const projectIds = [...new Set(tasks.map(t => t.project_id))];
-
-      // Also include projects they are directly assigned to.
-       const { data: assignedProjects, error: assignedProjectsError } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('assignee_id', user.id);
-        
-       if (assignedProjectsError) {
-         return { data: [], error: `Could not fetch assigned projects: ${assignedProjectsError.message}` };
-       }
-
-       const assignedProjectIds = assignedProjects.map(p => p.id);
-       const allVisibleProjectIds = [...new Set([...projectIds, ...assignedProjectIds])];
-
-
-      if (allVisibleProjectIds.length === 0) {
-        return { data: [], error: null }; // No projects to show, but not an error.
-      }
-      
-      query = query.in('id', allVisibleProjectIds);
     }
 
-    const { data, error } = await query.order('start_date', { ascending: false });
+    const allVisibleProjectIds = [...new Set([...assignedProjectIds, ...taskProjectIds, ...managedProjectIds])];
+
+    if (allVisibleProjectIds.length === 0) {
+      return { data: [], error: null };
+    }
+
+    const { data, error } = await supabase
+      .from('projects')
+      .select(`*, users (id, full_name, avatar_url)`)
+      .in('id', allVisibleProjectIds)
+      .order('start_date', { ascending: false });
         
     if (error) {
       console.error('Error fetching projects:', error);
@@ -254,38 +266,52 @@ export async function getProjectById(id: string) {
     
     const userRole = profile.role;
 
-    const { data, error } = await supabase
+    const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .select(`*, users (id, full_name, avatar_url)`)
         .eq('id', id)
         .single();
     
-    if (error) {
-      return { data: null, error: `Project not found: ${error.message}` };
+    if (projectError) {
+      return { data: null, error: `Project not found: ${projectError.message}` };
     }
     
     // Permission Check
     if (userRole === 'owner' || userRole === 'admin' || userRole === 'client') {
-      return { data, error: null }; // These roles can view any project.
+      return { data: projectData, error: null };
     }
     
-    if (data.assignee_id === user.id) {
-       return { data, error: null }; // User is directly assigned to the project.
+    if (projectData.assignee_id === user.id) {
+       return { data: projectData, error: null };
     }
 
-    if (userRole === 'contractor' || userRole === 'subcontractor') {
-      const { data: tasks, error: taskError } = await supabase
+    const { data: tasks, error: taskError } = await supabase
+      .from('tasks')
+      .select('id')
+      .eq('project_id', id)
+      .eq('assignee_id', user.id)
+      .limit(1);
+
+    if (taskError) {
+      return { data: null, error: `Error checking task assignments: ${taskError.message}` };
+    }
+    if (tasks && tasks.length > 0) {
+      return { data: projectData, error: null };
+    }
+
+    if (userRole === 'pmc') {
+      const { data: managedTasks, error: managedTaskError } = await supabase
         .from('tasks')
         .select('id')
         .eq('project_id', id)
-        .eq('assignee_id', user.id)
+        .eq('created_by', user.id) // Assuming a created_by column exists
         .limit(1);
-
-      if (taskError) {
-        return { data: null, error: `Error checking task assignments: ${taskError.message}` };
+      
+      if (managedTaskError) {
+        return { data: null, error: `Error checking managed tasks: ${managedTaskError.message}` };
       }
-      if (tasks && tasks.length > 0) {
-        return { data, error: null }; // User has a task in this project.
+      if (managedTasks && managedTasks.length > 0) {
+        return { data: projectData, error: null };
       }
     }
 
