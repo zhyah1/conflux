@@ -62,7 +62,7 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   const id = `TASK-${Date.now()}`;
   
   // Ensure assignee_id is either a valid UUID or null.
-  const finalAssigneeId = assignee_id === 'null' ? null : assignee_id;
+  const finalAssigneeId = assignee_id === 'null' || assignee_id === '' ? null : assignee_id;
 
   const { data, error } = await supabase
     .from('tasks')
