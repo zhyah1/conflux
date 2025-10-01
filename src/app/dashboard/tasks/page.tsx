@@ -28,9 +28,8 @@ export default function TasksProjectListPage() {
       const { data, error } = await getProjects();
 
       if (!error && data) {
-        // Filter for main projects only (no parent_id)
-        const mainProjects = (data as unknown as Project[]).filter(p => !p.parent_id);
-        setProjects(mainProjects);
+        // Show all projects the user has access to, not just main ones.
+        setProjects(data as unknown as Project[]);
       } else {
         console.error('Error fetching projects:', error);
       }
@@ -43,7 +42,7 @@ export default function TasksProjectListPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Task Boards"
-        description="Select a project to view its phases and manage tasks."
+        description="Select a project to view its Kanban board and manage tasks."
       />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {loading
@@ -64,7 +63,9 @@ export default function TasksProjectListPage() {
                   <CardTitle className="font-headline text-xl">
                     {project.name}
                   </CardTitle>
-                  <CardDescription>{project.owner}</CardDescription>
+                  <CardDescription>
+                    {project.parent_id ? 'Phase' : 'Master Project'}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-1">
@@ -78,12 +79,17 @@ export default function TasksProjectListPage() {
                     href={`/dashboard/tasks/${project.id}`}
                     className={cn(buttonVariants({ variant: 'outline' }), 'w-full')}
                   >
-                    View Phases <ArrowRight className="ml-2 h-4 w-4" />
+                    View Board <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </CardContent>
               </Card>
             ))}
       </div>
+       { !loading && projects.length === 0 && (
+          <div className="col-span-full text-center text-muted-foreground py-10">
+            You have not been assigned to any projects yet.
+          </div>
+        )}
     </div>
   );
 }

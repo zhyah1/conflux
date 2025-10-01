@@ -123,7 +123,7 @@ function TaskCard({ task }: { task: Task }) {
   );
 }
 
-function KanbanBoard({ projectId, project }: { projectId: string, project: Project }) {
+function KanbanBoard({ projectId }: { projectId: string }) {
   const { profile } = useUser();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -262,47 +262,12 @@ function KanbanBoard({ projectId, project }: { projectId: string, project: Proje
   );
 }
 
-
-function SubProjectsList({ project, subProjects }: { project: Project, subProjects: Project[] }) {
-    const router = useRouter();
-    return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {subProjects.map((subProject) => (
-              <Card key={subProject.id}>
-                <CardHeader>
-                  <CardTitle className="font-headline text-xl">
-                    {subProject.name}
-                  </CardTitle>
-                  <CardDescription>{subProject.owner}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-1">
-                     <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Completion</span>
-                        <span>{subProject.completion}%</span>
-                    </div>
-                    <Progress value={subProject.completion} className="h-2" />
-                  </div>
-                  <Link
-                    href={`/dashboard/tasks/${subProject.id}`}
-                    className={cn(buttonVariants({ variant: 'outline' }), 'w-full')}
-                  >
-                    View Board <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-        </div>
-    )
-}
-
 export default function TaskBoardPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.id as string;
 
   const [project, setProject] = useState<Project | null>(null);
-  const [subProjects, setSubProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -316,21 +281,11 @@ export default function TaskBoardPage() {
       if (projectError || !projectData) {
         console.error('Error fetching project or user not authorized:', projectError);
         setProject(null);
-        setLoading(false);
-        return;
-      } 
-      
-      const currentProject = projectData as Project;
-      setProject(currentProject);
-
-      const { data: allProjectsData, error: allProjectsError } = await getProjects();
-      if (allProjectsError) {
-        console.error('Error fetching all projects:', allProjectsError);
-      } else if (allProjectsData) {
-          const children = (allProjectsData as Project[]).filter(p => p.parent_id === projectId);
-          setSubProjects(children);
+      } else {
+        const currentProject = projectData as Project;
+        setProject(currentProject);
       }
-
+      
       setLoading(false);
     }
 
@@ -344,7 +299,8 @@ export default function TaskBoardPage() {
             <PageHeader title={<Skeleton className="h-8 w-64" />} description={<div className="h-5 w-80"><Skeleton className="h-full w-full" /></div>}>
                  <Skeleton className="h-9 w-40" />
             </PageHeader>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Skeleton className="h-40" />
               <Skeleton className="h-40" />
               <Skeleton className="h-40" />
               <Skeleton className="h-40" />
@@ -364,18 +320,16 @@ export default function TaskBoardPage() {
         </div>
     )
   }
-
-  const hasSubProjects = subProjects.length > 0;
   
   const backButtonLink = project.parent_id 
-    ? `/dashboard/tasks/${project.parent_id}`
+    ? `/dashboard/projects/${project.parent_id}`
     : '/dashboard/tasks';
 
   return (
     <div className="flex flex-col h-full gap-6">
       <PageHeader 
-        title={hasSubProjects ? `${project.name} Phases` : `${project.name} Board`} 
-        description={hasSubProjects ? 'Select a phase to view its Kanban board.' : 'Manage tasks and track progress.'}
+        title={`${project.name} Board`} 
+        description={'Manage tasks and track progress.'}
       >
         <div className="flex gap-2">
             <Button onClick={() => router.push(backButtonLink)} variant="outline">
@@ -385,11 +339,7 @@ export default function TaskBoardPage() {
         </div>
       </PageHeader>
       
-      {hasSubProjects ? (
-        <SubProjectsList project={project} subProjects={subProjects} />
-      ) : (
-        <KanbanBoard projectId={projectId} project={project} />
-      )}
+      <KanbanBoard projectId={projectId} />
 
     </div>
   );
