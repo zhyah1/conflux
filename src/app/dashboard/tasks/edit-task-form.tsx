@@ -42,6 +42,7 @@ import { useUser } from '@/app/user-provider';
 type User = {
   id: string;
   full_name: string | null;
+  role: string;
 };
 
 const updateTaskSchema = z.object({
@@ -56,30 +57,51 @@ const updateTaskSchema = z.object({
 export function EditTaskForm({ children, task }: { children: React.ReactNode; task: Task }) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
+  const [assignableUsers, setAssignableUsers] = useState<User[]>([]);
   const { toast } = useToast();
   const router = useRouter();
   const { profile } = useUser();
 
-  const isContractor = profile?.role === 'contractor' || profile?.role === 'subcontractor';
+  const canEditAssignee = profile && ['owner', 'admin', 'pmc', 'contractor'].includes(profile.role);
 
   useEffect(() => {
     async function fetchUsers() {
+      if (!profile || !canEditAssignee) return;
+      
+      let targetRoles: string[] = [];
+      switch (profile.role) {
+        case 'owner':
+        case 'admin':
+          targetRoles = ['pmc', 'contractor', 'subcontractor'];
+          break;
+        case 'pmc':
+          targetRoles = ['contractor', 'subcontractor'];
+          break;
+        case 'contractor':
+          targetRoles = ['subcontractor'];
+          break;
+      }
+
+      if (targetRoles.length === 0) {
+        setAssignableUsers([]);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('users')
-        .select('id, full_name')
-        .in('role', ['owner', 'admin', 'pmc', 'contractor', 'subcontractor']);
+        .select('id, full_name, role')
+        .in('role', targetRoles);
 
       if (error) {
         console.error('Error fetching users for form', error);
       } else {
-        setUsers(data);
+        setAssignableUsers(data);
       }
     }
     if (open) {
       fetchUsers();
     }
-  }, [open]);
+  }, [open, profile, canEditAssignee]);
 
   const form = useForm<z.infer<typeof updateTaskSchema>>({
     resolver: zodResolver(updateTaskSchema),
@@ -136,7 +158,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
                 <FormItem>
                   <FormLabel>Task Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Install window frames" {...field} disabled={isContractor} />
+                    <Input placeholder="e.g., Install window frames" {...field} disabled={!canEditAssignee} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -173,7 +195,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Priority</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isContractor}>
+                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!canEditAssignee}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a priority" />
@@ -198,8 +220,8 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
                   <FormLabel>Assign To</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value || undefined}
-                    disabled={isContractor}
+                    defaultValue={field.value || ""}
+                    disabled={!canEditAssignee}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -208,9 +230,9 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
                     </FormControl>
                     <SelectContent>
                        <SelectItem value="null">Unassigned</SelectItem>
-                       {users.map((user) => (
+                       {assignableUsers.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
-                          {user.full_name}
+                          {user.full_name} ({user.role})
                         </SelectItem>
                       ))}
                     </SelectContent>

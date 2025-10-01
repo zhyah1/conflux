@@ -36,10 +36,12 @@ import { useToast } from '@/hooks/use-toast';
 import { addTask } from './actions';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useUser } from '@/app/user-provider';
 
 type User = {
   id: string;
   full_name: string | null;
+  role: string;
 };
 
 const taskSchema = z.object({
@@ -53,27 +55,49 @@ const taskSchema = z.object({
 export function AddTaskForm({ children, projectId, status = 'Backlog' }: { children: React.ReactNode, projectId: string, status?: string }) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
+  const [assignableUsers, setAssignableUsers] = useState<User[]>([]);
   const { toast } = useToast();
   const router = useRouter();
+  const { profile } = useUser();
 
   useEffect(() => {
     async function fetchUsers() {
+      if (!profile) return;
+
+      let targetRoles: string[] = [];
+      switch (profile.role) {
+        case 'owner':
+        case 'admin':
+          targetRoles = ['pmc', 'contractor', 'subcontractor'];
+          break;
+        case 'pmc':
+          targetRoles = ['contractor', 'subcontractor'];
+          break;
+        case 'contractor':
+          targetRoles = ['subcontractor'];
+          break;
+      }
+      
+      if (targetRoles.length === 0) {
+        setAssignableUsers([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('users')
-        .select('id, full_name')
-        .in('role', ['owner', 'admin', 'pmc', 'contractor', 'subcontractor']);
+        .select('id, full_name, role')
+        .in('role', targetRoles);
 
       if (error) {
         console.error('Error fetching users for form', error);
       } else {
-        setUsers(data);
+        setAssignableUsers(data);
       }
     }
     if (open) {
       fetchUsers();
     }
-  }, [open]);
+  }, [open, profile]);
 
   const form = useForm<z.infer<typeof taskSchema>>({
     resolver: zodResolver(taskSchema),
@@ -210,9 +234,9 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {users.map((user) => (
+                      {assignableUsers.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
-                          {user.full_name}
+                          {user.full_name} ({user.role})
                         </SelectItem>
                       ))}
                     </SelectContent>
