@@ -21,17 +21,18 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  if (!['owner', 'admin', 'pmc', 'contractor', 'subcontractor'].includes(profile.role)) {
-    return { error: 'You do not have permission to create tasks.' };
-  }
-
   const parsedData = taskSchema.safeParse(formData);
 
   if (!parsedData.success) {
     return { error: 'Invalid form data.' };
   }
 
-  // Hierarchical check
+  // Application-level permission check for task creation
+  if (!['owner', 'admin', 'pmc', 'contractor', 'subcontractor'].includes(profile.role)) {
+    return { error: 'You do not have permission to create tasks.' };
+  }
+
+  // Hierarchical assignment check
   if (profile.role === 'contractor') {
     if (parsedData.data.assignee_id) {
       const { data: assigneeProfile } = await supabase.from('users').select('role').eq('id', parsedData.data.assignee_id).single();
@@ -86,27 +87,10 @@ export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Not authenticated' };
 
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-    if (!profile) return { error: 'Profile not found' };
-
     const parsedData = updateTaskSchema.safeParse(formData);
 
     if (!parsedData.success) {
         return { error: 'Invalid form data.' };
-    }
-    
-    // Permission Check
-    const { data: task, error: taskError } = await supabase.from('tasks').select('assignee_id, project_id').eq('id', parsedData.data.id).single();
-
-    if (taskError) {
-        return { error: 'Task not found.' };
-    }
-    
-    const { data: projectMembers } = await supabase.from('project_users').select('user_id').eq('project_id', task.project_id);
-    const isMember = projectMembers?.some(m => m.user_id === user.id) ?? false;
-    
-    if (!['owner', 'admin', 'pmc'].includes(profile.role) && !isMember) {
-      return { error: 'You do not have permission to update this task.' };
     }
 
     const { id, project_id, ...taskData } = parsedData.data;

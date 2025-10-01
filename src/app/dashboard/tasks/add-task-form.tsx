@@ -63,54 +63,40 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
   useEffect(() => {
     async function fetchUsers() {
       if (!profile) return;
+      
+      const { data: projectUsers, error: projectUsersError } = await supabase
+        .from('project_users')
+        .select('users(id, full_name, role)')
+        .eq('project_id', projectId);
 
-      let targetRoles: string[] = [];
+      if (projectUsersError) {
+        console.error('Error fetching project users for task form', projectUsersError);
+        return;
+      }
+      
+      const allProjectMembers = projectUsers.map((pu: any) => pu.users).filter(Boolean);
+      let potentialAssignees: User[] = [];
+
       switch (profile.role) {
         case 'owner':
         case 'admin':
-          // Admins/owners can assign to anyone in the project
-          const { data: projectUsers, error: projectUsersError } = await supabase
-            .from('project_users')
-            .select('users(id, full_name, role)')
-            .eq('project_id', projectId);
-            
-          if (projectUsersError) {
-             console.error('Error fetching project users for form', projectUsersError);
-          } else {
-             setAssignableUsers(projectUsers.map((pu: any) => pu.users).filter(Boolean));
-             return;
-          }
+          potentialAssignees = allProjectMembers;
           break;
         case 'pmc':
-          targetRoles = ['contractor', 'subcontractor'];
+          potentialAssignees = allProjectMembers.filter(u => ['contractor', 'subcontractor'].includes(u.role));
           break;
         case 'contractor':
-          targetRoles = ['subcontractor'];
+          potentialAssignees = allProjectMembers.filter(u => u.role === 'subcontractor');
           break;
         case 'subcontractor':
-            // Subcontractors can only assign to themselves
             if(user && profile) {
-                setAssignableUsers([{id: user.id, full_name: profile.full_name, role: profile.role}]);
+                potentialAssignees = [{id: user.id, full_name: profile.full_name, role: profile.role}];
             }
-            return;
+            break;
       }
-      
-      if (targetRoles.length === 0) {
-        setAssignableUsers([]);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, full_name, role')
-        .in('role', targetRoles);
-
-      if (error) {
-        console.error('Error fetching users for form', error);
-      } else {
-        setAssignableUsers(data);
-      }
+      setAssignableUsers(potentialAssignees);
     }
+
     if (open) {
       fetchUsers();
     }
