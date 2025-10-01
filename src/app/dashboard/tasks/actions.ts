@@ -18,65 +18,61 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
-  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (!profile) return { error: 'Profile not found' };
-
   const parsedData = taskSchema.safeParse(formData);
 
   if (!parsedData.success) {
     return { error: 'Invalid form data.' };
   }
-  
-  const { project_id } = parsedData.data;
+
+  const { project_id, assignee_id, ...taskData } = parsedData.data;
 
   // Server-side permission check
-  const { data: project, error: projectError } = await supabase
-    .from('projects')
-    .select('parent_id')
-    .eq('id', project_id)
-    .single();
+  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+  if (!profile) return { error: 'Profile not found' };
 
-  if (projectError) {
-    return { error: 'Could not find the specified project.' };
+  if (!['owner', 'admin'].includes(profile.role)) {
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('parent_id')
+      .eq('id', project_id)
+      .single();
+
+    if (projectError) {
+      return { error: 'Could not find the specified project.' };
+    }
+
+    const projectIdsToCheck = [project_id];
+    if (project.parent_id) {
+      projectIdsToCheck.push(project.parent_id);
+    }
+
+    const { data: projectMembership, error: membershipError } = await supabase
+      .from('project_users')
+      .select('user_id')
+      .in('project_id', projectIdsToCheck)
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (membershipError || !projectMembership) {
+      return { error: 'You can only add tasks to projects you are a member of.' };
+    }
   }
   
-  const projectIdsToCheck = [project_id];
-  if (project.parent_id) {
-    projectIdsToCheck.push(project.parent_id);
-  }
-  
-  const { data: projectMembership, error: membershipError } = await supabase
-    .from('project_users')
-    .select('user_id')
-    .in('project_id', projectIdsToCheck)
-    .eq('user_id', user.id)
-    .limit(1)
-    .maybeSingle();
-
-  if (membershipError) {
-    console.error('Error checking project membership:', membershipError);
-    return { error: 'Could not verify your project membership.' };
-  }
-
-  const isOwnerOrAdmin = ['owner', 'admin'].includes(profile.role);
-  if (!isOwnerOrAdmin && !projectMembership) {
-      return { error: 'You can only add tasks to projects you are a member of.'};
-  }
-  
-  const { title, priority, status, assignee_id } = parsedData.data;
-
-  // Hierarchical assignment check - simplified
-  if (profile.role === 'subcontractor') {
-      if (assignee_id && assignee_id !== user.id) {
-          return { error: 'Subcontractors can only assign tasks to themselves.' };
-      }
-  }
-
   const id = `TASK-${Date.now()}`;
   
+  // Ensure assignee_id is either a valid UUID or null.
+  const finalAssigneeId = assignee_id === 'null' ? null : assignee_id;
+
   const { data, error } = await supabase
     .from('tasks')
-    .insert([{ id, title, priority, status, assignee_id, project_id, created_by: user.id }])
+    .insert([{ 
+        id, 
+        ...taskData,
+        assignee_id: finalAssigneeId, 
+        project_id, 
+        created_by: user.id 
+    }])
     .select();
 
   if (error) {
@@ -112,7 +108,7 @@ export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
     const { id, project_id, ...taskData } = parsedData.data;
     
     const updateData: { [key: string]: any } = { ...taskData };
-    if (taskData.assignee_id === 'null' || taskData.assignee_id === '') {
+    if (taskData.assignee_id === 'null' || taskData.assignee_id === '' || !taskData.assignee_id) {
       updateData.assignee_id = null;
     }
 
