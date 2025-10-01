@@ -39,6 +39,7 @@ import { useEffect, useState }from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getProjects } from './projects/actions';
 import type { Project } from './projects/page';
+import { Progress } from '@/components/ui/progress';
 
 
 export default function Dashboard() {
@@ -235,7 +236,12 @@ export default function Dashboard() {
                         {project.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">{project.completion}%</TableCell>
+                    <TableCell className="text-right">
+                       <div className="flex items-center justify-end gap-2">
+                          <Progress value={project.completion} className="h-2 w-24" />
+                          <span>{project.completion}%</span>
+                       </div>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
