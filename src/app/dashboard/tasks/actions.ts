@@ -21,7 +21,6 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  // This check is now mainly a UI guard; the main logic is in RLS.
   if (!['owner', 'admin', 'pmc', 'contractor'].includes(profile.role)) {
     return { error: 'You do not have permission to create tasks.' };
   }
@@ -32,9 +31,23 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
     return { error: 'Invalid form data.' };
   }
 
+  // Hierarchical check
+  if (profile.role === 'contractor') {
+      const { data: assigneeProfile } = await supabase.from('users').select('role').eq('id', parsedData.data.assignee_id).single();
+      if(assigneeProfile && assigneeProfile.role !== 'subcontractor'){
+         return { error: 'Contractors can only assign tasks to subcontractors.' };
+      }
+  }
+  if (profile.role === 'pmc') {
+      const { data: assigneeProfile } = await supabase.from('users').select('role').eq('id', parsedData.data.assignee_id).single();
+      if(assigneeProfile && !['contractor', 'subcontractor'].includes(assigneeProfile.role)){
+         return { error: 'PMCs can only assign tasks to contractors or subcontractors.' };
+      }
+  }
+
+
   const { title, priority, status, assignee_id, project_id } = parsedData.data;
 
-  // Generate a unique ID for the task
   const id = `TASK-${Date.now()}`;
   
   const { data, error } = await supabase
@@ -74,12 +87,23 @@ export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
     if (!parsedData.success) {
         return { error: 'Invalid form data.' };
     }
+    
+    // Permission Check
+    const isOwnerOrAdminOrPMC = ['owner', 'admin', 'pmc'].includes(profile.role);
+    const { data: task, error: taskError } = await supabase.from('tasks').select('assignee_id').eq('id', parsedData.data.id).single();
+
+    if (taskError) {
+        return { error: 'Task not found.' };
+    }
+
+    const isAssigned = task.assignee_id === user.id;
+
+    if (!isOwnerOrAdminOrPMC && !isAssigned) {
+      return { error: 'You do not have permission to update this task.' };
+    }
 
     const { id, project_id, ...taskData } = parsedData.data;
     
-    // RLS policies now handle the authorization logic, so an explicit check here
-    // is a good backup but not the primary security mechanism.
-
     const updateData: { [key: string]: any } = { ...taskData };
     if (taskData.assignee_id === 'null' || taskData.assignee_id === '') {
       updateData.assignee_id = null;
