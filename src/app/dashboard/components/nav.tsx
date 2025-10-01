@@ -37,7 +37,7 @@ export function Nav() {
   const pathname = usePathname();
   const { profile } = useUser();
 
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <>

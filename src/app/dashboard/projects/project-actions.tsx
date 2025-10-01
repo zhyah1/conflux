@@ -61,13 +61,13 @@ export function ProjectActions({ project }: { project: Project }) {
     }
   };
 
-  const isOwnerOrAdmin = profile?.role === 'admin' || profile?.role === 'owner';
+  const isAdmin = profile?.role === 'admin';
   
   // A PMC can edit a project if they are assigned to it.
   const isAssignedPMC = profile?.role === 'pmc' && project.users?.id === profile.id;
 
-  const canEdit = isOwnerOrAdmin || isAssignedPMC;
-  const canDelete = isOwnerOrAdmin;
+  const canEdit = isAdmin || isAssignedPMC;
+  const canDelete = isAdmin;
 
   return (
     <>

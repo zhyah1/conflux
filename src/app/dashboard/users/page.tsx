@@ -59,7 +59,7 @@ export default function UsersPage() {
   const [selectedRole, setSelectedRole] = useState('contractor');
   const [loading, setLoading] = useState(true);
 
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
+  const isAdmin = profile?.role === 'admin';
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -215,7 +215,7 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant={user.role === 'admin' || user.role === 'owner' ? 'default' : 'secondary'} className="capitalize">{user.role}</Badge>
+                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">{user.role}</Badge>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

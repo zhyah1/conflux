@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -116,7 +114,7 @@ export default function ProjectDetailsPage() {
     }
   };
 
-  const canDeleteProject = profile?.role === 'admin' || profile?.role === 'owner';
+  const canDeleteProject = profile?.role === 'admin';
 
 
   if (loading) {

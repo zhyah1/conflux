@@ -79,7 +79,7 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
       const { data, error } = await supabase
         .from('users')
         .select('id, full_name')
-        .in('role', ['pmc', 'contractor', 'subcontractor', 'admin', 'owner']);
+        .in('role', ['pmc', 'contractor', 'subcontractor', 'admin']);
 
       if (error) {
         console.error('Error fetching users for form', error);
