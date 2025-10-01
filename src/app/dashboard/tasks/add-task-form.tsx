@@ -62,7 +62,7 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
 
   useEffect(() => {
     async function fetchUsers() {
-      if (!profile) return;
+      if (!profile || !user) return;
       
       const { data: projectUsers, error: projectUsersError } = await supabase
         .from('project_users')
@@ -86,7 +86,9 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
           potentialAssignees = allProjectMembers.filter(u => ['contractor', 'subcontractor'].includes(u.role));
           break;
         case 'contractor':
-          potentialAssignees = allProjectMembers.filter(u => u.role === 'subcontractor');
+          const self = { id: user.id, full_name: profile.full_name, role: profile.role };
+          const subcontractors = allProjectMembers.filter(u => u.role === 'subcontractor');
+          potentialAssignees = [self, ...subcontractors];
           break;
         case 'subcontractor':
             if(user && profile) {
