@@ -26,15 +26,10 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  if (!['owner', 'admin'].includes(profile.role)) {
-    if (profile.role === 'pmc' && !formData.parent_id) {
-       return { error: 'PMCs can only create sub-projects and must assign a parent project.' };
-    } else if (profile.role === 'pmc') {
-      // PMC can proceed
-    }
-    else {
-      return { error: 'You do not have permission to create projects.' };
-    }
+  // Permission Check
+  const canAddProject = ['owner', 'admin'].includes(profile.role) || (profile.role === 'pmc' && formData.parent_id);
+  if (!canAddProject) {
+    return { error: 'You do not have permission to create this type of project.' };
   }
 
   const parsedData = projectSchema.safeParse(formData);
@@ -121,11 +116,15 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
     const { id, create_sub_phases, ...projectData } = parsedData.data;
 
     // Permission Check
+    const { data: existingProject, error: fetchError } = await supabase.from('projects').select('assignee_id').eq('id', id).single();
+    if (fetchError) {
+        return { error: 'Could not find the project to update.' };
+    }
+    
     const isOwnerOrAdmin = ['owner', 'admin'].includes(profile.role);
-    const isAssigned = projectData.assignee_id === user.id;
-    const canUpdate = isOwnerOrAdmin || (['pmc', 'contractor'].includes(profile.role) && isAssigned);
+    const isAssignedPMC = profile.role === 'pmc' && existingProject.assignee_id === user.id;
 
-    if (!canUpdate) {
+    if (!isOwnerOrAdmin && !isAssignedPMC) {
       return { error: 'You do not have permission to update this project.' };
     }
 
@@ -216,13 +215,13 @@ export async function getProjects() {
     }
     const taskProjectIds = tasks.map(t => t.project_id);
 
-    // 3. For PMCs, get projects where they have assigned tasks to others
+    // 3. For PMCs, get projects where they have created tasks for others (delegated)
     let managedProjectIds: string[] = [];
     if (userRole === 'pmc') {
       const { data: managedTasks, error: managedTasksError } = await supabase
         .from('tasks')
         .select('project_id')
-        .eq('created_by', user.id); // Assuming a created_by column exists or logic to determine this
+        .eq('created_by', user.id);
 
       if (managedTasksError) {
         console.error('Could not fetch managed tasks for PMC:', managedTasksError.message);
@@ -265,7 +264,18 @@ export async function getProjectById(id: string) {
     if (profileError) return { data: null, error: `Could not fetch user profile: ${profileError.message}` };
     
     const userRole = profile.role;
+    
+    // Admin, owner, client can see any project
+    if (['owner', 'admin', 'client'].includes(userRole)) {
+        const { data, error } = await supabase
+            .from('projects')
+            .select(`*, users (id, full_name, avatar_url)`)
+            .eq('id', id)
+            .single();
+        return { data, error: error?.message };
+    }
 
+    // For other roles, fetch the project and then check if they should have access
     const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .select(`*, users (id, full_name, avatar_url)`)
@@ -276,15 +286,12 @@ export async function getProjectById(id: string) {
       return { data: null, error: `Project not found: ${projectError.message}` };
     }
     
-    // Permission Check
-    if (userRole === 'owner' || userRole === 'admin' || userRole === 'client') {
-      return { data: projectData, error: null };
-    }
-    
+    // Check direct assignment
     if (projectData.assignee_id === user.id) {
        return { data: projectData, error: null };
     }
 
+    // Check if user has a task in this project
     const { data: tasks, error: taskError } = await supabase
       .from('tasks')
       .select('id')
@@ -299,12 +306,13 @@ export async function getProjectById(id: string) {
       return { data: projectData, error: null };
     }
 
+    // For PMCs, check if they manage tasks in this project
     if (userRole === 'pmc') {
       const { data: managedTasks, error: managedTaskError } = await supabase
         .from('tasks')
         .select('id')
         .eq('project_id', id)
-        .eq('created_by', user.id) // Assuming a created_by column exists
+        .eq('created_by', user.id)
         .limit(1);
       
       if (managedTaskError) {
