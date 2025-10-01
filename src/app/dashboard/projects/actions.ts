@@ -23,7 +23,6 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
-  // RLS will handle basic auth check, but we need to check roles for complex logic
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found.' };
 
@@ -32,7 +31,6 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
     return { error: `Invalid form data: ${parsedData.error.message}` };
   }
 
-  // Hierarchical Check
   if (profile.role === 'pmc' && !parsedData.data.parent_id) {
     return { error: 'Project Managers must assign a parent project.' };
   }
@@ -105,15 +103,34 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
     const supabase = createServerActionClient({ cookies });
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Not authenticated' };
+
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+    if (!profile) return { error: 'Profile not found' };
     
     const parsedData = updateProjectSchema.safeParse(formData);
     if (!parsedData.success) {
         return { error: 'Invalid form data.' };
     }
     
-    // RLS handles permissions here
-    
     const { id, create_sub_phases, assignee_ids, ...projectData } = parsedData.data;
+
+    // Permissions check
+    if (!['owner', 'admin'].includes(profile.role)) {
+      if (profile.role === 'pmc' || profile.role === 'contractor') {
+        const { count, error: checkError } = await supabase
+          .from('project_users')
+          .select('*', { count: 'exact', head: true })
+          .eq('project_id', id)
+          .eq('user_id', user.id);
+        
+        if (checkError || count === 0) {
+          return { error: 'You do not have permission to edit this project.' };
+        }
+      } else {
+        return { error: 'You do not have permission to edit projects.' };
+      }
+    }
+    
     const { start_date, end_date, ...restOfData } = projectData;
 
     const { data, error } = await supabase.from('projects').update({
@@ -154,7 +171,12 @@ export async function deleteProject(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Not authenticated' };
 
-    // RLS policy will handle permission check
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+    if (!profile) return { error: 'Profile not found' };
+
+    if (!['owner', 'admin'].includes(profile.role)) {
+        return { error: 'You do not have permission to delete projects.' };
+    }
 
     const { error } = await supabase.from('projects').delete().eq('id', id);
 
@@ -170,17 +192,45 @@ export async function deleteProject(id: string) {
 // Get all projects based on user role
 export async function getProjects() {
     const supabase = createServerActionClient({ cookies });
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return { data: null, error: 'Not authenticated' };
+
+    const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
     
-    // RLS handles all filtering now, making the query simple and safe.
-    const { data, error } = await supabase
+    if (!profile) return { data: null, error: 'Profile not found' };
+
+    let query = supabase
         .from('projects')
         .select(`
             *,
             users:project_users(
-                users(id, full_name, avatar_url)
+                users(id, full_name, avatar_url, role)
             )
-        `)
-        .order('start_date', { ascending: false });
+        `);
+
+    // Admins, Owners, and Clients can see all projects.
+    // Other roles only see projects they are assigned to.
+    if (!['admin', 'owner', 'client'].includes(profile.role)) {
+      const { data: userProjects, error: userProjectsError } = await supabase
+        .from('project_users')
+        .select('project_id')
+        .eq('user_id', user.id);
+
+      if (userProjectsError) {
+        console.error('getProjects (userProjects) error:', userProjectsError.message);
+        return { data: [], error: `Could not fetch user projects: ${userProjectsError.message}` };
+      }
+      
+      const projectIds = userProjects.map(p => p.project_id);
+      query = query.in('id', projectIds);
+    }
+    
+    const { data, error } = await query.order('start_date', { ascending: false });
 
     if (error) {
         console.error('getProjects error:', error.message);
@@ -198,8 +248,9 @@ export async function getProjects() {
 // Get a single project by ID, respecting RLS
 export async function getProjectById(id: string) {
     const supabase = createServerActionClient({ cookies });
+     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Not authenticated' };
     
-    // RLS handles all filtering now.
     const { data, error } = await supabase
         .from('projects')
         .select(`
@@ -213,6 +264,15 @@ export async function getProjectById(id: string) {
     
      if (error) {
         return { data: null, error: `Could not fetch project: ${error.message}` };
+    }
+
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+
+    if (!['admin', 'owner', 'client'].includes(profile!.role)) {
+      const isMember = data.users.some((u: any) => u.users.id === user.id);
+      if (!isMember) {
+        return { data: null, error: "You don't have permission to view this project." };
+      }
     }
 
     const formattedData = {
