@@ -68,7 +68,7 @@ export default function ProjectDetailsPage() {
           // RLS will ensure user only sees sub-projects they have access to.
           const { data: childrenData, error: childrenError } = await supabase
             .from('projects')
-            .select(`*, users:project_users(user_id, users(id, full_name, avatar_url))`)
+            .select(`*, users:project_users(users(id, full_name, avatar_url))`)
             .eq('parent_id', currentProject.id);
 
           if (childrenError) {
