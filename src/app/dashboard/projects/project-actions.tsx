@@ -48,7 +48,6 @@ export function ProjectActions({ project }: { project: Project }) {
         description: `Project "${project.name}" has been deleted.`,
       });
       setIsArchiveAlertOpen(false);
-      // No need to call router.refresh(), revalidation should handle it.
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       toast({
@@ -63,8 +62,9 @@ export function ProjectActions({ project }: { project: Project }) {
 
   const isOwnerOrAdmin = profile?.role === 'owner' || profile?.role === 'admin';
   const isAssignedPMC = profile?.role === 'pmc' && project.users?.id === profile.id;
+  const isAssignedContractor = profile?.role === 'contractor' && project.users?.id === profile.id;
 
-  const canEdit = isOwnerOrAdmin || isAssignedPMC;
+  const canEdit = isOwnerOrAdmin || isAssignedPMC || isAssignedContractor;
   const canDelete = isOwnerOrAdmin;
   const canViewDetails = !!profile; // Any logged in user can view details
 

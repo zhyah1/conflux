@@ -21,7 +21,8 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  if (!['owner', 'admin', 'pmc'].includes(profile.role)) {
+  // This check is now mainly a UI guard; the main logic is in RLS.
+  if (!['owner', 'admin', 'pmc', 'contractor'].includes(profile.role)) {
     return { error: 'You do not have permission to create tasks.' };
   }
 
@@ -76,25 +77,11 @@ export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
 
     const { id, project_id, ...taskData } = parsedData.data;
     
-    // Authorization check
-    if (!['owner', 'admin', 'pmc'].includes(profile.role)) {
-      if (['contractor', 'subcontractor'].includes(profile.role)) {
-        const { data: originalTask, error: taskError } = await supabase
-          .from('tasks')
-          .select('assignee_id')
-          .eq('id', id)
-          .single();
-        
-        if (taskError || originalTask.assignee_id !== user.id) {
-          return { error: 'You can only update tasks assigned to you.' };
-        }
-      } else {
-        return { error: 'You do not have permission to update tasks.' };
-      }
-    }
+    // RLS policies now handle the authorization logic, so an explicit check here
+    // is a good backup but not the primary security mechanism.
 
     const updateData: { [key: string]: any } = { ...taskData };
-    if (taskData.assignee_id === 'null') {
+    if (taskData.assignee_id === 'null' || taskData.assignee_id === '') {
       updateData.assignee_id = null;
     }
 

@@ -128,7 +128,7 @@ function KanbanBoard({ projectId, project }: { projectId: string, project: Proje
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const canManageTasks = profile?.role === 'owner' || profile?.role === 'admin' || profile?.role === 'pmc';
+  const canManageTasks = profile?.role === 'owner' || profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor';
 
   useEffect(() => {
     const channel = supabase
