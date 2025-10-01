@@ -52,7 +52,7 @@ const statusColumns: { status: TaskStatus; title: string, color: string }[] = [
   { status: 'Done', title: 'DONE', color: 'bg-green-500' },
 ];
 
-function TaskCard({ task }: { task: Task }) {
+function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }) {
   const { profile } = useUser();
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
   const [escalationResult, setEscalationResult] = React.useState<any>(null);
@@ -77,11 +77,13 @@ function TaskCard({ task }: { task: Task }) {
     setIsLoading(false);
   };
   
-  const isOwnerOrAdmin = profile?.role === 'owner' || profile?.role === 'admin';
-  const isPMC = profile?.role === 'pmc';
-  const isAssigned = profile && task.users?.id === profile.id;
+  if (!profile) return null;
 
-  const canEditTask = isOwnerOrAdmin || isPMC || isAssigned;
+  const isOwnerOrAdmin = profile.role === 'owner' || profile.role === 'admin';
+  const isPMC = profile.role === 'pmc';
+  const isProjectMember = projectUsers.includes(profile.id);
+
+  const canEditTask = isOwnerOrAdmin || isProjectMember;
   const canCheckDelays = isOwnerOrAdmin || isPMC;
 
   return (
@@ -123,7 +125,7 @@ function TaskCard({ task }: { task: Task }) {
   );
 }
 
-function KanbanBoard({ projectId }: { projectId: string }) {
+function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUsers: string[] }) {
   const { profile } = useUser();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -246,7 +248,7 @@ function KanbanBoard({ projectId }: { projectId: string }) {
                 </div>
               ) : (
                 getTasksByStatus(status).map((task) => (
-                  <TaskCard key={task.id} task={task} />
+                  <TaskCard key={task.id} task={task} projectUsers={projectUsers}/>
                 ))
               )}
                {getTasksByStatus(status).length === 0 && !loading && (
@@ -325,6 +327,8 @@ export default function TaskBoardPage() {
     ? `/dashboard/projects/${project.parent_id}`
     : '/dashboard/tasks';
 
+  const projectUsers = project.users.map(u => u.id);
+
   return (
     <div className="flex flex-col h-full gap-6">
       <PageHeader 
@@ -339,7 +343,7 @@ export default function TaskBoardPage() {
         </div>
       </PageHeader>
       
-      <KanbanBoard projectId={projectId} />
+      <KanbanBoard projectId={projectId} projectUsers={projectUsers} />
 
     </div>
   );

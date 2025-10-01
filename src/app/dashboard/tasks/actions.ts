@@ -27,67 +27,47 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
     return { error: 'Invalid form data.' };
   }
   
-  const { title, priority, status, assignee_id, project_id } = parsedData.data;
-  
+  const { project_id } = parsedData.data;
+
   // Server-side permission check
-  const allowedRoles = ['owner', 'admin', 'pmc', 'contractor', 'subcontractor'];
-  if (!allowedRoles.includes(profile.role)) {
-    return { error: 'You do not have permission to create tasks.' };
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .select('parent_id')
+    .eq('id', project_id)
+    .single();
+
+  if (projectError) {
+    return { error: 'Could not find the specified project.' };
   }
   
-  if (!['owner', 'admin'].includes(profile.role)) {
-    // Check if user is member of the project OR the parent project
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('parent_id')
-      .eq('id', project_id)
-      .single();
+  const projectIdsToCheck = [project_id];
+  if (project.parent_id) {
+    projectIdsToCheck.push(project.parent_id);
+  }
+  
+  const { data: projectMembership, error: membershipError } = await supabase
+    .from('project_users')
+    .select('user_id')
+    .in('project_id', projectIdsToCheck)
+    .eq('user_id', user.id)
+    .limit(1)
+    .maybeSingle();
 
-    if (projectError) {
-      return { error: 'Could not find the specified project.' };
-    }
-    
-    const projectIdsToCheck = [project_id];
-    if (project.parent_id) {
-      projectIdsToCheck.push(project.parent_id);
-    }
-    
-    const { data: projectMembership, error: membershipError } = await supabase
-      .from('project_users')
-      .select('user_id')
-      .in('project_id', projectIdsToCheck)
-      .eq('user_id', user.id)
-      .limit(1)
-      .maybeSingle();
-
-    if (membershipError) {
-      console.error('Error checking project membership:', membershipError);
-      return { error: 'Could not verify your project membership.' };
-    }
-    
-    if (!projectMembership) {
-        return { error: 'You can only add tasks to projects you are a member of.'};
-    }
+  if (membershipError) {
+    console.error('Error checking project membership:', membershipError);
+    return { error: 'Could not verify your project membership.' };
   }
 
+  const isOwnerOrAdmin = ['owner', 'admin'].includes(profile.role);
+  if (!isOwnerOrAdmin && !projectMembership) {
+      return { error: 'You can only add tasks to projects you are a member of.'};
+  }
+  
+  const { title, priority, status, assignee_id } = parsedData.data;
 
-  // Hierarchical assignment check
-  if (profile.role === 'contractor') {
-    if (parsedData.data.assignee_id) {
-      const { data: assigneeProfile } = await supabase.from('users').select('role').eq('id', parsedData.data.assignee_id).single();
-      if(assigneeProfile && assigneeProfile.role !== 'subcontractor'){
-         return { error: 'Contractors can only assign tasks to subcontractors.' };
-      }
-    }
-  } else if (profile.role === 'pmc') {
-    if (parsedData.data.assignee_id) {
-      const { data: assigneeProfile } = await supabase.from('users').select('role').eq('id', parsedData.data.assignee_id).single();
-      if(assigneeProfile && !['contractor', 'subcontractor'].includes(assigneeProfile.role)){
-         return { error: 'PMCs can only assign tasks to contractors or subcontractors.' };
-      }
-    }
-  } else if (profile.role === 'subcontractor') {
-      if (parsedData.data.assignee_id && parsedData.data.assignee_id !== user.id) {
+  // Hierarchical assignment check - simplified
+  if (profile.role === 'subcontractor') {
+      if (assignee_id && assignee_id !== user.id) {
           return { error: 'Subcontractors can only assign tasks to themselves.' };
       }
   }
