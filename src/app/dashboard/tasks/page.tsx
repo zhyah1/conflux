@@ -81,9 +81,11 @@ export default function TasksProjectListPage() {
         title={currentProject ? `${currentProject.name}` : "Task Boards"}
         description="Select a project or phase to view its Kanban board."
       >
-        <Button>
+        <Button asChild>
+          <Link href="/dashboard/gantt">
             <GanttChartSquare className="mr-2 h-4 w-4" />
             Gantt Chart
+          </Link>
         </Button>
       </PageHeader>
       

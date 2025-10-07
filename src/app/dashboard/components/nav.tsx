@@ -17,6 +17,7 @@ import {
   FolderKanban,
   Settings,
   Users,
+  GanttChartSquare,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/projects', icon: Briefcase, label: 'Projects' },
   { href: '/dashboard/tasks', icon: ListTodo, label: 'Tasks' },
+  { href: '/dashboard/gantt', icon: GanttChartSquare, label: 'Gantt Chart' },
   { href: '/dashboard/issues', icon: ShieldAlert, label: 'Issues' },
   { href: '/dashboard/documents', icon: FolderKanban, label: 'Documents' },
   { href: '/dashboard/users', icon: Users, label: 'Users', adminOnly: true },
@@ -37,7 +39,7 @@ export function Nav() {
   const pathname = usePathname();
   const { profile } = useUser();
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
 
   return (
     <>
