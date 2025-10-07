@@ -5,18 +5,74 @@ import { PageHeader } from '../components/page-header';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Project } from '../projects/page';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
-import { buttonVariants } from '@/components/ui/button';
+import { ArrowRight, ChevronDown, ChevronRight, Folder } from 'lucide-react';
+import { buttonVariants, Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { getProjects } from '../projects/actions';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
+
+const ProjectRow = ({ project, level = 0 }: { project: Project; level?: number }) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const hasSubProjects = project.subProjects && project.subProjects.length > 0;
+
+  return (
+    <>
+      <TableRow key={project.id} className="group">
+        <TableCell style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}>
+          <div className="flex items-center gap-3">
+             {hasSubProjects ? (
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsExpanded(!isExpanded)}>
+                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
+            ) : (
+               <span className="w-6 h-6 flex items-center justify-center">
+                 {level > 0 && <span className="h-full w-px bg-border -translate-x-3.5"></span>}
+               </span>
+            )}
+            <Link href={`/dashboard/tasks/${project.id}`} className="flex-1 flex items-center gap-3 group-hover:underline">
+                <Folder className="h-5 w-5 text-muted-foreground" />
+                <div className="font-medium">
+                {project.name}
+                {level === 0 && <div className="text-sm text-muted-foreground">{project.owner}</div>}
+                </div>
+            </Link>
+          </div>
+        </TableCell>
+        <TableCell className="hidden md:table-cell">
+           <div className="flex items-center justify-end gap-2">
+                <Progress value={project.completion} className="h-2 w-24" />
+                <span>{project.completion}%</span>
+            </div>
+        </TableCell>
+        <TableCell className="text-right">
+             <Link
+                href={`/dashboard/tasks/${project.id}`}
+                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+              >
+                View Board <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+        </TableCell>
+      </TableRow>
+      {isExpanded && hasSubProjects && project.subProjects?.map(sub => (
+          <ProjectRow key={sub.id} project={sub} level={level + 1} />
+      ))}
+    </>
+  );
+};
+
 
 export default function TasksProjectListPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -28,8 +84,29 @@ export default function TasksProjectListPage() {
       const { data, error } = await getProjects();
 
       if (!error && data) {
-        // Show all projects the user has access to, not just main ones.
-        setProjects(data as unknown as Project[]);
+         const allProjects = data as unknown as Project[];
+        const projectMap = new Map(allProjects.map(p => [p.id, { ...p, subProjects: [] as Project[] }]));
+        
+        const hierarchicalProjects: Project[] = [];
+
+        allProjects.forEach(p => {
+          if (p.parent_id && projectMap.has(p.parent_id)) {
+            const parent = projectMap.get(p.parent_id);
+            if (parent) {
+                parent.subProjects.push(projectMap.get(p.id)!);
+            }
+          } else {
+            hierarchicalProjects.push(projectMap.get(p.id)!);
+          }
+        });
+        
+        hierarchicalProjects.forEach(p => {
+            if (p.subProjects && p.subProjects.length > 0) {
+                p.subProjects.sort((a, b) => (a.phase_order || 0) - (b.phase_order || 0));
+            }
+        });
+
+        setProjects(hierarchicalProjects);
       } else {
         console.error('Error fetching projects:', error);
       }
@@ -44,52 +121,40 @@ export default function TasksProjectListPage() {
         title="Task Boards"
         description="Select a project to view its Kanban board and manage tasks."
       />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {loading
-          ? Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <Skeleton className="h-6 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-10 w-full" />
-                </CardContent>
-              </Card>
-            ))
-          : projects.map((project) => (
-              <Card key={project.id}>
-                <CardHeader>
-                  <CardTitle className="font-headline text-xl">
-                    {project.name}
-                  </CardTitle>
-                  <CardDescription>
-                    {project.parent_id ? 'Phase' : 'Master Project'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-1">
-                     <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Completion</span>
-                        <span>{project.completion}%</span>
-                    </div>
-                    <Progress value={project.completion} className="h-2" />
-                  </div>
-                  <Link
-                    href={`/dashboard/tasks/${project.id}`}
-                    className={cn(buttonVariants({ variant: 'outline' }), 'w-full')}
-                  >
-                    View Board <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-      </div>
-       { !loading && projects.length === 0 && (
-          <div className="col-span-full text-center text-muted-foreground py-10">
-            You have not been assigned to any projects yet.
-          </div>
-        )}
+      <Card>
+        <CardContent className="pt-6">
+             <Table>
+                <TableHeader>
+                <TableRow>
+                    <TableHead>Project</TableHead>
+                    <TableHead className="hidden md:table-cell text-right">Completion</TableHead>
+                    <TableHead className="w-[140px] text-right">Action</TableHead>
+                </TableRow>
+                </TableHeader>
+                <TableBody>
+                {loading
+                    ? Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-3/4" /></TableCell>
+                            <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
+                            <TableCell><Skeleton className="h-9 w-[120px] ml-auto" /></TableCell>
+                        </TableRow>
+                        ))
+                    : projects.map((project) => (
+                        <ProjectRow key={project.id} project={project} />
+                    ))}
+                
+                { !loading && projects.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                            You have not been assigned to any projects yet.
+                        </TableCell>
+                    </TableRow>
+                )}
+                </TableBody>
+            </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
