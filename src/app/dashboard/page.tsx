@@ -124,7 +124,15 @@ export default function Dashboard() {
   const progressChartData =
     progressChartView === 'main'
       ? projects.filter((p) => !p.parent_id)
-      : projects.filter((p) => !!p.parent_id);
+      : (() => {
+          const mainProjectIds = new Set(
+            projects.filter((p) => !p.parent_id).map((p) => p.id)
+          );
+          return projects.filter(
+            (p) => p.parent_id && mainProjectIds.has(p.parent_id)
+          );
+        })();
+
 
   return (
     <div className="flex flex-1 flex-col gap-4 md:gap-8">
