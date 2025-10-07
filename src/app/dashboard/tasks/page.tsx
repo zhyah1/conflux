@@ -12,14 +12,23 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Project } from '../projects/page';
 import Link from 'next/link';
-import { ArrowRight, Folder, GanttChartSquare } from 'lucide-react';
-import { buttonVariants } from '@/components/ui/button';
+import { ArrowRight, Folder, GanttChartSquare, Home } from 'lucide-react';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getProjects } from '../projects/actions';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 
 export default function TasksProjectListPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
   useEffect(() => {
     async function fetchProjects() {
@@ -35,13 +44,14 @@ export default function TasksProjectListPage() {
         const hierarchicalProjects: Project[] = [];
 
         allProjects.forEach((p) => {
+          const projectWithSubprojects = projectMap.get(p.id)!;
           if (p.parent_id && projectMap.has(p.parent_id)) {
             const parent = projectMap.get(p.parent_id);
             if (parent) {
-              parent.subProjects.push(projectMap.get(p.id)!);
+              parent.subProjects.push(projectWithSubprojects);
             }
           } else {
-            hierarchicalProjects.push(projectMap.get(p.id)!);
+            hierarchicalProjects.push(projectWithSubprojects);
           }
         });
 
@@ -62,15 +72,40 @@ export default function TasksProjectListPage() {
     fetchProjects();
   }, []);
 
+  const projectsToShow = currentProject ? currentProject.subProjects || [] : projects;
+  const hasSubProjects = projectsToShow.some(p => p.subProjects && p.subProjects.length > 0);
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Task Boards"
-        description="Select a project to view its Kanban board and manage tasks."
+        title={currentProject ? `${currentProject.name}` : "Task Boards"}
+        description="Select a project or phase to view its Kanban board."
       />
       
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+                <Button variant="ghost" onClick={() => setCurrentProject(null)} className="gap-2">
+                    <Home className="h-4 w-4"/>
+                    All Projects
+                </Button>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          {currentProject && (
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                    <BreadcrumbPage>{currentProject.name}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </>
+          )}
+        </BreadcrumbList>
+      </Breadcrumb>
+
+
       {loading ? (
-         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Card key={i}>
               <CardHeader>
@@ -78,51 +113,44 @@ export default function TasksProjectListPage() {
                 <Skeleton className="h-4 w-1/2" />
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                    <Skeleton className="h-8 w-full" />
-                    <Skeleton className="h-8 w-full" />
-                    <Skeleton className="h-8 w-full" />
-                </div>
+                <Skeleton className="h-10 w-full" />
               </CardContent>
             </Card>
           ))}
         </div>
-      ) : projects.length > 0 ? (
-         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 items-start">
-          {projects.map((project) => (
+      ) : projectsToShow.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-start">
+          {projectsToShow.map((project) => (
             <Card key={project.id} className="flex flex-col">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-headline">
-                  <Folder className="h-6 w-6" /> {project.name}
+                  {project.parent_id ? <GanttChartSquare className="h-6 w-6" /> : <Folder className="h-6 w-6" />}
+                  {project.name}
                 </CardTitle>
-                <CardDescription>{project.owner}</CardDescription>
+                {project.owner && <CardDescription>{project.owner}</CardDescription>}
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col justify-between gap-4">
-                 <ul className="space-y-2">
-                    {project.subProjects?.map(sub => (
-                         <li key={sub.id}>
-                            <Link href={`/dashboard/tasks/${sub.id}`} className={cn(buttonVariants({variant: 'ghost'}), "w-full justify-start gap-2")}>
-                                <GanttChartSquare className="h-4 w-4 text-muted-foreground" />
-                                {sub.name}
-                            </Link>
-                        </li>
-                    ))}
-                 </ul>
-                 <Link
+              <CardContent className="flex-1 flex flex-col justify-end gap-4">
+                {project.subProjects && project.subProjects.length > 0 ? (
+                  <Button onClick={() => setCurrentProject(project)} className="mt-auto w-full">
+                    View Phases <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Link
                     href={`/dashboard/tasks/${project.id}`}
                     className={cn(buttonVariants({ variant: 'outline' }), "mt-auto w-full")}
                   >
-                    View Master Board <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                    View Task Board <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
       ) : (
         <Card>
-            <CardContent className="py-24 text-center text-muted-foreground">
-                You have not been assigned to any projects yet.
-            </CardContent>
+          <CardContent className="py-24 text-center text-muted-foreground">
+             {currentProject ? 'This project has no sub-phases.' : 'You have not been assigned to any projects yet.'}
+          </CardContent>
         </Card>
       )}
     </div>
