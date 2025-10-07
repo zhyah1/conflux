@@ -87,6 +87,7 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
         start_date: projectData.start_date.toISOString(),
         end_date: projectData.end_date.toISOString(),
         parent_id: newProjectId,
+        phase_order: index + 1, // Add the order here
     }));
     const { error: subPhaseError } = await supabase.from('projects').insert(subPhasesToInsert);
     if (subPhaseError) {

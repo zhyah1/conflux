@@ -69,7 +69,8 @@ export default function ProjectDetailsPage() {
           const { data: childrenData, error: childrenError } = await supabase
             .from('projects')
             .select(`*, users:project_users(users(id, full_name, avatar_url))`)
-            .eq('parent_id', currentProject.id);
+            .eq('parent_id', currentProject.id)
+            .order('phase_order', { ascending: true }); // Sort by phase_order
 
           if (childrenError) {
             console.error('Error fetching sub-projects:', childrenError);

@@ -43,6 +43,7 @@ export type Project = {
   start_date: string;
   end_date: string;
   parent_id: string | null;
+  phase_order: number | null;
   users: User[]; // Now an array of users
   subProjects?: Project[];
 };
@@ -173,12 +174,21 @@ export default function ProjectsPage() {
         allProjects.forEach(p => {
           if (p.parent_id && projectMap.has(p.parent_id)) {
             const parent = projectMap.get(p.parent_id);
-            parent?.subProjects?.push(projectMap.get(p.id)!);
+            if (parent) {
+                parent.subProjects.push(projectMap.get(p.id)!);
+            }
           } else {
             hierarchicalProjects.push(projectMap.get(p.id)!);
           }
         });
         
+        // Sort sub-projects by phase_order
+        hierarchicalProjects.forEach(p => {
+            if (p.subProjects && p.subProjects.length > 0) {
+                p.subProjects.sort((a, b) => (a.phase_order || 0) - (b.phase_order || 0));
+            }
+        });
+
         setProjects(hierarchicalProjects);
       } else {
         console.error('Error fetching projects:', error);
