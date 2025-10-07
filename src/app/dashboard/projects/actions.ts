@@ -232,7 +232,7 @@ export async function getProjects() {
       query = query.in('id', projectIds);
     }
     
-    const { data, error } = await query.order('start_date', { ascending: false });
+    const { data, error } = await query.order('start_date', { ascending: false }).order('phase_order', { ascending: true });
 
     if (error) {
         console.error('getProjects error:', error.message);
