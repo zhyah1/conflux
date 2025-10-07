@@ -97,7 +97,7 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
   
   if (!profile) return null;
   
-  const canEditTask = projectUsers.includes(profile.id);
+  const canEditTask = profile.role === 'owner' || profile.role === 'admin' || projectUsers.includes(profile.id);
   const canCheckDelays = profile.role === 'owner' || profile.role === 'admin' || profile.role === 'pmc';
 
   return (
@@ -419,5 +419,3 @@ export default function TaskBoardPage() {
     </div>
   );
 }
-
-    
