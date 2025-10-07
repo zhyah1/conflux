@@ -185,7 +185,7 @@ export default function Dashboard() {
       <Card>
         <CardHeader className="flex flex-row items-center">
           <div className="grid gap-2">
-            <CardTitle className="font-headline">Recent Projects</CardTitle>
+            <CardTitle className="font-headline">Recent Activity</CardTitle>
             <CardDescription>An overview of the latest project updates.</CardDescription>
           </div>
           <Button asChild size="sm" className="ml-auto gap-1">
