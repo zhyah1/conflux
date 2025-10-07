@@ -6,7 +6,7 @@ import { getProjects } from '../projects/actions';
 import type { Project } from '../projects/page';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
-import { format, differenceInDays, addMonths, eachMonthOfInterval } from 'date-fns';
+import { format, differenceInDays, addMonths, eachMonthOfInterval, getYear } from 'date-fns';
 import { Calendar, ChevronRight, GanttChartSquare } from 'lucide-react';
 import { PageHeader } from '../components/page-header';
 
@@ -138,11 +138,11 @@ export default function GanttChartPage() {
     fetchProjects();
   }, []);
 
-  const { timelineStart, timelineEnd, months, totalCompletion, activeTasks } = useMemo(() => {
+  const { timelineStart, timelineEnd, monthsByYear, totalCompletion, activeTasks } = useMemo(() => {
     if (projects.length === 0) {
       const start = new Date();
       start.setDate(1);
-      return { timelineStart: start, timelineEnd: addMonths(start, 6), months: [], totalCompletion: 0, activeTasks: 0 };
+      return { timelineStart: start, timelineEnd: addMonths(start, 6), monthsByYear: {}, totalCompletion: 0, activeTasks: 0 };
     }
     
     const getAllProjects = (projectList: Project[]): Project[] => {
@@ -163,22 +163,29 @@ export default function GanttChartPage() {
     if (allDates.length === 0) {
       const start = new Date();
       start.setDate(1);
-      return { timelineStart: start, timelineEnd: addMonths(start, 6), months: [], totalCompletion: 0, activeTasks: 0 };
+      return { timelineStart: start, timelineEnd: addMonths(start, 6), monthsByYear: {}, totalCompletion: 0, activeTasks: 0 };
     }
 
     const timelineStart = new Date(Math.min(...allDates.map(d => d.getTime())));
     const timelineEnd = new Date(Math.max(...allDates.map(d => d.getTime())));
     timelineStart.setDate(1);
     
-    let monthArray: Date[] = [];
+    const monthsByYear: Record<string, Date[]> = {};
     if (timelineStart < timelineEnd) {
-      monthArray = eachMonthOfInterval({ start: timelineStart, end: timelineEnd });
+      const monthArray = eachMonthOfInterval({ start: timelineStart, end: timelineEnd });
+      monthArray.forEach(month => {
+        const year = getYear(month);
+        if (!monthsByYear[year]) {
+          monthsByYear[year] = [];
+        }
+        monthsByYear[year].push(month);
+      });
     }
 
     const totalCompletion = allProjects.length > 0 ? allProjects.reduce((acc, p) => acc + p.completion, 0) / allProjects.length : 0;
     const activeTasks = allProjects.filter(p => p.status === 'In Progress' || p.status === 'On Track').length;
 
-    return { timelineStart, timelineEnd, months: monthArray, totalCompletion, activeTasks };
+    return { timelineStart, timelineEnd, monthsByYear, totalCompletion, activeTasks };
   }, [projects]);
 
 
@@ -203,6 +210,8 @@ export default function GanttChartPage() {
     );
   }
 
+  const allMonths = Object.values(monthsByYear).flat();
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -217,12 +226,26 @@ export default function GanttChartPage() {
           <div className="grid" style={{ gridTemplateColumns: 'minmax(250px, 1.5fr) 3fr' }}>
             {/* Header */}
             <div className="p-2 font-semibold text-sm text-muted-foreground border-b border-border">Tasks</div>
-            <div className="grid border-b border-border" style={{ gridTemplateColumns: `repeat(${months.length}, 1fr)`}}>
-              {months.map((month, i) => (
-                <div key={i} className="text-center p-2 text-sm font-semibold text-muted-foreground border-l border-border">
-                  {format(month, 'MMM')}
-                </div>
-              ))}
+            <div className="border-b border-border">
+              <div className="grid" style={{ gridTemplateColumns: `repeat(${allMonths.length}, minmax(60px, 1fr))` }}>
+                {Object.entries(monthsByYear).map(([year, months]) => (
+                  <div key={year} className="contents">
+                    <div
+                      className="col-span-full border-b border-r border-border text-center py-1 font-bold"
+                      style={{ gridColumn: `span ${months.length}` }}
+                    >
+                      {year}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="grid" style={{ gridTemplateColumns: `repeat(${allMonths.length}, minmax(60px, 1fr))`}}>
+                {allMonths.map((month, i) => (
+                  <div key={i} className="text-center p-2 text-sm font-semibold text-muted-foreground border-l border-border">
+                    {format(month, 'MMM')}
+                  </div>
+                ))}
+              </div>
             </div>
             
             {/* Body */}
@@ -263,4 +286,3 @@ export default function GanttChartPage() {
     </div>
   );
 }
-
