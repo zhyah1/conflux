@@ -69,7 +69,8 @@ export default function ProjectDetailsPage() {
           const { data: childrenData, error: childrenError } = await supabase
             .from('projects')
             .select(`*, users:project_users(users(id, full_name, avatar_url))`)
-            .eq('parent_id', currentProject.id);
+            .eq('parent_id', currentProject.id)
+            .order('phase_order', { ascending: true });
             
 
           if (childrenError) {
@@ -79,9 +80,7 @@ export default function ProjectDetailsPage() {
                 ...p,
                 users: p.users.map((u: any) => u.users)
             }));
-            // Sort here before setting state
-            const sortedSubProjects = formattedSubProjects.sort((a: Project, b: Project) => (a.phase_order || 0) - (b.phase_order || 0));
-            setSubProjects(sortedSubProjects);
+            setSubProjects(formattedSubProjects);
           }
         }
         
