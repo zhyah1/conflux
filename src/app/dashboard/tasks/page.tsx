@@ -112,8 +112,8 @@ export default function TasksProjectListPage() {
 
 
       {loading ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i}>
               <CardHeader>
                 <Skeleton className="h-6 w-3/4" />
@@ -126,9 +126,9 @@ export default function TasksProjectListPage() {
           ))}
         </div>
       ) : projectsToShow.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-start">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-stretch">
           {projectsToShow.map((project) => (
-            <Card key={project.id} className="flex flex-col">
+            <Card key={project.id} className="flex flex-col h-full">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-headline">
                   {project.parent_id ? <GanttChartSquare className="h-6 w-6" /> : <Folder className="h-6 w-6" />}
