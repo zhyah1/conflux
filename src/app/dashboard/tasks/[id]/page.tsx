@@ -2,14 +2,17 @@
 
 import { PageHeader } from '../../components/page-header';
 import { Button } from '@/components/ui/button';
-import { Plus, MoreHorizontal, Loader2, ArrowLeft, Filter, Search } from 'lucide-react';
+import { Plus, MoreHorizontal, Loader2, ArrowLeft, Filter, Search, LayoutGrid, GanttChartSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { automaticDelayEscalation } from '@/ai/flows/automatic-delay-escalation';
 import React, { useEffect, useState, useMemo } from 'react';
@@ -302,6 +305,7 @@ export default function TaskBoardPage() {
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState('kanban');
 
   useEffect(() => {
     if (!projectId) return;
@@ -377,13 +381,40 @@ export default function TaskBoardPage() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  {view === 'kanban' ? <LayoutGrid className="mr-2 h-4 w-4"/> : <GanttChartSquare className="mr-2 h-4 w-4" />}
+                  {view === 'kanban' ? 'Kanban' : 'Gantt'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Switch View</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={view} onValueChange={setView}>
+                  <DropdownMenuRadioItem value="kanban">
+                     <LayoutGrid className="mr-2 h-4 w-4"/> Kanban Board
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="gantt" disabled>
+                     <GanttChartSquare className="mr-2 h-4 w-4"/> Gantt Chart
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
         </div>
       </PageHeader>
       
-      <KanbanBoard projectId={projectId} projectUsers={projectUsers} />
+      {view === 'kanban' && <KanbanBoard projectId={projectId} projectUsers={projectUsers} />}
+      {view === 'gantt' && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center text-muted-foreground">
+              Gantt Chart view is not yet implemented.
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
     </div>
   );
 }
-
-    
