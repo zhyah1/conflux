@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -6,7 +7,7 @@ import type { Project } from '../projects/page';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { format, differenceInDays, addMonths, eachMonthOfInterval } from 'date-fns';
-import { Calendar, ChevronRight, Folder, GanttChartSquare } from 'lucide-react';
+import { Calendar, ChevronRight, GanttChartSquare } from 'lucide-react';
 import { PageHeader } from '../components/page-header';
 
 const GanttBar = ({
@@ -53,21 +54,25 @@ const GanttBar = ({
   );
 };
 
-const ProjectGanttRow = ({ project, timelineStart, timelineEnd }: { project: Project, timelineStart: Date, timelineEnd: Date }) => {
+const ProjectGanttRow = ({ project, timelineStart, timelineEnd, level = 0 }: { project: Project, timelineStart: Date, timelineEnd: Date, level?: number }) => {
     const [isExpanded, setIsExpanded] = useState(true);
     const hasSubProjects = project.subProjects && project.subProjects.length > 0;
 
     return (
         <>
             <div className="contents">
-                <div className="flex items-center gap-2 p-2 border-t border-border font-medium">
-                    {hasSubProjects && (
+                <div 
+                    className="flex items-center gap-2 p-2 border-t border-border font-medium"
+                    style={{ paddingLeft: `${1 + level * 2}rem` }}
+                >
+                    {hasSubProjects ? (
                         <button onClick={() => setIsExpanded(!isExpanded)} className="p-1 rounded-md hover:bg-muted">
                             <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-90' : 'rotate-0'}`} />
                         </button>
+                    ) : (
+                      <div className="w-6 h-6"></div>
                     )}
-                    {!hasSubProjects && <div className="w-6 h-6"></div>}
-                     <Folder className="h-4 w-4 text-muted-foreground mr-2" />
+                     <GanttChartSquare className="h-4 w-4 text-muted-foreground mr-2" />
                     <span>{project.name}</span>
                 </div>
                 <div className="relative p-2 border-t border-border">
@@ -75,15 +80,13 @@ const ProjectGanttRow = ({ project, timelineStart, timelineEnd }: { project: Pro
                 </div>
             </div>
             {isExpanded && hasSubProjects && project.subProjects?.map(sub => (
-                <div className="contents" key={sub.id}>
-                     <div className="flex items-center gap-2 p-2 border-t border-border pl-12">
-                        <GanttChartSquare className="h-4 w-4 text-muted-foreground mr-2" />
-                        <span className="text-sm">{sub.name}</span>
-                    </div>
-                    <div className="relative p-2 border-t border-border">
-                        <GanttBar project={sub} timelineStart={timelineStart} timelineEnd={timelineEnd} />
-                    </div>
-                </div>
+                <ProjectGanttRow 
+                    key={sub.id} 
+                    project={sub} 
+                    timelineStart={timelineStart} 
+                    timelineEnd={timelineEnd} 
+                    level={level + 1} 
+                />
             ))}
         </>
     )
@@ -104,23 +107,29 @@ export default function GanttChartPage() {
         const hierarchicalProjects: Project[] = [];
 
         allProjects.forEach(p => {
+          const p_mapped = projectMap.get(p.id)!;
           if (p.parent_id && projectMap.has(p.parent_id)) {
             const parent = projectMap.get(p.parent_id);
             if (parent) {
-              parent.subProjects.push(projectMap.get(p.id)!);
+              parent.subProjects.push(p_mapped);
             }
           } else {
-            hierarchicalProjects.push(projectMap.get(p.id)!);
+            hierarchicalProjects.push(p_mapped);
           }
         });
-
-        hierarchicalProjects.forEach(p => {
-          if (p.subProjects && p.subProjects.length > 0) {
-            p.subProjects.sort((a, b) => (a.phase_order || 0) - (b.phase_order || 0));
-          }
-        });
-
+        
+        const sortProjectsRecursive = (projectList: Project[]) => {
+          projectList.sort((a, b) => (a.phase_order || 0) - (b.phase_order || 0));
+          projectList.forEach(p => {
+            if (p.subProjects && p.subProjects.length > 0) {
+              sortProjectsRecursive(p.subProjects);
+            }
+          });
+        };
+        
+        sortProjectsRecursive(hierarchicalProjects);
         setProjects(hierarchicalProjects);
+
       } else {
         console.error('Error fetching projects:', error);
       }
@@ -135,9 +144,27 @@ export default function GanttChartPage() {
       start.setDate(1);
       return { timelineStart: start, timelineEnd: addMonths(start, 6), months: [], totalCompletion: 0, activeTasks: 0 };
     }
+    
+    const getAllProjects = (projectList: Project[]): Project[] => {
+      let flatList: Project[] = [];
+      projectList.forEach(p => {
+        flatList.push(p);
+        if (p.subProjects && p.subProjects.length > 0) {
+          flatList = flatList.concat(getAllProjects(p.subProjects));
+        }
+      });
+      return flatList;
+    };
 
-    const allProjects = projects.flatMap(p => [p, ...(p.subProjects || [])]);
-    const allDates = allProjects.flatMap(p => [new Date(p.start_date), new Date(p.end_date)]);
+    const allProjects = getAllProjects(projects);
+    const allDates = allProjects.flatMap(p => [new Date(p.start_date), new Date(p.end_date)]).filter(d => !isNaN(d.getTime()));
+
+
+    if (allDates.length === 0) {
+      const start = new Date();
+      start.setDate(1);
+      return { timelineStart: start, timelineEnd: addMonths(start, 6), months: [], totalCompletion: 0, activeTasks: 0 };
+    }
 
     const timelineStart = new Date(Math.min(...allDates.map(d => d.getTime())));
     const timelineEnd = new Date(Math.max(...allDates.map(d => d.getTime())));
@@ -161,7 +188,6 @@ export default function GanttChartPage() {
         <PageHeader
           title="Project Timeline"
           description="Track your project progress and milestones"
-          children={<Calendar className="h-6 w-6" />}
         />
         <Card>
           <CardContent className="pt-6">
@@ -182,9 +208,10 @@ export default function GanttChartPage() {
       <PageHeader
         title="Project Timeline"
         description="Track your project progress and milestones"
-        children={<Calendar className="h-6 w-6" />}
-       />
-
+      >
+        <Calendar className="h-6 w-6" />
+      </PageHeader>
+      
       <Card>
         <CardContent className="pt-6">
           <div className="grid" style={{ gridTemplateColumns: 'minmax(250px, 1.5fr) 3fr' }}>
@@ -236,3 +263,4 @@ export default function GanttChartPage() {
     </div>
   );
 }
+
