@@ -63,18 +63,43 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
   useEffect(() => {
     async function fetchUsers() {
       if (!profile || !user) return;
+
+      // First, get the current project to find its parent
+      const { data: currentProject, error: projectError } = await supabase
+        .from('projects')
+        .select('parent_id')
+        .eq('id', projectId)
+        .single();
       
+      if (projectError) {
+        console.error('Error fetching current project', projectError);
+        return;
+      }
+
+      const projectIdsToFetch = [projectId];
+      if (currentProject.parent_id) {
+        projectIdsToFetch.push(currentProject.parent_id);
+      }
+
       const { data: projectUsers, error: projectUsersError } = await supabase
         .from('project_users')
         .select('users(id, full_name, role)')
-        .eq('project_id', projectId);
+        .in('project_id', projectIdsToFetch);
 
       if (projectUsersError) {
         console.error('Error fetching project users for task form', projectUsersError);
         return;
       }
       
-      const allProjectMembers = projectUsers.map((pu: any) => pu.users).filter(Boolean);
+      // Deduplicate users
+      const userMap = new Map<string, User>();
+      projectUsers.forEach((pu: any) => {
+        if (pu.users && !userMap.has(pu.users.id)) {
+            userMap.set(pu.users.id, pu.users);
+        }
+      });
+      const allProjectMembers = Array.from(userMap.values());
+      
       let potentialAssignees: User[] = [];
 
       switch (profile.role) {
