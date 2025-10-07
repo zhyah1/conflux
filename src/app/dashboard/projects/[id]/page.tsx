@@ -69,8 +69,8 @@ export default function ProjectDetailsPage() {
           const { data: childrenData, error: childrenError } = await supabase
             .from('projects')
             .select(`*, users:project_users(users(id, full_name, avatar_url))`)
-            .eq('parent_id', currentProject.id)
-            .order('phase_order', { ascending: true }); // Sort by phase_order
+            .eq('parent_id', currentProject.id);
+            
 
           if (childrenError) {
             console.error('Error fetching sub-projects:', childrenError);
@@ -79,7 +79,9 @@ export default function ProjectDetailsPage() {
                 ...p,
                 users: p.users.map((u: any) => u.users)
             }));
-            setSubProjects(formattedSubProjects as Project[]);
+            // Sort here before setting state
+            const sortedSubProjects = formattedSubProjects.sort((a: Project, b: Project) => (a.phase_order || 0) - (b.phase_order || 0));
+            setSubProjects(sortedSubProjects);
           }
         }
         
@@ -267,9 +269,7 @@ export default function ProjectDetailsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {subProjects
-                                    .sort((a, b) => (a.phase_order || 0) - (b.phase_order || 0))
-                                    .map(sub => (
+                                {subProjects.map(sub => (
                                     <TableRow key={sub.id}>
                                         <TableCell className="font-medium">{sub.name}</TableCell>
                                         <TableCell>
