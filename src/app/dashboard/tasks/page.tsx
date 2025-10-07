@@ -10,7 +10,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Project } from '../projects/page';
+import type { Project, User } from '../projects/page';
 import Link from 'next/link';
 import { ArrowRight, Folder, GanttChartSquare, Home } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -24,6 +24,24 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
+const getInitials = (name?: string | null) => {
+  if (!name) return '';
+  const names = name.split(' ');
+  if (names.length > 1) {
+    return names[0][0] + names[names.length - 1][0];
+  }
+  return name.substring(0, 2);
+};
 
 export default function TasksProjectListPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -73,7 +91,6 @@ export default function TasksProjectListPage() {
   }, []);
 
   const projectsToShow = currentProject ? currentProject.subProjects || [] : projects;
-  const hasSubProjects = projectsToShow.some(p => p.subProjects && p.subProjects.length > 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -130,13 +147,72 @@ export default function TasksProjectListPage() {
           {projectsToShow.map((project) => (
             <Card key={project.id} className="flex flex-col h-full">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-headline">
-                  {project.parent_id ? <GanttChartSquare className="h-6 w-6" /> : <Folder className="h-6 w-6" />}
-                  {project.name}
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 font-headline">
+                    {project.parent_id ? <GanttChartSquare className="h-5 w-5" /> : <Folder className="h-5 w-5" />}
+                    {project.name}
+                  </CardTitle>
+                   <Badge
+                      variant={
+                          project.status === 'Completed' ? 'outline' :
+                          project.status === 'Delayed' ? 'destructive' : 'secondary'
+                      }
+                  >
+                      {project.status}
+                  </Badge>
+                </div>
                 {project.owner && <CardDescription>{project.owner}</CardDescription>}
               </CardHeader>
               <CardContent className="flex-1 flex flex-col justify-end gap-4">
+                 <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground mb-1">
+                          <span>Progress</span>
+                          <span>{project.completion}%</span>
+                      </div>
+                      <Progress value={project.completion} className="h-2" />
+                    </div>
+
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-2">Team</div>
+                       {project.users && project.users.length > 0 ? (
+                          <div className="flex items-center">
+                            {project.users.slice(0, 3).map((user) => (
+                              <TooltipProvider key={user.id}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Avatar className="h-8 w-8 border-2 border-background -ml-2 first:ml-0">
+                                      <AvatarImage src={user.avatar_url || ''} alt={user.full_name || ''} />
+                                      <AvatarFallback>{getInitials(user.full_name)}</AvatarFallback>
+                                    </Avatar>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{user.full_name}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ))}
+                            {project.users.length > 3 && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Avatar className="h-8 w-8 border-2 border-background -ml-2">
+                                      <AvatarFallback>+{project.users.length - 3}</AvatarFallback>
+                                    </Avatar>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{project.users.slice(3).map(u => u.full_name).join(', ')}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Unassigned</span>
+                        )}
+                    </div>
+                </div>
+
                 {project.subProjects && project.subProjects.length > 0 ? (
                   <Button onClick={() => setCurrentProject(project)} className="mt-auto w-full">
                     View Phases <ArrowRight className="ml-2 h-4 w-4" />
