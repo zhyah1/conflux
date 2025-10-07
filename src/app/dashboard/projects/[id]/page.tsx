@@ -267,7 +267,9 @@ export default function ProjectDetailsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {subProjects.map(sub => (
+                                {subProjects
+                                    .sort((a, b) => (a.phase_order || 0) - (b.phase_order || 0))
+                                    .map(sub => (
                                     <TableRow key={sub.id}>
                                         <TableCell className="font-medium">{sub.name}</TableCell>
                                         <TableCell>
