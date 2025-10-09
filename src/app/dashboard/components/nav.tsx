@@ -37,7 +37,7 @@ export function Nav() {
   const pathname = usePathname();
   const { profile } = useUser();
 
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <>
@@ -59,6 +59,7 @@ export function Nav() {
                   asChild
                   isActive={pathname === item.href}
                   tooltip={item.label}
+                  size="lg"
                 >
                   <Link href={item.href}>
                     <item.icon />

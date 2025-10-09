@@ -97,8 +97,8 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
   
   if (!profile) return null;
   
-  const canEditTask = profile.role === 'owner' || profile.role === 'admin' || projectUsers.includes(profile.id);
-  const canCheckDelays = profile.role === 'owner' || profile.role === 'admin' || profile.role === 'pmc';
+  const canEditTask = profile.role === 'admin' || projectUsers.includes(profile.id);
+  const canCheckDelays = profile.role === 'admin' || profile.role === 'pmc';
 
   return (
     <Card className="mb-4 shadow-sm hover:shadow-md transition-shadow">
@@ -160,7 +160,7 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
-  const canManageTasks = profile?.role === 'owner' || profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor' || projectUsers.includes(profile.id);
+  const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor' || projectUsers.includes(profile.id);
 
   const fetchTasks = async () => {
     setLoading(true);

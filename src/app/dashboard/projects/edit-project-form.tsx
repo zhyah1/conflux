@@ -75,8 +75,9 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
   const { toast } = useToast();
   const { profile } = useUser();
 
-  const canEditAllFields = profile && ['owner', 'admin', 'pmc'].includes(profile.role);
-  const canEditAssignments = profile && ['owner', 'admin', 'pmc', 'contractor'].includes(profile.role);
+  const isOwner = profile?.role === 'owner';
+  const canEditAllFields = profile && ['admin', 'pmc'].includes(profile.role) && !isOwner;
+  const canEditAssignments = profile && ['admin', 'pmc', 'contractor'].includes(profile.role) && !isOwner;
   const isContractorOrSub = profile && ['contractor', 'subcontractor'].includes(profile.role);
 
   
@@ -86,7 +87,6 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
 
       let targetRoles: string[] = [];
        switch (profile.role) {
-        case 'owner':
         case 'admin':
           targetRoles = ['pmc', 'contractor', 'subcontractor', 'client'];
           break;
@@ -273,7 +273,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isOwner}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a status" />
@@ -399,7 +399,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
                 <FormItem className="col-span-2">
                   <FormLabel>Completion (%)</FormLabel>
                   <FormControl>
-                    <Input type="number" min="0" max="100" {...field} />
+                    <Input type="number" min="0" max="100" {...field} disabled={isOwner} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -410,7 +410,7 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
               <DialogClose asChild>
                 <Button type="button" variant="outline">Cancel</Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || isOwner}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="animate-spin" />

@@ -26,7 +26,7 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found.' };
 
-  if (!['owner', 'admin', 'pmc'].includes(profile.role)) {
+  if (!['admin', 'pmc'].includes(profile.role)) {
     return { error: 'You do not have permission to add projects.' };
   }
   
@@ -126,7 +126,7 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
 
     const isMember = projectMembers?.some(m => m.user_id === user.id);
 
-    if (!['owner', 'admin'].includes(profile.role) && !isMember) {
+    if (!['admin'].includes(profile.role) && !isMember) {
       return { error: 'You do not have permission to edit this project.' };
     }
     
@@ -143,7 +143,7 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
         return { error: `Failed to update project: ${error.message}` };
     }
 
-    if (['owner', 'admin', 'pmc', 'contractor'].includes(profile.role)) {
+    if (['admin', 'pmc', 'contractor'].includes(profile.role)) {
       const { error: deleteError } = await supabase.from('project_users').delete().eq('project_id', id);
       if (deleteError) {
           console.error('Error clearing old assignments', deleteError);
@@ -175,7 +175,7 @@ export async function deleteProject(id: string) {
     const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
     if (!profile) return { error: 'Profile not found' };
 
-    if (!['owner', 'admin'].includes(profile.role)) {
+    if (!['admin'].includes(profile.role)) {
         return { error: 'You do not have permission to delete projects.' };
     }
 

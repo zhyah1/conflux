@@ -103,7 +103,6 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
       let potentialAssignees: User[] = [];
 
       switch (profile.role) {
-        case 'owner':
         case 'admin':
           potentialAssignees = allProjectMembers;
           break;

@@ -62,15 +62,15 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
   const router = useRouter();
   const { profile } = useUser();
 
-  const canEditAssignee = profile && ['owner', 'admin', 'pmc', 'contractor'].includes(profile.role);
-
+  const canEditAllFields = profile && ['admin', 'pmc', 'contractor'].includes(profile.role);
+  const canEditAssignee = profile && ['admin', 'pmc', 'contractor'].includes(profile.role);
+  
   useEffect(() => {
     async function fetchUsers() {
       if (!profile || !canEditAssignee) return;
       
       let targetRoles: string[] = [];
       switch (profile.role) {
-        case 'owner':
         case 'admin':
           targetRoles = ['pmc', 'contractor', 'subcontractor'];
           break;
@@ -158,7 +158,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
                 <FormItem>
                   <FormLabel>Task Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Install window frames" {...field} disabled={!canEditAssignee} />
+                    <Input placeholder="e.g., Install window frames" {...field} disabled={!canEditAllFields} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -195,7 +195,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Priority</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!canEditAssignee}>
+                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!canEditAllFields}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a priority" />

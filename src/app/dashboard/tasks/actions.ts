@@ -31,7 +31,7 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  if (!['owner', 'admin', 'pmc', 'contractor', 'subcontractor'].includes(profile.role)) {
+  if (!['admin', 'pmc', 'contractor', 'subcontractor'].includes(profile.role)) {
      return { error: 'You do not have permission to add tasks.' };
   }
   

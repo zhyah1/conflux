@@ -59,7 +59,7 @@ export default function UsersPage() {
   const [selectedRole, setSelectedRole] = useState('contractor');
   const [loading, setLoading] = useState(true);
 
-  const canManageUsers = profile?.role === 'admin' || profile?.role === 'owner';
+  const canManageUsers = profile?.role === 'admin';
 
   const fetchUsers = async () => {
     setLoading(true);

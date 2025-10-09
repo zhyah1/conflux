@@ -62,11 +62,12 @@ export function ProjectActions({ project }: { project: Project }) {
 
   if (!profile) return null;
 
-  const isOwnerOrAdmin = profile.role === 'owner' || profile.role === 'admin';
+  const isOwner = profile.role === 'owner';
+  const isAdmin = profile.role === 'admin';
   const isAssigned = project.users.some(u => u.id === profile.id);
   
-  const canEdit = isOwnerOrAdmin || (['pmc', 'contractor', 'subcontractor'].includes(profile.role) && isAssigned);
-  const canDelete = isOwnerOrAdmin;
+  const canEdit = !isOwner && (isAdmin || (['pmc', 'contractor', 'subcontractor'].includes(profile.role) && isAssigned));
+  const canDelete = isAdmin;
   const canViewDetails = !!profile; 
 
   return (

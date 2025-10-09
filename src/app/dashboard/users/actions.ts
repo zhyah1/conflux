@@ -17,7 +17,7 @@ export async function inviteUser(email: string, role: string) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  if (!['owner', 'admin'].includes(profile.role)) {
+  if (!['admin'].includes(profile.role)) {
     return { error: 'You do not have permission to invite users.' };
   }
   
