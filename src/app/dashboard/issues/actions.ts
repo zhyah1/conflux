@@ -5,17 +5,30 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
+// This is a server-only admin client to bypass RLS for data fetching.
+import { createClient } from '@supabase/supabase-js';
+
+async function getAdminSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+
 export async function getIssues(projectId?: string) {
   const supabase = createServerActionClient({ cookies });
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: 'Not authenticated' };
 
-  let query = supabase.from('issues').select(`
+  const supabaseAdmin = await getAdminSupabase();
+
+  let query = supabaseAdmin.from('issues').select(`
     id,
     title,
     status,
     priority,
-    assignee:assignee_id ( id, full_name ),
+    assignee_id,
     project:project_id ( id, name )
   `);
 
@@ -23,16 +36,45 @@ export async function getIssues(projectId?: string) {
     query = query.eq('project_id', projectId);
   }
 
-  const { data, error } = await query.order('created_at', { ascending: false });
+  const { data: issuesData, error } = await query.order('created_at', { ascending: false });
 
   if (error) {
-    console.error('getIssues error:', error.message);
+    console.error('getIssues (issues) error:', error.message);
     return { data: null, error: `Could not fetch issues: ${error.message}` };
   }
+
+  if (!issuesData) {
+    return { data: [], error: null };
+  }
+
+  const assigneeIds = issuesData
+    .map(issue => issue.assignee_id)
+    .filter((id): id is string => id !== null);
+
+  if (assigneeIds.length === 0) {
+    const formattedData = issuesData.map(issue => ({
+      ...issue,
+      assignee: 'Unassigned',
+      project: issue.project?.name || 'Unknown Project'
+    }));
+    return { data: formattedData, error: null };
+  }
+
+  const { data: usersData, error: usersError } = await supabaseAdmin
+    .from('users')
+    .select('id, full_name')
+    .in('id', assigneeIds);
+
+  if (usersError) {
+    console.error('getIssues (users) error:', usersError.message);
+    return { data: null, error: `Could not fetch assignees: ${usersError.message}` };
+  }
   
-  const formattedData = data.map(issue => ({
+  const userMap = new Map(usersData.map(u => [u.id, u.full_name]));
+
+  const formattedData = issuesData.map(issue => ({
     ...issue,
-    assignee: issue.assignee?.full_name || 'Unassigned',
+    assignee: issue.assignee_id ? userMap.get(issue.assignee_id) || 'Unknown User' : 'Unassigned',
     project: issue.project?.name || 'Unknown Project'
   }));
 
@@ -70,5 +112,6 @@ export async function addIssue(formData: z.infer<typeof issueSchema>) {
   }
 
   revalidatePath('/dashboard/issues');
+  revalidatePath('/dashboard');
   return { data };
 }

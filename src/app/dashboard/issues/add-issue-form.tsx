@@ -70,8 +70,8 @@ export function AddIssueForm({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function fetchData() {
       const { data: projectsData, error: projectsError } = await getProjects();
-      if (!projectsError) {
-        setProjects(projectsData || []);
+      if (!projectsError && projectsData) {
+        setProjects(projectsData as unknown as Project[]);
       }
 
       const { data: usersData, error: usersError } = await supabase
@@ -215,7 +215,7 @@ export function AddIssueForm({ children }: { children: React.ReactNode }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Assign To</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Unassigned" />
