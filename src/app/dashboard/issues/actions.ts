@@ -56,10 +56,12 @@ export async function addIssue(formData: z.infer<typeof issueSchema>) {
   if (!parsedData.success) {
     return { error: `Invalid form data: ${parsedData.error.message}` };
   }
+  
+  const id = `ISSUE-${Date.now()}`;
 
   const { data, error } = await supabase
     .from('issues')
-    .insert([{ ...parsedData.data, created_by: user.id }])
+    .insert([{ id, ...parsedData.data, created_by: user.id }])
     .select();
 
   if (error) {

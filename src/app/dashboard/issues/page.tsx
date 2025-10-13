@@ -42,6 +42,7 @@ import { Input } from '@/components/ui/input';
 import { getIssues } from './actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { AddIssueForm } from './add-issue-form';
 
 export type Issue = {
   id: string;
@@ -154,10 +155,12 @@ export default function IssuesPage() {
   return (
     <div className="flex flex-col gap-6 w-full">
       <PageHeader title="Issues" description="Track and resolve project issues.">
-        <Button size="sm" className="gap-1">
-          <PlusCircle className="h-4 w-4" />
-          Create Issue
-        </Button>
+        <AddIssueForm>
+          <Button size="sm" className="gap-1">
+            <PlusCircle className="h-4 w-4" />
+            Create Issue
+          </Button>
+        </AddIssueForm>
       </PageHeader>
       <div className="flex items-center py-4">
         <Input
