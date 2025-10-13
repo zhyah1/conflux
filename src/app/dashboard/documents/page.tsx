@@ -14,7 +14,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { DocumentActions } from './document-actions';
-import { getDocuments } from './actions';
+import { getDocuments, getDocumentSignedUrl } from './actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UploadDocumentForm } from './upload-document-form';
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +29,44 @@ export type Document = {
   upload_count: number;
   modification_count: number;
   project_id: string;
+  file_path: string;
 };
+
+const DocumentLink = ({ document }: { document: Document }) => {
+  const { toast } = useToast();
+  const [isOpening, setIsOpening] = useState(false);
+
+  const handleOpen = async () => {
+    setIsOpening(true);
+    try {
+      const { data, error } = await getDocumentSignedUrl(document.file_path);
+      if (error || !data?.signedUrl) {
+        throw new Error(error || 'Could not get document URL.');
+      }
+      window.open(data.signedUrl, '_blank');
+    } catch (e: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error opening document',
+        description: e.message,
+      });
+    } finally {
+      setIsOpening(false);
+    }
+  };
+
+  return (
+    <Button
+      variant="link"
+      onClick={handleOpen}
+      disabled={isOpening}
+      className="font-medium p-0 h-auto"
+    >
+      {isOpening ? 'Opening...' : document.name}
+    </Button>
+  );
+};
+
 
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -95,7 +132,9 @@ export default function DocumentsPage() {
               ) : documents.length > 0 ? (
                 documents.map((doc) => (
                   <TableRow key={doc.id}>
-                    <TableCell className="font-medium">{doc.name}</TableCell>
+                    <TableCell>
+                      <DocumentLink document={doc} />
+                    </TableCell>
                     <TableCell className="hidden sm:table-cell">{doc.version}</TableCell>
                     <TableCell className="hidden sm:table-cell">{doc.lastModified}</TableCell>
                     <TableCell className="hidden md:table-cell">{doc.modifiedBy}</TableCell>

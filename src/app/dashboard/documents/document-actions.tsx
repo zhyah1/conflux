@@ -25,11 +25,14 @@ import {
 } from '@/ai/flows/document-audit-suggestion';
 import { Loader2 } from 'lucide-react';
 import { Document } from './page';
+import { getDocumentSignedUrl } from './actions';
+import { useToast } from '@/hooks/use-toast';
 
 export function DocumentActions({ document }: { document: Document }) {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [auditResult, setAuditResult] = React.useState<DocumentAuditSuggestionOutput | null>(null);
+  const { toast } = useToast();
 
   const handleSuggestAudit = async () => {
     setIsDialogOpen(true);
@@ -48,6 +51,23 @@ export function DocumentActions({ document }: { document: Document }) {
     setIsLoading(false);
   };
 
+  const handleDownload = async () => {
+    try {
+      const { data, error } = await getDocumentSignedUrl(document.file_path);
+      if (error || !data?.signedUrl) {
+        throw new Error(error || 'Could not get download URL.');
+      }
+      // This will open the file in a new tab, and the browser will handle download/display
+      window.open(data.signedUrl, '_blank');
+    } catch (e: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Download Failed',
+        description: e.message,
+      });
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -59,7 +79,7 @@ export function DocumentActions({ document }: { document: Document }) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem>Download</DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleDownload}>Download</DropdownMenuItem>
           <DropdownMenuItem>View History</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSuggestAudit}>Suggest Audit (AI)</DropdownMenuItem>

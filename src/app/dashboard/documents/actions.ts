@@ -93,7 +93,8 @@ export async function getDocuments(projectId?: string) {
     upload_count,
     modification_count,
     project_id,
-    modified_by
+    modified_by,
+    file_path
   `);
 
   if (projectId) {
@@ -144,4 +145,21 @@ export async function getDocuments(projectId?: string) {
 
 
   return { data: formattedData, error: null };
+}
+
+export async function getDocumentSignedUrl(filePath: string) {
+  const supabase = createServerActionClient({ cookies });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { data: null, error: 'Not authenticated' };
+
+  const { data, error } = await supabase.storage
+    .from('documents')
+    .createSignedUrl(filePath, 60); // URL is valid for 60 seconds
+
+  if (error) {
+    console.error('Error creating signed URL:', error);
+    return { data: null, error: 'Could not get document URL.' };
+  }
+
+  return { data, error: null };
 }
