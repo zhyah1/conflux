@@ -19,14 +19,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
-import { documents } from '@/lib/data';
 import {
   documentAuditSuggestion,
   type DocumentAuditSuggestionOutput,
 } from '@/ai/flows/document-audit-suggestion';
 import { Loader2 } from 'lucide-react';
-
-type Document = (typeof documents)[0];
+import { Document } from './page';
 
 export function DocumentActions({ document }: { document: Document }) {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -41,8 +39,8 @@ export function DocumentActions({ document }: { document: Document }) {
     const result = await documentAuditSuggestion({
       documentName: document.name,
       versionNumber: document.version,
-      uploadCount: document.uploadCount,
-      modificationCount: document.modificationCount,
+      uploadCount: document.upload_count,
+      modificationCount: document.modification_count,
       lastUploadedBy: document.modifiedBy,
     });
     
