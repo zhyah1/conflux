@@ -1,40 +1,68 @@
 "use client";
 
+import { useEffect, useState } from 'react';
 import { Pie, PieChart, ResponsiveContainer, Tooltip, Legend, Cell } from 'recharts';
 import {
   ChartContainer,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import { issues as allIssues } from '@/lib/data';
+import { getIssues } from '@/app/dashboard/issues/actions';
+import type { Issue } from '@/app/dashboard/issues/page';
 import type { ChartConfig } from '@/components/ui/chart';
-
-const priorityCounts = allIssues.reduce((acc, issue) => {
-  acc[issue.priority] = (acc[issue.priority] || 0) + 1;
-  return acc;
-}, {} as Record<string, number>);
-
-const data = [
-  { name: 'High', value: priorityCounts['High'] || 0, fill: 'hsl(var(--destructive))' },
-  { name: 'Medium', value: priorityCounts['Medium'] || 0, fill: 'hsl(var(--chart-4))' },
-  { name: 'Low', value: priorityCounts['Low'] || 0, fill: 'hsl(var(--chart-2))' },
-];
+import { Skeleton } from '@/components/ui/skeleton';
 
 const chartConfig = {
-  high: {
+  High: {
     label: 'High',
     color: 'hsl(var(--destructive))',
   },
-  medium: {
+  Medium: {
     label: 'Medium',
     color: 'hsl(var(--chart-4))',
   },
-  low: {
+  Low: {
     label: 'Low',
     color: 'hsl(var(--chart-2))',
   },
 } satisfies ChartConfig;
 
 export function IssuesPieChart() {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchIssueData() {
+      setLoading(true);
+      const { data: issuesData, error } = await getIssues();
+      if (!error && issuesData) {
+        const allIssues = issuesData as unknown as Issue[];
+        const priorityCounts = allIssues.reduce((acc, issue) => {
+          acc[issue.priority] = (acc[issue.priority] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const chartData = [
+          { name: 'High', value: priorityCounts['High'] || 0, fill: 'hsl(var(--destructive))' },
+          { name: 'Medium', value: priorityCounts['Medium'] || 0, fill: 'hsl(var(--chart-4))' },
+          { name: 'Low', value: priorityCounts['Low'] || 0, fill: 'hsl(var(--chart-2))' },
+        ];
+        setData(chartData);
+      } else {
+        console.error("Failed to fetch issues for chart", error);
+      }
+      setLoading(false);
+    }
+    fetchIssueData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="h-[250px] w-full flex items-center justify-center">
+        <Skeleton className="h-full w-full" />
+      </div>
+    )
+  }
+
   return (
     <ChartContainer config={chartConfig} className="h-[250px] w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -67,6 +95,7 @@ export function IssuesPieChart() {
               value,
               index,
             }) => {
+              if (value === 0) return null;
               const RADIAN = Math.PI / 180
               const radius = 25 + innerRadius + (outerRadius - innerRadius)
               const x = cx + radius * Math.cos(-midAngle * RADIAN)
