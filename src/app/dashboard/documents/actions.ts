@@ -4,6 +4,14 @@ import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { createClient } from '@supabase/supabase-js';
+
+async function getAdminSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 // Schema for creating a document record in the database
 const documentSchema = z.object({
@@ -75,7 +83,9 @@ export async function getDocuments(projectId?: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: 'Not authenticated' };
 
-  let query = supabase.from('documents').select(`
+  const supabaseAdmin = await getAdminSupabase();
+
+  let query = supabaseAdmin.from('documents').select(`
     id,
     name,
     version,
@@ -83,25 +93,55 @@ export async function getDocuments(projectId?: string) {
     upload_count,
     modification_count,
     project_id,
-    user:modified_by ( id, full_name )
+    modified_by
   `);
 
   if (projectId) {
     query = query.eq('project_id', projectId);
   }
 
-  const { data, error } = await query.order('last_modified', { ascending: false });
+  const { data: documentsData, error } = await query.order('last_modified', { ascending: false });
 
   if (error) {
-    console.error('getDocuments error:', error.message);
+    console.error('getDocuments (documents) error:', error.message);
     return { data: null, error: `Could not fetch documents: ${error.message}` };
   }
 
-  const formattedData = data.map(doc => ({
+  if (!documentsData) {
+    return { data: [], error: null };
+  }
+
+  const userIds = documentsData
+    .map(doc => doc.modified_by)
+    .filter((id): id is string => id !== null);
+
+  if (userIds.length === 0) {
+     const formattedData = documentsData.map(doc => ({
+      ...doc,
+      modifiedBy: 'Unknown',
+      lastModified: new Date(doc.last_modified).toLocaleDateString(),
+    }));
+    return { data: formattedData, error: null };
+  }
+  
+  const { data: usersData, error: usersError } = await supabaseAdmin
+    .from('users')
+    .select('id, full_name')
+    .in('id', userIds);
+    
+  if (usersError) {
+    console.error('getDocuments (users) error:', usersError.message);
+    return { data: null, error: `Could not fetch document modifiers: ${usersError.message}` };
+  }
+
+  const userMap = new Map(usersData.map(u => [u.id, u.full_name]));
+
+  const formattedData = documentsData.map(doc => ({
     ...doc,
-    modifiedBy: doc.user?.full_name || 'Unknown',
+    modifiedBy: doc.modified_by ? userMap.get(doc.modified_by) || 'Unknown User' : 'Unknown',
     lastModified: new Date(doc.last_modified).toLocaleDateString(),
   }));
+
 
   return { data: formattedData, error: null };
 }
