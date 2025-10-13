@@ -55,7 +55,8 @@ export async function getIssues(projectId?: string) {
     const formattedData = issuesData.map(issue => ({
       ...issue,
       assignee: 'Unassigned',
-      project: issue.project?.name || 'Unknown Project'
+      project_name: issue.project?.name || 'Unknown Project',
+      project_id: issue.project?.id
     }));
     return { data: formattedData, error: null };
   }
@@ -75,7 +76,8 @@ export async function getIssues(projectId?: string) {
   const formattedData = issuesData.map(issue => ({
     ...issue,
     assignee: issue.assignee_id ? userMap.get(issue.assignee_id) || 'Unknown User' : 'Unassigned',
-    project: issue.project?.name || 'Unknown Project'
+    project_name: issue.project?.name || 'Unknown Project',
+    project_id: issue.project?.id
   }));
 
   return { data: formattedData, error: null };
@@ -114,4 +116,35 @@ export async function addIssue(formData: z.infer<typeof issueSchema>) {
   revalidatePath('/dashboard/issues');
   revalidatePath('/dashboard');
   return { data };
+}
+
+const updateIssueSchema = issueSchema.extend({
+  id: z.string(),
+});
+
+export async function updateIssue(formData: z.infer<typeof updateIssueSchema>) {
+    const supabase = createServerActionClient({ cookies });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not authenticated' };
+
+    const parsedData = updateIssueSchema.safeParse(formData);
+    if (!parsedData.success) {
+        return { error: `Invalid form data: ${parsedData.error.message}` };
+    }
+    
+    const { id, ...issueData } = parsedData.data;
+
+    const { data, error } = await supabase.from('issues').update({
+      ...issueData,
+      assignee_id: issueData.assignee_id === 'null' ? null : issueData.assignee_id,
+    }).eq('id', id).select();
+
+    if (error) {
+        console.error('Supabase update error:', error);
+        return { error: `Failed to update issue: ${error.message}` };
+    }
+    
+    revalidatePath('/dashboard/issues');
+    revalidatePath('/dashboard');
+    return { data };
 }

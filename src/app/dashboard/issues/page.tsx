@@ -43,6 +43,7 @@ import { getIssues } from './actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { AddIssueForm } from './add-issue-form';
+import { IssueActions } from './issue-actions';
 
 export type Issue = {
   id: string;
@@ -50,10 +51,12 @@ export type Issue = {
   status: string;
   priority: 'High' | 'Medium' | 'Low';
   assignee: string;
-  project: string;
+  project_name: string;
+  project_id: string;
+  assignee_id: string | null;
 };
 
-const columns: ColumnDef<Issue>[] = [
+export const columns: ColumnDef<Issue>[] = [
   {
     accessorKey: 'id',
     header: 'ID',
@@ -75,9 +78,9 @@ const columns: ColumnDef<Issue>[] = [
     cell: ({ row }) => <div className="capitalize">{row.getValue('title')}</div>,
   },
    {
-    accessorKey: 'project',
+    accessorKey: 'project_name',
     header: 'Project',
-    cell: ({ row }) => <div className="capitalize">{row.getValue('project')}</div>,
+    cell: ({ row }) => <div className="capitalize">{row.getValue('project_name')}</div>,
   },
   {
     accessorKey: 'status',
@@ -100,6 +103,13 @@ const columns: ColumnDef<Issue>[] = [
     header: 'Assignee',
     cell: ({ row }) => <div className="capitalize">{row.getValue('assignee')}</div>,
   },
+  {
+    id: 'actions',
+    cell: ({ row }) => {
+      const issue = row.original;
+      return <IssueActions issue={issue} />;
+    },
+  }
 ];
 
 
