@@ -23,7 +23,6 @@ import {
 import { PageHeader } from '../components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
-import { issues as data } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -40,8 +39,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { getIssues } from './actions';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
-type Issue = (typeof data)[0];
+export type Issue = {
+  id: string;
+  title: string;
+  status: string;
+  priority: 'High' | 'Medium' | 'Low';
+  assignee: string;
+  project: string;
+};
 
 const columns: ColumnDef<Issue>[] = [
   {
@@ -63,6 +72,11 @@ const columns: ColumnDef<Issue>[] = [
       );
     },
     cell: ({ row }) => <div className="capitalize">{row.getValue('title')}</div>,
+  },
+   {
+    accessorKey: 'project',
+    header: 'Project',
+    cell: ({ row }) => <div className="capitalize">{row.getValue('project')}</div>,
   },
   {
     accessorKey: 'status',
@@ -89,13 +103,34 @@ const columns: ColumnDef<Issue>[] = [
 
 
 export default function IssuesPage() {
-    const [sorting, setSorting] = React.useState<SortingState>([])
+  const [data, setData] = React.useState<Issue[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const { toast } = useToast();
+  const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
+    React.useState<VisibilityState>({ id: false })
   const [rowSelection, setRowSelection] = React.useState({})
+
+  React.useEffect(() => {
+    async function fetchIssues() {
+      setLoading(true);
+      const { data: issuesData, error } = await getIssues();
+      if (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error fetching issues',
+            description: error,
+        });
+      } else if (issuesData) {
+        setData(issuesData as unknown as Issue[]);
+      }
+      setLoading(false);
+    }
+    fetchIssues();
+  }, [toast]);
 
   const table = useReactTable({
     data,
@@ -181,7 +216,15 @@ export default function IssuesPage() {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={columns.length} >
+                        <Skeleton className="h-5 w-full" />
+                    </TableCell>
+                  </TableRow>
+                ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}

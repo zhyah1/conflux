@@ -76,7 +76,13 @@ export async function getDocuments(projectId?: string) {
   if (!user) return { data: null, error: 'Not authenticated' };
 
   let query = supabase.from('documents').select(`
-    *,
+    id,
+    name,
+    version,
+    last_modified,
+    upload_count,
+    modification_count,
+    project_id,
     user:modified_by ( id, full_name )
   `);
 

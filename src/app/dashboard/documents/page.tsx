@@ -17,6 +17,7 @@ import { DocumentActions } from './document-actions';
 import { getDocuments } from './actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UploadDocumentForm } from './upload-document-form';
+import { useToast } from '@/hooks/use-toast';
 
 export type Document = {
   id: string;
@@ -33,20 +34,25 @@ export type Document = {
 export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchDocuments() {
       setLoading(true);
       const { data, error } = await getDocuments();
-      if (!error && data) {
+      if (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error fetching documents',
+            description: error,
+        });
+      } else if (data) {
         setDocuments(data as unknown as Document[]);
-      } else {
-        console.error('Error fetching documents', error);
       }
       setLoading(false);
     }
     fetchDocuments();
-  }, []);
+  }, [toast]);
 
   return (
     <div className="flex flex-col gap-6">
