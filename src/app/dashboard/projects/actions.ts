@@ -296,20 +296,42 @@ export async function getProjectById(id: string) {
 
 
 export async function getProjectComments(projectId: string) {
-    const supabaseAdmin = await getAdminSupabase();
+  const supabaseAdmin = await getAdminSupabase();
 
-    const { data, error } = await supabaseAdmin
-        .from('project_comments')
-        .select('*, user:user_id(full_name, role, avatar_url)')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: true });
+  const { data: commentsData, error: commentsError } = await supabaseAdmin
+    .from('project_comments')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: true });
     
-    if (error) {
-        console.error('Error fetching comments:', error);
-        return { data: null, error: `Could not fetch comments: ${error.message}` };
-    }
-    
-    return { data, error: null };
+  if (commentsError) {
+    console.error('Error fetching comments:', commentsError);
+    return { data: null, error: `Could not fetch comments: ${commentsError.message}` };
+  }
+
+  if (!commentsData || commentsData.length === 0) {
+    return { data: [], error: null };
+  }
+  
+  const userIds = [...new Set(commentsData.map(c => c.user_id))];
+  const { data: usersData, error: usersError } = await supabaseAdmin
+    .from('users')
+    .select('id, full_name, role, avatar_url')
+    .in('id', userIds);
+
+  if (usersError) {
+    console.error('Error fetching comment authors:', usersError);
+    return { data: null, error: `Could not fetch comment authors: ${usersError.message}` };
+  }
+
+  const userMap = new Map(usersData.map(u => [u.id, u]));
+
+  const data = commentsData.map(comment => ({
+    ...comment,
+    user: userMap.get(comment.user_id) || null
+  }));
+
+  return { data, error: null };
 }
 
 const commentSchema = z.object({
