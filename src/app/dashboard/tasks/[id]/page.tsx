@@ -286,7 +286,7 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
                 <span className="font-semibold text-sm">{title}</span>
                 <Badge className={`rounded-full ${color} text-white`}>{taskCounts[status]}</Badge>
               </div>
-              {canManageTasks && status !== 'Waiting for Approval' && (
+              {canManageTasks && (
                 <AddTaskForm projectId={projectId} status={status}>
                   <Button variant="ghost" size="icon" className="h-6 w-6">
                       <Plus className="h-4 w-4"/>
