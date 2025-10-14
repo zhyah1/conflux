@@ -194,25 +194,62 @@ export async function getApprovalRequests() {
         process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
     
-    const { data, error } = await supabaseAdmin
+    const { data: tasks, error } = await supabaseAdmin
         .from('tasks')
         .select(`
             id,
             title,
             priority,
-            project:project_id ( id, name ),
-            requested_by:created_by ( id, full_name ),
-            approver:approver_id (id, full_name)
+            project_id,
+            created_by
         `)
         .eq('status', 'Waiting for Approval')
         .eq('approver_id', user.id);
 
     if (error) {
-        console.error('Error fetching approval requests:', error);
+        console.error('Error fetching approval requests (tasks):', error);
         return { data: null, error: `Could not fetch approvals: ${error.message}` };
     }
 
-    return { data, error: null };
+    if (!tasks || tasks.length === 0) {
+        return { data: [], error: null };
+    }
+
+    const projectIds = [...new Set(tasks.map(t => t.project_id).filter(Boolean))];
+    const userIds = [...new Set(tasks.map(t => t.created_by).filter(Boolean))];
+
+    const { data: projects, error: projectsError } = await supabaseAdmin
+        .from('projects')
+        .select('id, name')
+        .in('id', projectIds);
+
+    if (projectsError) {
+        console.error('Error fetching approval requests (projects):', projectsError);
+        return { data: null, error: `Could not fetch approval project details: ${projectsError.message}` };
+    }
+
+     const { data: users, error: usersError } = await supabaseAdmin
+        .from('users')
+        .select('id, full_name')
+        .in('id', userIds);
+
+    if (usersError) {
+        console.error('Error fetching approval requests (users):', usersError);
+        return { data: null, error: `Could not fetch approval user details: ${usersError.message}` };
+    }
+
+    const projectsMap = new Map(projects?.map(p => [p.id, p]));
+    const usersMap = new Map(users?.map(u => [u.id, u]));
+
+    const responseData = tasks.map(task => ({
+        id: task.id,
+        title: task.title,
+        priority: task.priority,
+        project: projectsMap.get(task.project_id) || { id: task.project_id, name: 'Unknown Project' },
+        requested_by: usersMap.get(task.created_by) || { id: task.created_by, full_name: 'Unknown User' },
+    }));
+
+    return { data: responseData, error: null };
 }
 
 export async function decideOnApproval(taskId: string, newStatus: 'Backlog' | 'Blocked', projectId: string) {
