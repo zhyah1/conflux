@@ -178,6 +178,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="Pending">Pending</SelectItem>
                       <SelectItem value="Backlog">Backlog</SelectItem>
                       <SelectItem value="In Progress">In Progress</SelectItem>
                       <SelectItem value="Blocked">Blocked</SelectItem>

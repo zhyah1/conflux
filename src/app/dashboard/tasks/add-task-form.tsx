@@ -215,6 +215,7 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="Pending">Pending</SelectItem>
                       <SelectItem value="Backlog">Backlog</SelectItem>
                       <SelectItem value="In Progress">In Progress</SelectItem>
                       <SelectItem value="Blocked">Blocked</SelectItem>

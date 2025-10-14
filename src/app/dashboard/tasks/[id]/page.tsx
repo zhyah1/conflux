@@ -51,9 +51,10 @@ export type Task = {
   users: User | null; 
 };
 
-type TaskStatus = 'Backlog' | 'In Progress' | 'Blocked' | 'Done';
+type TaskStatus = 'Pending' | 'Backlog' | 'In Progress' | 'Blocked' | 'Done';
 
 const statusColumns: { status: TaskStatus; title: string, color: string }[] = [
+  { status: 'Pending', title: 'PENDING', color: 'bg-orange-500' },
   { status: 'Backlog', title: 'TO DO', color: 'bg-slate-500' },
   { status: 'In Progress', title: 'IN PROGRESS', color: 'bg-blue-500' },
   { status: 'Blocked', title: 'BLOCKED', color: 'bg-red-500' },
@@ -97,7 +98,7 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
   
   if (!profile) return null;
   
-  const canEditTask = profile.role === 'admin' || projectUsers.includes(profile.id);
+  const canEditTask = profile.role === 'admin' || profile.role === 'owner' || projectUsers.includes(profile.id);
   const canCheckDelays = profile.role === 'admin' || profile.role === 'pmc';
 
   return (
@@ -211,13 +212,21 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{tasks.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{taskCounts['Pending']}</div>
           </CardContent>
         </Card>
         <Card>
@@ -259,7 +268,7 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
           <Button variant="outline" className="gap-2"><Filter className="h-4 w-4"/> Filters</Button>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 items-start">
         {statusColumns.map(({ status, title, color }) => (
           <div key={status} className="bg-muted/50 rounded-lg h-full flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-border">
