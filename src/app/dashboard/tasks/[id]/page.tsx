@@ -34,6 +34,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { getTasksByProjectId } from '../actions';
+import { RequestApprovalForm } from '../request-approval-form';
 
 
 type User = {
@@ -49,12 +50,13 @@ export type Task = {
   priority: string;
   project_id: string;
   users: User | null; 
+  approver_id: string | null;
 };
 
-type TaskStatus = 'Pending' | 'Backlog' | 'In Progress' | 'Blocked' | 'Done';
+type TaskStatus = 'Waiting for Approval' | 'Backlog' | 'In Progress' | 'Blocked' | 'Done';
 
 const statusColumns: { status: TaskStatus; title: string, color: string }[] = [
-  { status: 'Pending', title: 'PENDING', color: 'bg-orange-500' },
+  { status: 'Waiting for Approval', title: 'WAITING FOR APPROVAL', color: 'bg-orange-500' },
   { status: 'Backlog', title: 'TO DO', color: 'bg-slate-500' },
   { status: 'In Progress', title: 'IN PROGRESS', color: 'bg-blue-500' },
   { status: 'Blocked', title: 'BLOCKED', color: 'bg-red-500' },
@@ -100,6 +102,7 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
   
   const canEditTask = profile.role === 'admin' || profile.role === 'owner' || projectUsers.includes(profile.id);
   const canCheckDelays = profile.role === 'admin' || profile.role === 'pmc';
+  const canRequestApproval = task.status !== 'Waiting for Approval';
 
   return (
     <Card className="mb-4 shadow-sm hover:shadow-md transition-shadow">
@@ -119,6 +122,13 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
                       Edit Task
                      </button>
                   </EditTaskForm>
+                  {canRequestApproval && (
+                    <RequestApprovalForm task={task} projectUsers={projectUsers}>
+                        <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
+                         Request Approval
+                       </button>
+                    </RequestApprovalForm>
+                  )}
                   {canCheckDelays && <DropdownMenuItem onClick={handleCheckDelay}>Check for Delays (AI)</DropdownMenuItem>}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -223,10 +233,10 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <CardTitle className="text-sm font-medium">Waiting</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{taskCounts['Pending']}</div>
+            <div className="text-2xl font-bold">{taskCounts['Waiting for Approval']}</div>
           </CardContent>
         </Card>
         <Card>
@@ -276,7 +286,7 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
                 <span className="font-semibold text-sm">{title}</span>
                 <Badge className={`rounded-full ${color} text-white`}>{taskCounts[status]}</Badge>
               </div>
-              {canManageTasks && (
+              {canManageTasks && status !== 'Waiting for Approval' && (
                 <AddTaskForm projectId={projectId} status={status}>
                   <Button variant="ghost" size="icon" className="h-6 w-6">
                       <Plus className="h-4 w-4"/>
@@ -346,13 +356,15 @@ export default function TaskBoardPage() {
             <PageHeader title={<Skeleton className="h-8 w-64" />} description={<div className="h-5 w-80"><Skeleton className="h-full w-full" /></div>}>
                  <Skeleton className="h-9 w-40" />
             </PageHeader>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+              <Skeleton className="h-24" />
               <Skeleton className="h-24" />
               <Skeleton className="h-24" />
               <Skeleton className="h-24" />
               <Skeleton className="h-24" />
             </div>
              <div className="grid gap-6 md:grid-cols-4 items-start">
+                <Skeleton className="h-96" />
                 <Skeleton className="h-96" />
                 <Skeleton className="h-96" />
                 <Skeleton className="h-96" />

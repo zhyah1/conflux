@@ -52,6 +52,7 @@ const updateTaskSchema = z.object({
   status: z.string().min(1, 'Status is required.'),
   assignee_id: z.string().uuid().optional().nullable(),
   project_id: z.string().min(1, "Project ID is required."),
+  approver_id: z.string().uuid().optional().nullable(),
 });
 
 export function EditTaskForm({ children, task }: { children: React.ReactNode; task: Task }) {
@@ -112,6 +113,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
       status: task.status,
       assignee_id: task.users?.id || null,
       project_id: task.project_id,
+      approver_id: task.approver_id || null,
     },
   });
 
@@ -178,7 +180,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Pending">Pending</SelectItem>
+                      <SelectItem value="Waiting for Approval">Waiting for Approval</SelectItem>
                       <SelectItem value="Backlog">Backlog</SelectItem>
                       <SelectItem value="In Progress">In Progress</SelectItem>
                       <SelectItem value="Blocked">Blocked</SelectItem>
