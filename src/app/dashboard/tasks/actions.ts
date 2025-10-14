@@ -271,11 +271,11 @@ export async function decideOnApproval(taskId: string, newStatus: 'Backlog' | 'B
     // Update the task_approvals log
     const { error: logError } = await supabase
         .from('task_approvals')
-        .update({ status: newStatus === 'Backlog' ? 'approved' : 'rejected' })
+        .update({ status: newStatus === 'Backlog' ? 'approved' : 'rejected', decided_at: new Date().toISOString() })
         .eq('task_id', taskId)
         .eq('approver_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .eq('status', 'pending');
+
 
      if (logError) {
         console.error('Error updating approval log:', logError);
