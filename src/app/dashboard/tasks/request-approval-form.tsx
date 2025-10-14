@@ -50,7 +50,7 @@ const approvalRequestSchema = z.object({
   message: z.string().optional(),
 });
 
-export function RequestApprovalForm({ children, task }: { children: React.ReactNode; task: Task }) {
+export function RequestApprovalForm({ children, task, projectUsers }: { children: React.ReactNode; task: Task; projectUsers: string[] }) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [approvers, setApprovers] = useState<User[]>([]);
