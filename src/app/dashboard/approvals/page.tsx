@@ -30,6 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useRouter } from 'next/navigation';
 
 
 export type ApprovalRequest = {
@@ -49,6 +50,7 @@ export type ApprovalRequest = {
 function ApprovalActions({ request }: { request: ApprovalRequest }) {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = React.useState<'approve' | 'reject' | null>(null);
+    const router = useRouter();
 
     const handleDecision = async (decision: 'approve' | 'reject') => {
         setIsLoading(decision);
@@ -66,6 +68,7 @@ function ApprovalActions({ request }: { request: ApprovalRequest }) {
                 title: 'Decision Recorded',
                 description: `The task "${request.title}" has been ${decision === 'approve' ? 'approved and moved to To Do' : 'rejected and moved to Blocked'}.`,
             });
+             router.refresh();
         }
         setIsLoading(null);
     }

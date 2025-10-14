@@ -14,6 +14,14 @@ const taskSchema = z.object({
   project_id: z.string().min(1, 'Project ID is required.'),
 });
 
+async function getAdminSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+
 export async function addTask(formData: z.infer<typeof taskSchema>) {
   const supabase = createServerActionClient({ cookies });
   const { data: { user } } = await supabase.auth.getUser();
@@ -67,7 +75,7 @@ const updateTaskSchema = z.object({
   priority: z.string().min(1, 'Priority is required.'),
   status: z.string().min(1, 'Status is required.'),
   assignee_id: z.string().uuid().optional().nullable(),
-  project_id: z.string().min(1, 'Project ID is required.'),
+  project_id: z.string().min(1, "Project ID is required."),
   approver_id: z.string().uuid().optional().nullable(),
 });
 
@@ -132,7 +140,7 @@ export async function getTasksByProjectId(projectId: string) {
 
 const approvalRequestSchema = z.object({
   task_id: z.string(),
-  approver_id: z.string().uuid(),
+  approver_id: z.string().uuid('Please select an approver.'),
   message: z.string().optional(),
 });
 
@@ -189,10 +197,7 @@ export async function getApprovalRequests() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: 'Not authenticated' };
 
-    const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseAdmin = await getAdminSupabase();
     
     const { data: tasks, error } = await supabaseAdmin
         .from('tasks')
@@ -201,7 +206,9 @@ export async function getApprovalRequests() {
             title,
             priority,
             project_id,
-            created_by
+            created_by,
+            project:project_id ( id, name ),
+            requested_by:created_by ( id, full_name )
         `)
         .eq('status', 'Waiting for Approval')
         .eq('approver_id', user.id);
@@ -211,45 +218,7 @@ export async function getApprovalRequests() {
         return { data: null, error: `Could not fetch approvals: ${error.message}` };
     }
 
-    if (!tasks || tasks.length === 0) {
-        return { data: [], error: null };
-    }
-
-    const projectIds = [...new Set(tasks.map(t => t.project_id).filter(Boolean))];
-    const userIds = [...new Set(tasks.map(t => t.created_by).filter(Boolean))];
-
-    const { data: projects, error: projectsError } = await supabaseAdmin
-        .from('projects')
-        .select('id, name')
-        .in('id', projectIds);
-
-    if (projectsError) {
-        console.error('Error fetching approval requests (projects):', projectsError);
-        return { data: null, error: `Could not fetch approval project details: ${projectsError.message}` };
-    }
-
-     const { data: users, error: usersError } = await supabaseAdmin
-        .from('users')
-        .select('id, full_name')
-        .in('id', userIds);
-
-    if (usersError) {
-        console.error('Error fetching approval requests (users):', usersError);
-        return { data: null, error: `Could not fetch approval user details: ${usersError.message}` };
-    }
-
-    const projectsMap = new Map(projects?.map(p => [p.id, p]));
-    const usersMap = new Map(users?.map(u => [u.id, u]));
-
-    const responseData = tasks.map(task => ({
-        id: task.id,
-        title: task.title,
-        priority: task.priority,
-        project: projectsMap.get(task.project_id) || { id: task.project_id, name: 'Unknown Project' },
-        requested_by: usersMap.get(task.created_by) || { id: task.created_by, full_name: 'Unknown User' },
-    }));
-
-    return { data: responseData, error: null };
+    return { data: tasks, error: null };
 }
 
 export async function decideOnApproval(taskId: string, newStatus: 'Backlog' | 'Blocked', projectId: string) {
