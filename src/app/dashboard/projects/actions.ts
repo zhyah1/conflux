@@ -4,6 +4,7 @@ import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { createClient } from '@supabase/supabase-js';
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required.'),
@@ -17,6 +18,13 @@ const projectSchema = z.object({
   parent_id: z.string().optional().nullable(),
   create_sub_phases: z.boolean().optional(),
 });
+
+async function getAdminSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function addProject(formData: z.infer<typeof projectSchema>) {
   const supabase = createServerActionClient({ cookies });
@@ -284,4 +292,55 @@ export async function getProjectById(id: string) {
     };
     
     return { data: formattedData, error: null };
+}
+
+
+export async function getProjectComments(projectId: string) {
+    const supabaseAdmin = await getAdminSupabase();
+
+    const { data, error } = await supabaseAdmin
+        .from('project_comments')
+        .select('*, user:user_id(full_name, role, avatar_url)')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: true });
+    
+    if (error) {
+        console.error('Error fetching comments:', error);
+        return { data: null, error: `Could not fetch comments: ${error.message}` };
+    }
+    
+    return { data, error: null };
+}
+
+const commentSchema = z.object({
+  content: z.string().min(1, 'Comment cannot be empty.'),
+  project_id: z.string(),
+});
+
+export async function addProjectComment(formData: z.infer<typeof commentSchema>) {
+    const supabase = createServerActionClient({ cookies });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not authenticated' };
+
+    const parsedData = commentSchema.safeParse(formData);
+    if (!parsedData.success) {
+        return { error: 'Invalid comment data.' };
+    }
+
+    const { data, error } = await supabase
+        .from('project_comments')
+        .insert({
+            ...parsedData.data,
+            user_id: user.id
+        })
+        .select()
+        .single();
+        
+    if (error) {
+        console.error('Error adding comment:', error);
+        return { error: `Could not post comment: ${error.message}` };
+    }
+    
+    // No revalidation needed due to real-time subscription
+    return { data };
 }

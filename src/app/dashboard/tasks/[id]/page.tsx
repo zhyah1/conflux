@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/tooltip';
 import { getTasksByProjectId } from '../actions';
 import { RequestApprovalForm } from '../request-approval-form';
+import { ProjectComments } from '../../components/project-comments';
 
 
 type User = {
@@ -426,7 +427,12 @@ export default function TaskBoardPage() {
         </div>
       </PageHeader>
       
-      {view === 'kanban' && <KanbanBoard projectId={projectId} projectUsers={projectUsers} />}
+      {view === 'kanban' && (
+        <div className="flex flex-col gap-6">
+            <KanbanBoard projectId={projectId} projectUsers={projectUsers} />
+            <ProjectComments projectId={projectId} />
+        </div>
+      )}
       {view === 'gantt' && (
         <Card>
           <CardContent className="pt-6">
