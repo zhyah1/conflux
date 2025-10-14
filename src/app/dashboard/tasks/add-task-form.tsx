@@ -50,55 +50,55 @@ const taskSchema = z.object({
   status: z.string().min(1, 'Status is required.'),
   assignee_id: z.string().uuid().optional().nullable(),
   project_id: z.string().min(1, 'Project ID is required.'),
+  approver_id: z.string().uuid().optional().nullable(),
 });
 
 export function AddTaskForm({ children, projectId, status = 'Backlog' }: { children: React.ReactNode, projectId: string, status?: string }) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignableUsers, setAssignableUsers] = useState<User[]>([]);
+  const [approvers, setApprovers] = useState<User[]>([]);
   const { toast } = useToast();
   const router = useRouter();
   const { profile, user } = useUser();
+
+  const form = useForm<z.infer<typeof taskSchema>>({
+    resolver: zodResolver(taskSchema),
+    defaultValues: {
+      title: '',
+      priority: 'Medium',
+      status: status,
+      assignee_id: profile?.role === 'subcontractor' ? user?.id : null,
+      project_id: projectId,
+      approver_id: undefined,
+    },
+  });
+
+  const watchStatus = form.watch('status');
+  const needsApproval = watchStatus === 'Waiting for Approval';
+
+  useEffect(() => {
+    if (!needsApproval) {
+        form.setValue('approver_id', undefined);
+    }
+  }, [needsApproval, form]);
+
 
   useEffect(() => {
     async function fetchUsers() {
       if (!profile || !user) return;
 
-      // First, get the current project to find its parent
-      const { data: currentProject, error: projectError } = await supabase
-        .from('projects')
-        .select('parent_id')
-        .eq('id', projectId)
-        .single();
-      
-      if (projectError) {
-        console.error('Error fetching current project', projectError);
-        return;
-      }
-
-      const projectIdsToFetch = [projectId];
-      if (currentProject.parent_id) {
-        projectIdsToFetch.push(currentProject.parent_id);
-      }
-
       const { data: projectUsers, error: projectUsersError } = await supabase
         .from('project_users')
-        .select('users(id, full_name, role)')
-        .in('project_id', projectIdsToFetch);
+        .select('users!inner(id, full_name, role)')
+        .eq('project_id', projectId);
 
       if (projectUsersError) {
         console.error('Error fetching project users for task form', projectUsersError);
         return;
       }
       
-      // Deduplicate users
-      const userMap = new Map<string, User>();
-      projectUsers.forEach((pu: any) => {
-        if (pu.users && !userMap.has(pu.users.id)) {
-            userMap.set(pu.users.id, pu.users);
-        }
-      });
-      const allProjectMembers = Array.from(userMap.values());
+      const allProjectMembers = projectUsers.map((pu: any) => pu.users).filter(Boolean) as User[];
       
       let potentialAssignees: User[] = [];
 
@@ -110,17 +110,21 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
           potentialAssignees = allProjectMembers.filter(u => ['contractor', 'subcontractor'].includes(u.role));
           break;
         case 'contractor':
-          const self = { id: user.id, full_name: profile.full_name, role: profile.role };
+          const self = allProjectMembers.find(u => u.id === user.id);
           const subcontractors = allProjectMembers.filter(u => u.role === 'subcontractor');
-          potentialAssignees = [self, ...subcontractors];
+          potentialAssignees = self ? [self, ...subcontractors] : subcontractors;
           break;
         case 'subcontractor':
-            if(user && profile) {
-                potentialAssignees = [{id: user.id, full_name: profile.full_name, role: profile.role}];
-            }
+            const selfSub = allProjectMembers.find(u => u.id === user.id);
+            if(selfSub) potentialAssignees = [selfSub];
             break;
       }
       setAssignableUsers(potentialAssignees);
+
+      // Fetch approvers if needed
+      const approverRoles = ['admin', 'pmc', 'contractor'];
+      const potentialApprovers = allProjectMembers.filter(u => approverRoles.includes(u.role) && u.id !== profile.id);
+      setApprovers(potentialApprovers);
     }
 
     if (open) {
@@ -128,24 +132,15 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
     }
   }, [open, profile, projectId, user]);
 
-  const form = useForm<z.infer<typeof taskSchema>>({
-    resolver: zodResolver(taskSchema),
-    defaultValues: {
-      title: '',
-      priority: 'Medium',
-      status: status,
-      assignee_id: profile?.role === 'subcontractor' ? user?.id : null,
-      project_id: projectId,
-    },
-  });
-
   // Reset form status when the prop changes
   useEffect(() => {
     form.reset({
-      ...form.getValues(),
+      title: '',
+      priority: 'Medium',
       status,
       project_id: projectId,
-       assignee_id: profile?.role === 'subcontractor' ? user?.id : null,
+      assignee_id: profile?.role === 'subcontractor' ? user?.id : null,
+      approver_id: undefined,
     });
   }, [status, projectId, form, open, profile, user]);
 
@@ -226,6 +221,33 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
                 </FormItem>
               )}
             />
+             {needsApproval && (
+               <FormField
+                  control={form.control}
+                  name="approver_id"
+                  rules={{ required: 'Approver is required when status is "Waiting for Approval".' }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Approver</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an approver" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {approvers.map((approver) => (
+                            <SelectItem key={approver.id} value={approver.id}>
+                              {approver.full_name} ({approver.role})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+             )}
 
             <FormField
               control={form.control}

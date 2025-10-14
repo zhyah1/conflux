@@ -12,6 +12,7 @@ const taskSchema = z.object({
   status: z.string().min(1, 'Status is required.'),
   assignee_id: z.string().uuid().optional().nullable(),
   project_id: z.string().min(1, 'Project ID is required.'),
+  approver_id: z.string().uuid().optional().nullable(),
 });
 
 async function getAdminSupabase() {
@@ -33,7 +34,7 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
     return { error: 'Invalid form data.' };
   }
 
-  const { project_id, assignee_id, ...taskData } = parsedData.data;
+  const { project_id, assignee_id, approver_id, ...taskData } = parsedData.data;
 
   // Server-side permission check
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
@@ -47,21 +48,40 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   
   // Ensure assignee_id is either a valid UUID or null.
   const finalAssigneeId = assignee_id === 'null' || assignee_id === '' ? null : assignee_id;
+  const finalApproverId = approver_id === 'null' || approver_id === '' ? null : approver_id;
 
   const { data, error } = await supabase
     .from('tasks')
     .insert([{ 
         id, 
         ...taskData,
-        assignee_id: finalAssigneeId, 
+        assignee_id: finalAssigneeId,
+        approver_id: finalApproverId, 
         project_id, 
         created_by: user.id 
     }])
-    .select();
+    .select()
+    .single();
 
   if (error) {
     console.error('Supabase error:', error);
     return { error: 'Failed to create task in the database.' };
+  }
+
+  // If the task was created for approval, also log it in the approvals table
+  if (data && taskData.status === 'Waiting for Approval' && finalApproverId) {
+      const { error: approvalLogError } = await supabase
+        .from('task_approvals')
+        .insert({
+            task_id: data.id,
+            requested_by_id: user.id,
+            approver_id: finalApproverId,
+            status: 'pending',
+            message: 'New task created, pending approval.',
+        });
+      if (approvalLogError) {
+          console.warn('Task created, but failed to log approval request:', approvalLogError.message);
+      }
   }
   
   revalidatePath(`/dashboard/tasks/${project_id}`);
