@@ -40,6 +40,10 @@ export type ApprovalRequest = {
   project: {
     id: string;
     name: string;
+    parent: {
+      id: string;
+      name: string;
+    } | null;
   };
   requested_by: {
     id: string;
@@ -55,7 +59,10 @@ function ApprovalActions({ request }: { request: ApprovalRequest }) {
     const handleDecision = async (decision: 'approve' | 'reject') => {
         setIsLoading(decision);
         const newStatus = decision === 'approve' ? 'Backlog' : 'Blocked';
-        const result = await decideOnApproval(request.id, newStatus, request.project.id);
+        // The project ID we pass to the action doesn't matter as much for revalidation
+        // as the main approvals page revalidation. But we pass it for completeness.
+        const projectId = request.project.id;
+        const result = await decideOnApproval(request.id, newStatus, projectId);
         
         if (result.error) {
             toast({
@@ -107,7 +114,18 @@ export const columns: ColumnDef<ApprovalRequest>[] = [
   {
     accessorKey: 'project.name',
     header: 'Project',
-    cell: ({ row }) => row.original.project.name,
+    cell: ({ row }) => {
+      const project = row.original.project;
+      if (project.parent) {
+        return (
+          <div className="flex flex-col">
+            <span className="font-medium">{project.parent.name}</span>
+            <span className="text-sm text-muted-foreground">/ {project.name}</span>
+          </div>
+        );
+      }
+      return project.name;
+    },
   },
   {
     accessorKey: 'priority',
@@ -165,7 +183,7 @@ export default function ApprovalsPage() {
 
   return (
     <div className="flex flex-col gap-6 w-full">
-      <PageHeader title="Task Approvals" description="Review and act on tasks awaiting your approval." />
+      <PageHeader title="Pending Task Approvals" description="Review and act on tasks awaiting your approval." />
       
       <div className="rounded-md border">
         <Table>

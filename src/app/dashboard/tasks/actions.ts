@@ -225,9 +225,14 @@ export async function getApprovalRequests() {
             id,
             title,
             priority,
-            project_id,
-            created_by,
-            project:project_id ( id, name ),
+            project:project_id ( 
+              id, 
+              name,
+              parent:parent_id (
+                id,
+                name
+              )
+            ),
             requested_by:created_by ( id, full_name )
         `)
         .eq('status', 'Waiting for Approval')
