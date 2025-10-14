@@ -28,7 +28,7 @@ const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/projects', icon: Briefcase, label: 'Projects' },
   { href: '/dashboard/tasks', icon: ListTodo, label: 'Tasks' },
-  { href: '/dashboard/approvals', icon: CheckSquare, label: 'Approvals' },
+  { href: '/dashboard/approvals', icon: CheckSquare, label: 'Pending Task Approvals' },
   { href: '/dashboard/issues', icon: ShieldAlert, label: 'Issues' },
   { href: '/dashboard/documents', icon: FolderKanban, label: 'Documents' },
   { href: '/dashboard/users', icon: Users, label: 'Users', adminOnly: true },
