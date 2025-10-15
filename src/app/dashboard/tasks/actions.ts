@@ -164,6 +164,23 @@ export async function getTasksByProjectId(projectId: string) {
   return { data, error: null };
 }
 
+export async function getTaskById(taskId: string) {
+  const supabaseAdmin = await getAdminSupabase();
+
+  const { data, error } = await supabaseAdmin
+    .from('tasks')
+    .select(`id, title, status, priority, project_id, approver_id, description, due_date, progress, users:assignee_id (id, full_name, avatar_url, role)`)
+    .eq('id', taskId)
+    .single();
+
+  if (error) {
+    console.error("Server-side error fetching task: ", error);
+    return { data: null, error: `Failed to fetch task: ${error.message}` };
+  }
+  
+  return { data, error: null };
+}
+
 const approvalRequestSchema = z.object({
   task_id: z.string(),
   approver_id: z.string().uuid('Please select an approver.'),

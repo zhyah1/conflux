@@ -48,7 +48,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useToast } from '@/hooks/use-toast';
-import { TaskDetails } from '../task-details';
+import Link from 'next/link';
 
 
 type User = {
@@ -90,11 +90,12 @@ const getInitials = (name?: string | null) => {
   return name.substring(0, 2);
 };
 
-function TaskCard({ task, projectUsers, onTaskClick }: { task: Task, projectUsers: string[], onTaskClick: (task: Task) => void }) {
+function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }) {
   const { profile } = useUser();
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
   const [escalationResult, setEscalationResult] = React.useState<any>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const router = useRouter();
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
 
@@ -130,68 +131,70 @@ function TaskCard({ task, projectUsers, onTaskClick }: { task: Task, projectUser
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
-        <Card className="mb-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => onTaskClick(task)}>
-          <CardContent className="p-3">
-            <div className="flex justify-between items-start mb-2">
-              <p className="font-semibold text-sm leading-snug">{task.title}</p>
-               {canEditTask && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" {...listeners}>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
-                      <EditTaskForm task={task}>
-                         <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
-                          Edit Task
-                         </button>
-                      </EditTaskForm>
-                      {canRequestApproval && (
-                        <RequestApprovalForm task={task} projectUsers={projectUsers}>
-                            <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
-                             Request Approval
-                           </button>
-                        </RequestApprovalForm>
-                      )}
-                      {canCheckDelays && <DropdownMenuItem onClick={handleCheckDelay}>Check for Delays (AI)</DropdownMenuItem>}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-               )}
-            </div>
-            <div className="flex items-center justify-between">
-              <Badge
-                variant={
-                  task.priority === 'High'
-                    ? 'destructive'
-                    : task.priority === 'Medium'
-                    ? 'secondary'
-                    : 'outline'
-                }
-              >
-                {task.priority}
-              </Badge>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={task.users?.avatar_url || ''} alt={task.users?.full_name || 'Unassigned'} />
-                      <AvatarFallback>{task.users ? getInitials(task.users.full_name) : '?'}</AvatarFallback>
-                    </Avatar>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{task.users?.full_name || 'Unassigned'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </CardContent>
-        </Card>
+        <Link href={`/dashboard/tasks/${task.project_id}/${task.id}`} className="block">
+            <Card className="mb-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="p-3">
+                <div className="flex justify-between items-start mb-2">
+                  <p className="font-semibold text-sm leading-snug">{task.title}</p>
+                   {canEditTask && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => {e.preventDefault(); e.stopPropagation();}}>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" {...listeners}>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent onClick={(e) => {e.preventDefault(); e.stopPropagation();}}>
+                          <EditTaskForm task={task}>
+                             <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
+                              Edit Task
+                             </button>
+                          </EditTaskForm>
+                          {canRequestApproval && (
+                            <RequestApprovalForm task={task} projectUsers={projectUsers}>
+                                <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
+                                 Request Approval
+                               </button>
+                            </RequestApprovalForm>
+                          )}
+                          {canCheckDelays && <DropdownMenuItem onClick={handleCheckDelay}>Check for Delays (AI)</DropdownMenuItem>}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                   )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <Badge
+                    variant={
+                      task.priority === 'High'
+                        ? 'destructive'
+                        : task.priority === 'Medium'
+                        ? 'secondary'
+                        : 'outline'
+                    }
+                  >
+                    {task.priority}
+                  </Badge>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={task.users?.avatar_url || ''} alt={task.users?.full_name || 'Unassigned'} />
+                          <AvatarFallback>{task.users ? getInitials(task.users.full_name) : '?'}</AvatarFallback>
+                        </Avatar>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{task.users?.full_name || 'Unassigned'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </CardContent>
+            </Card>
+        </Link>
     </div>
   );
 }
 
-function DroppableColumn({ id, title, color, tasks, count, projectId, projectUsers, canManageTasks, onTaskClick }: { id: TaskStatus, title: string, color: string, tasks: Task[], count: number, projectId: string, projectUsers: string[], canManageTasks: boolean, onTaskClick: (task: Task) => void }) {
+function DroppableColumn({ id, title, color, tasks, count, projectId, projectUsers, canManageTasks }: { id: TaskStatus, title: string, color: string, tasks: Task[], count: number, projectId: string, projectUsers: string[], canManageTasks: boolean }) {
     const { setNodeRef } = useSortable({ id });
 
     return (
@@ -212,7 +215,7 @@ function DroppableColumn({ id, title, color, tasks, count, projectId, projectUse
             <div className="p-4 flex-1 overflow-y-auto">
                 <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
                     {tasks.map((task) => (
-                        <TaskCard key={task.id} task={task} projectUsers={projectUsers} onTaskClick={onTaskClick}/>
+                        <TaskCard key={task.id} task={task} projectUsers={projectUsers} />
                     ))}
                 </SortableContext>
                 {tasks.length === 0 && (
@@ -230,7 +233,6 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const { toast } = useToast();
   
   const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor';
@@ -406,22 +408,10 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
               projectId={projectId}
               projectUsers={projectUsers}
               canManageTasks={canManageTasks}
-              onTaskClick={(task) => setSelectedTask(task)}
             />
           ))}
         </div>
       </DndContext>
-      {selectedTask && (
-        <TaskDetails 
-          task={selectedTask} 
-          open={!!selectedTask} 
-          onOpenChange={(open) => {
-            if (!open) {
-              setSelectedTask(null)
-            }
-          }} 
-        />
-      )}
     </>
   );
 }
