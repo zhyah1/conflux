@@ -134,10 +134,17 @@ export async function updateIssue(formData: z.infer<typeof updateIssueSchema>) {
     
     const { id, ...issueData } = parsedData.data;
 
-    const { data, error } = await supabase.from('issues').update({
-      ...issueData,
-      assignee_id: issueData.assignee_id === 'null' ? null : issueData.assignee_id,
-    }).eq('id', id).select();
+    const { data, error } = await supabase
+        .from('issues')
+        .update({
+            title: issueData.title,
+            project_id: issueData.project_id,
+            status: issueData.status,
+            priority: issueData.priority,
+            assignee_id: issueData.assignee_id === 'null' ? null : issueData.assignee_id,
+        })
+        .eq('id', id)
+        .select();
 
     if (error) {
         console.error('Supabase update error:', error);
