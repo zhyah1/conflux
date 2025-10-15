@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Paperclip, Pencil, Send, MoreHorizontal, User, Tag, Clock, CheckCircle } from 'lucide-react';
+import { Calendar, Paperclip, Pencil, Send, MoreHorizontal, User, Tag, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import type { Task } from './[id]/page';
 import { useUser, type UserProfile } from '@/app/user-provider';
 import { format, isPast } from 'date-fns';
