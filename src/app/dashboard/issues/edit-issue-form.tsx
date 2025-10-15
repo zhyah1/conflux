@@ -64,6 +64,14 @@ export function EditIssueForm({ issue, open, onOpenChange }: EditIssueFormProps)
 
   const form = useForm<z.infer<typeof updateIssueSchema>>({
     resolver: zodResolver(updateIssueSchema),
+    defaultValues: {
+      id: issue.id,
+      title: issue.title,
+      project_id: issue.project_id,
+      status: issue.status,
+      priority: issue.priority,
+      assignee_id: issue.assignee_id,
+    }
   });
 
   useEffect(() => {
@@ -77,7 +85,7 @@ export function EditIssueForm({ issue, open, onOpenChange }: EditIssueFormProps)
         assignee_id: issue.assignee_id,
       });
     }
-  }, [issue, form]);
+  }, [issue, form, open]);
 
   useEffect(() => {
     async function fetchData() {
