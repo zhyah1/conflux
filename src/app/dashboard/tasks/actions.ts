@@ -13,6 +13,9 @@ const taskSchema = z.object({
   assignee_id: z.string().uuid().optional().nullable(),
   project_id: z.string().min(1, 'Project ID is required.'),
   approver_id: z.string().uuid().optional().nullable(),
+  description: z.string().optional().nullable(),
+  due_date: z.date().optional().nullable(),
+  progress: z.coerce.number().min(0).max(100).optional().nullable(),
 });
 
 async function getAdminSupabase() {
@@ -97,6 +100,9 @@ const updateTaskSchema = z.object({
   assignee_id: z.string().uuid().optional().nullable(),
   project_id: z.string().min(1, "Project ID is required."),
   approver_id: z.string().uuid().optional().nullable(),
+  description: z.string().optional().nullable(),
+  due_date: z.date().optional().nullable(),
+  progress: z.coerce.number().min(0).max(100).optional().nullable(),
 });
 
 export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
@@ -147,7 +153,7 @@ export async function getTasksByProjectId(projectId: string) {
 
   const { data, error } = await supabaseAdmin
     .from('tasks')
-    .select(`id, title, status, priority, project_id, approver_id, users:assignee_id (id, full_name, avatar_url)`)
+    .select(`id, title, status, priority, project_id, approver_id, description, due_date, progress, users:assignee_id (id, full_name, avatar_url, role)`)
     .eq('project_id', projectId);
   
   if (error) {
@@ -279,4 +285,79 @@ export async function decideOnApproval(taskId: string, newStatus: 'Backlog' | 'B
     revalidatePath('/dashboard/approvals');
 
     return { success: true };
+}
+
+
+// Server action to get comments for a specific task
+export async function getTaskComments(taskId: string) {
+  const supabaseAdmin = await getAdminSupabase();
+  
+  const { data: commentsData, error: commentsError } = await supabaseAdmin
+    .from('task_comments')
+    .select('*')
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: true });
+    
+  if (commentsError) {
+    console.error('Error fetching task comments:', commentsError);
+    return { data: null, error: `Could not fetch comments: ${commentsError.message}` };
+  }
+
+  if (!commentsData || commentsData.length === 0) {
+    return { data: [], error: null };
+  }
+
+  const userIds = [...new Set(commentsData.map(c => c.user_id))];
+  const { data: usersData, error: usersError } = await supabaseAdmin
+    .from('users')
+    .select('id, full_name, role, avatar_url')
+    .in('id', userIds);
+
+  if (usersError) {
+    console.error('Error fetching comment authors:', usersError);
+    return { data: null, error: `Could not fetch comment authors: ${usersError.message}` };
+  }
+
+  const userMap = new Map(usersData.map(u => [u.id, u]));
+
+  const data = commentsData.map(comment => ({
+    ...comment,
+    user: userMap.get(comment.user_id) || null
+  }));
+  
+  return { data, error: null };
+}
+
+// Server action to add a comment to a task
+const taskCommentSchema = z.object({
+  content: z.string().min(1, "Comment cannot be empty."),
+  task_id: z.string(),
+});
+
+export async function addTaskComment(formData: z.infer<typeof taskCommentSchema>) {
+    const supabase = createServerActionClient({ cookies });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not authenticated' };
+
+    const parsedData = taskCommentSchema.safeParse(formData);
+    if (!parsedData.success) {
+        return { error: 'Invalid comment data.' };
+    }
+
+    const { data, error } = await supabase
+        .from('task_comments')
+        .insert({
+            ...parsedData.data,
+            user_id: user.id
+        })
+        .select()
+        .single();
+        
+    if (error) {
+        console.error('Error adding task comment:', error);
+        return { error: `Could not post comment: ${error.message}` };
+    }
+    
+    // No revalidation needed due to real-time subscription
+    return { data };
 }

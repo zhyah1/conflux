@@ -48,12 +48,14 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useToast } from '@/hooks/use-toast';
+import { TaskDetails } from '../task-details';
 
 
 type User = {
   id: string;
   full_name: string;
   avatar_url: string | null;
+  role: string;
 };
 
 export type Task = {
@@ -64,6 +66,9 @@ export type Task = {
   project_id: string;
   users: User | null; 
   approver_id: string | null;
+  description: string | null;
+  due_date: string | null;
+  progress: number | null;
 };
 
 type TaskStatus = 'Waiting for Approval' | 'Backlog' | 'In Progress' | 'Blocked' | 'Done';
@@ -85,7 +90,7 @@ const getInitials = (name?: string | null) => {
   return name.substring(0, 2);
 };
 
-function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }) {
+function TaskCard({ task, projectUsers, onTaskClick }: { task: Task, projectUsers: string[], onTaskClick: (task: Task) => void }) {
   const { profile } = useUser();
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
   const [escalationResult, setEscalationResult] = React.useState<any>(null);
@@ -124,19 +129,19 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
   const canRequestApproval = task.status !== 'Waiting for Approval';
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-        <Card className="mb-4 shadow-sm hover:shadow-md transition-shadow">
+    <div ref={setNodeRef} style={style} {...attributes}>
+        <Card className="mb-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => onTaskClick(task)}>
           <CardContent className="p-3">
             <div className="flex justify-between items-start mb-2">
               <p className="font-semibold text-sm leading-snug">{task.title}</p>
                {canEditTask && (
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0 cursor-grab">
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" {...listeners}>
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent>
+                    <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
                       <EditTaskForm task={task}>
                          <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
                           Edit Task
@@ -186,7 +191,7 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
   );
 }
 
-function DroppableColumn({ id, title, color, tasks, count, projectId, projectUsers, canManageTasks }: { id: TaskStatus, title: string, color: string, tasks: Task[], count: number, projectId: string, projectUsers: string[], canManageTasks: boolean }) {
+function DroppableColumn({ id, title, color, tasks, count, projectId, projectUsers, canManageTasks, onTaskClick }: { id: TaskStatus, title: string, color: string, tasks: Task[], count: number, projectId: string, projectUsers: string[], canManageTasks: boolean, onTaskClick: (task: Task) => void }) {
     const { setNodeRef } = useSortable({ id });
 
     return (
@@ -196,7 +201,7 @@ function DroppableColumn({ id, title, color, tasks, count, projectId, projectUse
                     <span className="font-semibold text-sm">{title}</span>
                     <Badge className={`rounded-full ${color} text-white`}>{count}</Badge>
                 </div>
-                {canManageTasks && (
+                 {canManageTasks && (
                     <AddTaskForm projectId={projectId} status={id}>
                         <Button variant="ghost" size="icon" className="h-6 w-6">
                             <Plus className="h-4 w-4" />
@@ -207,7 +212,7 @@ function DroppableColumn({ id, title, color, tasks, count, projectId, projectUse
             <div className="p-4 flex-1 overflow-y-auto">
                 <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
                     {tasks.map((task) => (
-                        <TaskCard key={task.id} task={task} projectUsers={projectUsers} />
+                        <TaskCard key={task.id} task={task} projectUsers={projectUsers} onTaskClick={onTaskClick}/>
                     ))}
                 </SortableContext>
                 {tasks.length === 0 && (
@@ -225,9 +230,10 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const { toast } = useToast();
   
-  const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor' || projectUsers.includes(profile.id);
+  const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor';
 
   const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
 
@@ -297,7 +303,13 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
 
     // Persist changes to the backend
     const result = await updateTask({
-      ...activeTask,
+      id: activeTask.id,
+      title: activeTask.title,
+      priority: activeTask.priority,
+      project_id: activeTask.project_id,
+      description: activeTask.description,
+      due_date: activeTask.due_date ? new Date(activeTask.due_date) : undefined,
+      progress: activeTask.progress,
       status: newStatus,
       // Ensure assignee_id is correctly formatted for the action
       assignee_id: activeTask.users?.id || null
@@ -394,10 +406,22 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
               projectId={projectId}
               projectUsers={projectUsers}
               canManageTasks={canManageTasks}
+              onTaskClick={(task) => setSelectedTask(task)}
             />
           ))}
         </div>
       </DndContext>
+      {selectedTask && (
+        <TaskDetails 
+          task={selectedTask} 
+          open={!!selectedTask} 
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedTask(null)
+            }
+          }} 
+        />
+      )}
     </>
   );
 }
