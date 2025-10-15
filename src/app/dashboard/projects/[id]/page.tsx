@@ -277,7 +277,7 @@ export default function ProjectDetailsPage() {
                                         <TableCell className="text-right">{sub.completion}%</TableCell>
                                         <TableCell>
                                             <Button asChild variant="outline" size="icon" className="h-8 w-8">
-                                                <Link href={`/dashboard/tasks/${sub.id}`}>
+                                                <Link href={`/dashboard/tasks/board/${sub.id}`}>
                                                     <ArrowRight className="h-4 w-4" />
                                                 </Link>
                                             </Button>

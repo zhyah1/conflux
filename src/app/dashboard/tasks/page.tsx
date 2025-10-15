@@ -219,7 +219,7 @@ export default function TasksProjectListPage() {
                   </Button>
                 ) : (
                   <Link
-                    href={`/dashboard/tasks/${project.id}`}
+                    href={`/dashboard/tasks/board/${project.id}`}
                     className={cn(buttonVariants({ variant: 'outline' }), "mt-auto w-full")}
                   >
                     View Task Board <ArrowRight className="ml-2 h-4 w-4" />

@@ -171,6 +171,7 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
 
     revalidatePath('/dashboard/projects');
     revalidatePath(`/dashboard/projects/${id}`);
+    revalidatePath(`/dashboard/tasks/board/${id}`);
     return { data };
 }
 
