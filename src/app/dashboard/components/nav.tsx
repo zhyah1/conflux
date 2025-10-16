@@ -43,7 +43,7 @@ const navItems = [
   { href: '/dashboard/issues', icon: ListTodo, label: 'Issues', count: 23 },
   { href: '/dashboard/documents', icon: Book, label: 'Documents', count: 5 },
   { href: '/dashboard/users', icon: Users, label: 'Team', adminOnly: true },
-  { href: '/dashboard/approvals', icon: CheckSquare, label: 'Reports' },
+  { href: '/dashboard/approvals', icon: CheckSquare, label: 'Pending Task Approvals' },
 ];
 
 const getInitials = (name?: string | null) => {
