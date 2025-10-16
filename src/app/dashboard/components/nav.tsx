@@ -34,6 +34,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from './theme-toggle';
 
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard' },
@@ -68,8 +69,10 @@ export function Nav() {
           <Logo className="h-8 w-8 text-primary" />
           <span className="text-lg font-bold">Construx</span>
         </div>
-        <SidebarTrigger className="h-8 w-8">
-            <ChevronLeft />
+        <SidebarTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+                <ChevronLeft />
+            </Button>
         </SidebarTrigger>
       </SidebarHeader>
 
@@ -110,7 +113,8 @@ export function Nav() {
 
       <SidebarSeparator />
 
-      <SidebarContent className="p-2">
+      <SidebarFooter className="p-2 space-y-4">
+        <ThemeToggle />
         {profile && (
             <div className="flex items-center gap-3 p-2 rounded-md">
                 <Avatar className="h-9 w-9">
@@ -123,9 +127,6 @@ export function Nav() {
                 </div>
             </div>
         )}
-      </SidebarContent>
-
-      <SidebarFooter>
          <SidebarMenu>
              <SidebarMenuItem>
                 <SidebarMenuButton
