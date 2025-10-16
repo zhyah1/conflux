@@ -66,7 +66,7 @@ export function Nav() {
       <SidebarHeader className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Logo className="h-8 w-8 text-primary" />
-          <span className="text-lg font-bold">ConstructFlow</span>
+          <span className="text-lg font-bold">Construx</span>
         </div>
         <SidebarTrigger className="h-8 w-8">
             <ChevronLeft />

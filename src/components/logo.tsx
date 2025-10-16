@@ -6,7 +6,7 @@ export function Logo(props: HTMLAttributes<HTMLDivElement>) {
       {...props}
       className={`flex items-center justify-center font-bold text-lg bg-primary text-primary-foreground rounded-md ${props.className}`}
     >
-      CF
+      Cx
     </div>
   );
 }
