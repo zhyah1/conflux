@@ -147,22 +147,24 @@ export default function TasksProjectListPage() {
           {projectsToShow.map((project) => (
             <Card key={project.id} className="flex flex-col h-full">
               <CardHeader>
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="flex items-start gap-2 font-headline">
-                    {project.parent_id ? <GanttChartSquare className="h-5 w-5 mt-1" /> : <Folder className="h-5 w-5 mt-1" />}
-                    <span className="flex-1">{project.name}</span>
-                  </CardTitle>
-                   <Badge
-                      variant={
-                          project.status === 'Completed' ? 'outline' :
-                          project.status === 'Delayed' ? 'destructive' : 'secondary'
-                      }
-                      className="whitespace-nowrap"
-                  >
-                      {project.status}
-                  </Badge>
+                <div className="flex flex-col gap-2">
+                    <div className="flex justify-between items-start">
+                        <CardTitle className="flex items-start gap-2 font-headline flex-1">
+                            {project.parent_id ? <GanttChartSquare className="h-5 w-5 mt-1" /> : <Folder className="h-5 w-5 mt-1" />}
+                            <span className="flex-1">{project.name}</span>
+                        </CardTitle>
+                        <Badge
+                            variant={
+                                project.status === 'Completed' ? 'outline' :
+                                project.status === 'Delayed' ? 'destructive' : 'secondary'
+                            }
+                            className="whitespace-nowrap ml-2"
+                        >
+                            {project.status}
+                        </Badge>
+                    </div>
+                    {project.owner && <CardDescription>{project.owner}</CardDescription>}
                 </div>
-                {project.owner && <CardDescription>{project.owner}</CardDescription>}
               </CardHeader>
               <CardContent className="flex-1 flex flex-col justify-end gap-4">
                  <div className="space-y-4">
