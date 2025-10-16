@@ -89,7 +89,7 @@ export function Nav() {
       <SidebarHeader className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Logo className="h-8 w-8 text-primary" />
-          <span className="text-lg font-bold">Construx</span>
+          <span className="text-lg font-bold group-data-[collapsible=icon]:hidden">Construx</span>
         </div>
          <SidebarTrigger>
             <ChevronLeft />
@@ -97,7 +97,7 @@ export function Nav() {
       </SidebarHeader>
 
       <SidebarContent className="p-2">
-         <div className="relative">
+         <div className="relative group-data-[collapsible=icon]:hidden">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
             type="search"
@@ -121,7 +121,7 @@ export function Nav() {
                   <Link href={item.href}>
                     <item.icon />
                     <span>{item.label}</span>
-                    {item.count > 0 && <Badge variant="secondary" className="ml-auto">{item.count}</Badge>}
+                    {item.count > 0 && <Badge variant="secondary" className="ml-auto group-data-[collapsible=icon]:hidden">{item.count}</Badge>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -133,14 +133,16 @@ export function Nav() {
       <SidebarSeparator />
 
       <SidebarFooter className="p-2 space-y-4">
-        <ThemeToggle />
+        <div className="group-data-[collapsible=icon]:hidden">
+          <ThemeToggle />
+        </div>
         {profile && (
-            <div className="flex items-center gap-3 p-2 rounded-md">
+            <div className="flex items-center gap-3 p-2 rounded-md group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0">
                 <Avatar className="h-9 w-9">
                     <AvatarImage src={profile.avatar_url} />
                     <AvatarFallback>{getInitials(profile.full_name)}</AvatarFallback>
                 </Avatar>
-                <div>
+                <div className="group-data-[collapsible=icon]:hidden">
                     <div className="font-semibold text-sm">{profile.full_name}</div>
                     <div className="text-xs text-muted-foreground capitalize">{profile.role.replace('_', ' ')} / Project Owner</div>
                 </div>
