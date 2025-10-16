@@ -258,6 +258,9 @@ export async function getProjects() {
 
 // Get a single project by ID, respecting RLS
 export async function getProjectById(id: string) {
+    if (!id) {
+        return { data: null, error: 'Project ID is required.' };
+    }
     const supabase = createServerActionClient({ cookies });
      const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: 'Not authenticated' };

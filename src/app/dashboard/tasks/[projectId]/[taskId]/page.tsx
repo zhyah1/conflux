@@ -18,7 +18,7 @@ import { format, isPast } from 'date-fns';
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
-import { addTaskComment, getTaskById, getTaskComments } from '../actions';
+import { addTaskComment, getTaskById, getTaskComments } from '../../actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { useParams, useRouter } from 'next/navigation';

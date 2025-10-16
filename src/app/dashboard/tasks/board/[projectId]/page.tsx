@@ -252,19 +252,21 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
   }
 
   useEffect(() => {
-    fetchTasks();
-    
-    const channel = supabase
-      .channel(`tasks-changes-${projectId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `project_id=eq.${projectId}` }, 
-        (payload) => {
-          fetchTasks(); // Refetch tasks on any change
-        }
-      )
-      .subscribe();
+    if (projectId) {
+      fetchTasks();
+      
+      const channel = supabase
+        .channel(`tasks-changes-${projectId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `project_id=eq.${projectId}` }, 
+          (payload) => {
+            fetchTasks(); // Refetch tasks on any change
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
+      return () => {
+        supabase.removeChannel(channel);
+      }
     }
   }, [projectId]);
   
@@ -426,7 +428,10 @@ export default function TaskBoardPage() {
   const [view, setView] = useState('kanban');
 
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId) {
+      setLoading(false);
+      return;
+    };
 
     async function fetchProjectData() {
       setLoading(true);
