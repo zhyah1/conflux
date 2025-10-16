@@ -27,6 +27,7 @@ import {
   Search,
   Book,
   LineChart,
+  GanttChartSquare,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
@@ -63,7 +64,7 @@ export function Nav() {
       if (projectsData) setProjectCount(projectsData.length);
 
       const { data: issuesData } = await getIssues();
-      if (issuesData) setIssueCount(issuesData.length);
+      if (issuesData) setIssueCount(issuesData.count);
 
       const { data: documentsData } = await getDocuments();
       if (documentsData) setDocumentCount(documentsData.length);
@@ -74,7 +75,7 @@ export function Nav() {
   const navItems = [
     { href: '/dashboard', icon: Home, label: 'Dashboard' },
     { href: '/dashboard/projects', icon: Briefcase, label: 'Projects', count: projectCount },
-    { href: '/dashboard/tasks', icon: BarChart, label: 'Board' },
+    { href: '/dashboard/tasks', icon: GanttChartSquare, label: 'Board' },
     { href: '/dashboard/issues', icon: ListTodo, label: 'Issues', count: issueCount },
     { href: '/dashboard/documents', icon: Book, label: 'Documents', count: documentCount },
     { href: '/dashboard/users', icon: Users, label: 'Team', adminOnly: true },
