@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 import {
   SidebarHeader,
   SidebarMenu,
@@ -35,16 +36,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './theme-toggle';
-
-const navItems = [
-  { href: '/dashboard', icon: Home, label: 'Dashboard' },
-  { href: '/dashboard/projects', icon: Briefcase, label: 'Projects', count: 12 },
-  { href: '/dashboard/tasks', icon: BarChart, label: 'Board' },
-  { href: '/dashboard/issues', icon: ListTodo, label: 'Issues', count: 23 },
-  { href: '/dashboard/documents', icon: Book, label: 'Documents', count: 5 },
-  { href: '/dashboard/users', icon: Users, label: 'Team', adminOnly: true },
-  { href: '/dashboard/approvals', icon: CheckSquare, label: 'Pending Task Approvals' },
-];
+import { getProjects } from '../projects/actions';
+import { getIssues } from '../issues/actions';
+import { getDocuments } from '../documents/actions';
 
 const getInitials = (name?: string | null) => {
   if (!name) return '';
@@ -59,6 +53,33 @@ const getInitials = (name?: string | null) => {
 export function Nav() {
   const pathname = usePathname();
   const { profile } = useUser();
+  const [projectCount, setProjectCount] = useState(0);
+  const [issueCount, setIssueCount] = useState(0);
+  const [documentCount, setDocumentCount] = useState(0);
+
+  useEffect(() => {
+    async function fetchCounts() {
+      const { data: projectsData } = await getProjects();
+      if (projectsData) setProjectCount(projectsData.length);
+
+      const { data: issuesData } = await getIssues();
+      if (issuesData) setIssueCount(issuesData.length);
+
+      const { data: documentsData } = await getDocuments();
+      if (documentsData) setDocumentCount(documentsData.length);
+    }
+    fetchCounts();
+  }, []);
+
+  const navItems = [
+    { href: '/dashboard', icon: Home, label: 'Dashboard' },
+    { href: '/dashboard/projects', icon: Briefcase, label: 'Projects', count: projectCount },
+    { href: '/dashboard/tasks', icon: BarChart, label: 'Board' },
+    { href: '/dashboard/issues', icon: ListTodo, label: 'Issues', count: issueCount },
+    { href: '/dashboard/documents', icon: Book, label: 'Documents', count: documentCount },
+    { href: '/dashboard/users', icon: Users, label: 'Team', adminOnly: true },
+    { href: '/dashboard/approvals', icon: CheckSquare, label: 'Pending Task Approvals' },
+  ];
 
   const isAdmin = profile?.role === 'admin';
 
@@ -69,7 +90,7 @@ export function Nav() {
           <Logo className="h-8 w-8 text-primary" />
           <span className="text-lg font-bold">Construx</span>
         </div>
-        <SidebarTrigger>
+         <SidebarTrigger>
             <ChevronLeft />
         </SidebarTrigger>
       </SidebarHeader>
@@ -99,7 +120,7 @@ export function Nav() {
                   <Link href={item.href}>
                     <item.icon />
                     <span>{item.label}</span>
-                    {item.count && <Badge variant="secondary" className="ml-auto">{item.count}</Badge>}
+                    {item.count > 0 && <Badge variant="secondary" className="ml-auto">{item.count}</Badge>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
