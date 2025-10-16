@@ -41,7 +41,7 @@ const navItems = [
   { href: '/dashboard/projects', icon: Briefcase, label: 'Projects', count: 12 },
   { href: '/dashboard/tasks', icon: BarChart, label: 'Board' },
   { href: '/dashboard/issues', icon: ListTodo, label: 'Issues', count: 23 },
-  { href: '/dashboard/documents', icon: Book, label: 'Materials', count: 5 },
+  { href: '/dashboard/documents', icon: Book, label: 'Documents', count: 5 },
   { href: '/dashboard/users', icon: Users, label: 'Team', adminOnly: true },
   { href: '/dashboard/approvals', icon: CheckSquare, label: 'Reports' },
 ];
@@ -100,7 +100,6 @@ export function Nav() {
                     <item.icon />
                     <span>{item.label}</span>
                     {item.count && <Badge variant="secondary" className="ml-auto">{item.count}</Badge>}
-                    {item.soon && <Badge variant="outline" className="ml-auto">Soon</Badge>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
