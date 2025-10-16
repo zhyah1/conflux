@@ -147,16 +147,17 @@ export default function TasksProjectListPage() {
           {projectsToShow.map((project) => (
             <Card key={project.id} className="flex flex-col h-full">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 font-headline">
-                    {project.parent_id ? <GanttChartSquare className="h-5 w-5" /> : <Folder className="h-5 w-5" />}
-                    {project.name}
+                <div className="flex items-start justify-between gap-2">
+                  <CardTitle className="flex items-start gap-2 font-headline">
+                    {project.parent_id ? <GanttChartSquare className="h-5 w-5 mt-1" /> : <Folder className="h-5 w-5 mt-1" />}
+                    <span className="flex-1">{project.name}</span>
                   </CardTitle>
                    <Badge
                       variant={
                           project.status === 'Completed' ? 'outline' :
                           project.status === 'Delayed' ? 'destructive' : 'secondary'
                       }
+                      className="whitespace-nowrap"
                   >
                       {project.status}
                   </Badge>
