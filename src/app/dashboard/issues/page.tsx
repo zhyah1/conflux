@@ -124,11 +124,17 @@ export default function IssuesPage() {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({ id: false })
   const [rowSelection, setRowSelection] = React.useState({})
+  
+  const [page, setPage] = React.useState(1);
+  const [pageSize] = React.useState(10);
+  const [totalIssues, setTotalIssues] = React.useState(0);
+  const hasMore = page * pageSize < totalIssues;
+
 
   React.useEffect(() => {
     async function fetchIssues() {
       setLoading(true);
-      const { data: issuesData, error } = await getIssues();
+      const { data: issuesData, error, count } = await getIssues(page, pageSize);
       if (error) {
         toast({
             variant: 'destructive',
@@ -137,11 +143,12 @@ export default function IssuesPage() {
         });
       } else if (issuesData) {
         setData(issuesData as unknown as Issue[]);
+        setTotalIssues(count);
       }
       setLoading(false);
     }
     fetchIssues();
-  }, [toast]);
+  }, [toast, page, pageSize]);
 
   const table = useReactTable({
     data,
@@ -149,11 +156,11 @@ export default function IssuesPage() {
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    manualPagination: true,
     state: {
       sorting,
       columnFilters,
@@ -267,20 +274,23 @@ export default function IssuesPage() {
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
+        <div className="flex-1 text-sm text-muted-foreground">
+          Showing {table.getRowModel().rows.length} of {totalIssues} issues.
+        </div>
         <div className="space-x-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={() => setPage(p => p - 1)}
+            disabled={page === 1}
           >
             Previous
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={() => setPage(p => p + 1)}
+            disabled={!hasMore}
           >
             Next
           </Button>

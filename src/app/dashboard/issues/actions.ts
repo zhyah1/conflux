@@ -16,12 +16,26 @@ async function getAdminSupabase() {
 }
 
 
-export async function getIssues(projectId?: string) {
+export async function getIssues(page = 1, pageSize = 10, projectId?: string) {
   const supabase = createServerActionClient({ cookies });
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { data: null, error: 'Not authenticated' };
+  if (!user) return { data: null, error: 'Not authenticated', count: 0 };
 
   const supabaseAdmin = await getAdminSupabase();
+
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let countQuery = supabaseAdmin.from('issues').select('id', { count: 'exact', head: true });
+  if (projectId) {
+    countQuery = countQuery.eq('project_id', projectId);
+  }
+  const { count, error: countError } = await countQuery;
+  
+  if (countError) {
+      console.error('getIssues (count) error:', countError.message);
+      return { data: null, error: `Could not count issues: ${countError.message}`, count: 0 };
+  }
 
   let query = supabaseAdmin.from('issues').select(`
     id,
@@ -30,7 +44,7 @@ export async function getIssues(projectId?: string) {
     priority,
     assignee_id,
     project:project_id ( id, name )
-  `);
+  `).range(from, to);
 
   if (projectId) {
     query = query.eq('project_id', projectId);
@@ -40,11 +54,11 @@ export async function getIssues(projectId?: string) {
 
   if (error) {
     console.error('getIssues (issues) error:', error.message);
-    return { data: null, error: `Could not fetch issues: ${error.message}` };
+    return { data: null, error: `Could not fetch issues: ${error.message}`, count: 0 };
   }
 
   if (!issuesData) {
-    return { data: [], error: null };
+    return { data: [], error: null, count: 0 };
   }
 
   const assigneeIds = issuesData
@@ -58,7 +72,7 @@ export async function getIssues(projectId?: string) {
       project_name: issue.project?.name || 'Unknown Project',
       project_id: issue.project?.id
     }));
-    return { data: formattedData, error: null };
+    return { data: formattedData, error: null, count: count ?? 0 };
   }
 
   const { data: usersData, error: usersError } = await supabaseAdmin
@@ -68,7 +82,7 @@ export async function getIssues(projectId?: string) {
 
   if (usersError) {
     console.error('getIssues (users) error:', usersError.message);
-    return { data: null, error: `Could not fetch assignees: ${usersError.message}` };
+    return { data: null, error: `Could not fetch assignees: ${usersError.message}`, count: 0 };
   }
   
   const userMap = new Map(usersData.map(u => [u.id, u.full_name]));
@@ -80,7 +94,7 @@ export async function getIssues(projectId?: string) {
     project_id: issue.project?.id
   }));
 
-  return { data: formattedData, error: null };
+  return { data: formattedData, error: null, count: count ?? 0 };
 }
 
 const issueSchema = z.object({
