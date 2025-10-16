@@ -40,10 +40,10 @@ const navItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard' },
   { href: '/dashboard/projects', icon: Briefcase, label: 'Projects', count: 12 },
   { href: '/dashboard/tasks', icon: BarChart, label: 'Board' },
-  { href: '/dashboard/issues', icon: ListTodo, label: 'Issues', count: 23, soon: true },
-  { href: '/dashboard/documents', icon: Book, label: 'Materials', count: 5, soon: true },
-  { href: '/dashboard/users', icon: Users, label: 'Team', adminOnly: true, soon: true },
-  { href: '/dashboard/approvals', icon: CheckSquare, label: 'Reports', soon: true },
+  { href: '/dashboard/issues', icon: ListTodo, label: 'Issues', count: 23 },
+  { href: '/dashboard/documents', icon: Book, label: 'Materials', count: 5 },
+  { href: '/dashboard/users', icon: Users, label: 'Team', adminOnly: true },
+  { href: '/dashboard/approvals', icon: CheckSquare, label: 'Reports' },
 ];
 
 const getInitials = (name?: string | null) => {
@@ -69,8 +69,8 @@ export function Nav() {
           <Logo className="h-8 w-8 text-primary" />
           <span className="text-lg font-bold">Construx</span>
         </div>
-        <SidebarTrigger className="h-8 w-8">
-          <ChevronLeft />
+        <SidebarTrigger>
+            <ChevronLeft />
         </SidebarTrigger>
       </SidebarHeader>
 
