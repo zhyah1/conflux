@@ -148,7 +148,7 @@ export default function TasksProjectListPage() {
             <Card key={project.id} className="flex flex-col h-full">
               <CardHeader>
                 <div className="flex flex-col gap-2">
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start flex-wrap gap-2">
                         <CardTitle className="flex items-start gap-2 font-headline flex-1">
                             {project.parent_id ? <GanttChartSquare className="h-5 w-5 mt-1" /> : <Folder className="h-5 w-5 mt-1" />}
                             <span className="flex-1">{project.name}</span>
@@ -158,7 +158,7 @@ export default function TasksProjectListPage() {
                                 project.status === 'Completed' ? 'outline' :
                                 project.status === 'Delayed' ? 'destructive' : 'secondary'
                             }
-                            className="whitespace-nowrap ml-2"
+                            className="whitespace-nowrap"
                         >
                             {project.status}
                         </Badge>
