@@ -1,10 +1,10 @@
-import type { SVGProps } from 'react';
+import type { HTMLAttributes } from 'react';
 
-export function Logo(props: SVGProps<SVGSVGElement>) {
+export function Logo(props: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className="flex items-center justify-center font-bold text-lg bg-primary text-primary-foreground rounded-md"
-      style={{ width: props.width, height: props.height }}
+      {...props}
+      className={`flex items-center justify-center font-bold text-lg bg-primary text-primary-foreground rounded-md ${props.className}`}
     >
       CF
     </div>
