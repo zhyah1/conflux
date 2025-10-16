@@ -8,9 +8,12 @@ import {
   SidebarMenuButton,
   SidebarContent,
   SidebarFooter,
+  Sidebar,
+  SidebarTrigger,
+  SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
-  LayoutDashboard,
+  Home,
   Briefcase,
   ListTodo,
   ShieldAlert,
@@ -18,22 +21,39 @@ import {
   Settings,
   Users,
   CheckSquare,
+  BarChart,
+  ChevronLeft,
+  Search,
+  Book,
+  LineChart,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
-import { ThemeToggle } from './theme-toggle';
 import { useUser } from '@/app/user-provider';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/dashboard/projects', icon: Briefcase, label: 'Projects' },
-  { href: '/dashboard/tasks', icon: ListTodo, label: 'Tasks' },
-  { href: '/dashboard/approvals', icon: CheckSquare, label: 'Pending Task Approvals' },
-  { href: '/dashboard/issues', icon: ShieldAlert, label: 'Issues' },
-  { href: '/dashboard/documents', icon: FolderKanban, label: 'Documents' },
-  { href: '/dashboard/users', icon: Users, label: 'Users', adminOnly: true },
-  { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
+  { href: '/dashboard', icon: Home, label: 'Dashboard' },
+  { href: '/dashboard/projects', icon: Briefcase, label: 'Projects', count: 12 },
+  { href: '/dashboard/tasks', icon: BarChart, label: 'Board' },
+  { href: '/dashboard/issues', icon: ListTodo, label: 'Issues', count: 23, soon: true },
+  { href: '/dashboard/documents', icon: Book, label: 'Materials', count: 5, soon: true },
+  { href: '/dashboard/users', icon: Users, label: 'Team', adminOnly: true, soon: true },
+  { href: '/dashboard/approvals', icon: CheckSquare, label: 'Reports', soon: true },
 ];
+
+const getInitials = (name?: string | null) => {
+  if (!name) return '';
+  const names = name.split(' ');
+  if (names.length > 1) {
+    return names[0][0] + names[names.length - 1][0];
+  }
+  return name.substring(0, 2);
+};
+
 
 export function Nav() {
   const pathname = usePathname();
@@ -43,13 +63,27 @@ export function Nav() {
 
   return (
     <>
-      <SidebarHeader>
+      <SidebarHeader className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Logo className="h-7 w-7 text-primary" />
-          <span className="text-lg font-semibold font-headline">Construx</span>
+          <Logo className="h-8 w-8 text-primary" />
+          <span className="text-lg font-bold">ConstructFlow</span>
         </div>
+        <SidebarTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+                <ChevronLeft />
+            </Button>
+        </SidebarTrigger>
       </SidebarHeader>
-      <SidebarContent>
+
+      <SidebarContent className="p-2">
+         <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+            type="search"
+            placeholder="Search issues..."
+            className="w-full rounded-lg bg-background pl-8"
+            />
+        </div>
         <SidebarMenu>
           {navItems.map((item) => {
             if (item.adminOnly && !isAdmin) {
@@ -66,6 +100,8 @@ export function Nav() {
                   <Link href={item.href}>
                     <item.icon />
                     <span>{item.label}</span>
+                    {item.count && <Badge variant="secondary" className="ml-auto">{item.count}</Badge>}
+                    {item.soon && <Badge variant="outline" className="ml-auto">Soon</Badge>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -73,8 +109,40 @@ export function Nav() {
           })}
         </SidebarMenu>
       </SidebarContent>
+
+      <SidebarSeparator />
+
+      <SidebarContent className="p-2">
+        {profile && (
+            <div className="flex items-center gap-3 p-2 rounded-md">
+                <Avatar className="h-9 w-9">
+                    <AvatarImage src={profile.avatar_url} />
+                    <AvatarFallback>{getInitials(profile.full_name)}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <div className="font-semibold text-sm">{profile.full_name}</div>
+                    <div className="text-xs text-muted-foreground capitalize">{profile.role.replace('_', ' ')} / Project Owner</div>
+                </div>
+            </div>
+        )}
+      </SidebarContent>
+
       <SidebarFooter>
-        <ThemeToggle />
+         <SidebarMenu>
+             <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname.startsWith('/dashboard/settings')}
+                  tooltip="Settings"
+                  size="lg"
+                >
+                  <Link href="/dashboard/settings">
+                    <Settings />
+                    <span>Settings</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+         </SidebarMenu>
       </SidebarFooter>
     </>
   );

@@ -10,9 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Search } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { UserNav } from './user-nav';
 
@@ -52,12 +50,7 @@ export function Header() {
       </Breadcrumb>
       
       <div className="relative ml-auto flex-1 md:grow-0">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Search..."
-          className="w-full rounded-lg bg-secondary pl-8 md:w-[200px] lg:w-[320px]"
-        />
+        {/* Search bar moved to sidebar */}
       </div>
       <UserNav />
     </header>
