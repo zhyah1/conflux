@@ -68,10 +68,8 @@ export function Nav() {
           <Logo className="h-8 w-8 text-primary" />
           <span className="text-lg font-bold">ConstructFlow</span>
         </div>
-        <SidebarTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-                <ChevronLeft />
-            </Button>
+        <SidebarTrigger className="h-8 w-8">
+            <ChevronLeft />
         </SidebarTrigger>
       </SidebarHeader>
 
