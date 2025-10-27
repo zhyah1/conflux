@@ -87,7 +87,7 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
       }
   }
   
-  revalidatePath(`/dashboard/tasks/${project_id}`);
+  revalidatePath(`/dashboard/tasks/board/${project_id}`);
 
   return { data };
 }
@@ -138,7 +138,7 @@ export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
         return { error: 'Failed to update task in the database.' };
     }
 
-    revalidatePath(`/dashboard/tasks/${project_id}`);
+    revalidatePath(`/dashboard/tasks/board/${project_id}`);
     revalidatePath('/dashboard/approvals');
     revalidatePath(`/dashboard/tasks/view/${id}`);
 
@@ -229,7 +229,7 @@ export async function requestTaskApproval(formData: z.infer<typeof approvalReque
         // This is not a critical failure, so we just log it and continue
     }
     
-    revalidatePath(`/dashboard/tasks/${taskUpdateData.project_id}`);
+    revalidatePath(`/dashboard/tasks/board/${taskUpdateData.project_id}`);
     revalidatePath('/dashboard/approvals');
 
     return { success: true };
@@ -245,7 +245,7 @@ export async function getApprovalRequests() {
     
     const { data: tasks, error } = await supabaseAdmin
         .from('tasks')
-        .select(`
+        .select(\`
             id,
             title,
             priority,
@@ -258,13 +258,13 @@ export async function getApprovalRequests() {
               )
             ),
             requested_by:created_by ( id, full_name )
-        `)
+        \`)
         .eq('status', 'Waiting for Approval')
         .eq('approver_id', user.id);
 
     if (error) {
         console.error('Error fetching approval requests (tasks):', error);
-        return { data: null, error: `Could not fetch approvals: ${error.message}` };
+        return { data: null, error: \`Could not fetch approvals: \${error.message}\` };
     }
 
     return { data: tasks, error: null };
@@ -283,7 +283,7 @@ export async function decideOnApproval(taskId: string, newStatus: 'Backlog' | 'B
 
     if (taskError) {
         console.error('Error updating task status after approval:', taskError);
-        return { error: `Could not update task: ${taskError.message}` };
+        return { error: \`Could not update task: \${taskError.message}\` };
     }
 
     // Update the task_approvals log
@@ -299,7 +299,7 @@ export async function decideOnApproval(taskId: string, newStatus: 'Backlog' | 'B
         console.error('Error updating approval log:', logError);
     }
     
-    revalidatePath(`/dashboard/tasks/${projectId}`);
+    revalidatePath(`/dashboard/tasks/board/\${projectId}`);
     revalidatePath('/dashboard/approvals');
 
     return { success: true };
@@ -318,7 +318,7 @@ export async function getTaskComments(taskId: string) {
     
   if (commentsError) {
     console.error('Error fetching task comments:', commentsError);
-    return { data: null, error: `Could not fetch comments: ${commentsError.message}` };
+    return { data: null, error: \`Could not fetch comments: \${commentsError.message}\` };
   }
 
   if (!commentsData || commentsData.length === 0) {
@@ -333,7 +333,7 @@ export async function getTaskComments(taskId: string) {
 
   if (usersError) {
     console.error('Error fetching comment authors:', usersError);
-    return { data: null, error: `Could not fetch comment authors: ${usersError.message}` };
+    return { data: null, error: \`Could not fetch comment authors: \${usersError.message}\` };
   }
 
   const userMap = new Map(usersData.map(u => [u.id, u]));
@@ -373,7 +373,7 @@ export async function addTaskComment(formData: z.infer<typeof taskCommentSchema>
         
     if (error) {
         console.error('Error adding task comment:', error);
-        return { error: `Could not post comment: ${error.message}` };
+        return { error: \`Could not post comment: \${error.message}\` };
     }
     
     // No revalidation needed due to real-time subscription
@@ -390,7 +390,7 @@ const attachmentSchema = z.object({
 });
 
 export async function addTaskAttachment(formData: z.infer<typeof attachmentSchema>) {
-  const supabase = await getAdminSupabase();
+  const supabaseAdmin = await getAdminSupabase();
   const { data: { user } } = await createServerActionClient({ cookies }).auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
@@ -399,7 +399,7 @@ export async function addTaskAttachment(formData: z.infer<typeof attachmentSchem
     return { error: `Invalid form data: ${parsedData.error.message}` };
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('task_attachments')
     .insert([{ ...parsedData.data, uploaded_by: user.id }])
     .select()
