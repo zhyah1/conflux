@@ -390,8 +390,8 @@ const attachmentSchema = z.object({
 });
 
 export async function addTaskAttachment(formData: z.infer<typeof attachmentSchema>) {
-  const supabase = createServerActionClient({ cookies });
-  const { data: { user } } = await supabase.auth.getUser();
+  const supabase = await getAdminSupabase();
+  const { data: { user } } = await createServerActionClient({ cookies }).auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
   const parsedData = attachmentSchema.safeParse(formData);
