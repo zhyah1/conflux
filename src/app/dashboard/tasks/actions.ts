@@ -245,7 +245,7 @@ export async function getApprovalRequests() {
     
     const { data: tasks, error } = await supabaseAdmin
         .from('tasks')
-        .select(\`
+        .select(`
             id,
             title,
             priority,
@@ -258,13 +258,13 @@ export async function getApprovalRequests() {
               )
             ),
             requested_by:created_by ( id, full_name )
-        \`)
+        `)
         .eq('status', 'Waiting for Approval')
         .eq('approver_id', user.id);
 
     if (error) {
         console.error('Error fetching approval requests (tasks):', error);
-        return { data: null, error: \`Could not fetch approvals: \${error.message}\` };
+        return { data: null, error: `Could not fetch approvals: ${error.message}` };
     }
 
     return { data: tasks, error: null };
@@ -283,7 +283,7 @@ export async function decideOnApproval(taskId: string, newStatus: 'Backlog' | 'B
 
     if (taskError) {
         console.error('Error updating task status after approval:', taskError);
-        return { error: \`Could not update task: \${taskError.message}\` };
+        return { error: `Could not update task: ${taskError.message}` };
     }
 
     // Update the task_approvals log
@@ -299,7 +299,7 @@ export async function decideOnApproval(taskId: string, newStatus: 'Backlog' | 'B
         console.error('Error updating approval log:', logError);
     }
     
-    revalidatePath(`/dashboard/tasks/board/\${projectId}`);
+    revalidatePath(`/dashboard/tasks/board/${projectId}`);
     revalidatePath('/dashboard/approvals');
 
     return { success: true };
@@ -318,7 +318,7 @@ export async function getTaskComments(taskId: string) {
     
   if (commentsError) {
     console.error('Error fetching task comments:', commentsError);
-    return { data: null, error: \`Could not fetch comments: \${commentsError.message}\` };
+    return { data: null, error: `Could not fetch comments: ${commentsError.message}` };
   }
 
   if (!commentsData || commentsData.length === 0) {
@@ -333,7 +333,7 @@ export async function getTaskComments(taskId: string) {
 
   if (usersError) {
     console.error('Error fetching comment authors:', usersError);
-    return { data: null, error: \`Could not fetch comment authors: \${usersError.message}\` };
+    return { data: null, error: `Could not fetch comment authors: ${usersError.message}` };
   }
 
   const userMap = new Map(usersData.map(u => [u.id, u]));
@@ -373,7 +373,7 @@ export async function addTaskComment(formData: z.infer<typeof taskCommentSchema>
         
     if (error) {
         console.error('Error adding task comment:', error);
-        return { error: \`Could not post comment: \${error.message}\` };
+        return { error: `Could not post comment: ${error.message}` };
     }
     
     // No revalidation needed due to real-time subscription
