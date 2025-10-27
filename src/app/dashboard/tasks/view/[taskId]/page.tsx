@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Paperclip, Pencil, Send, MoreHorizontal, User, Tag, Clock, CheckCircle, Loader2, ArrowLeft, Download, File as FileIcon } from 'lucide-react';
+import { Calendar, Paperclip, Pencil, Send, MoreHorizontal, User, Tag, Clock, CheckCircle, Loader2, ArrowLeft, Download, File as FileIcon, Eye } from 'lucide-react';
 import { useUser, type UserProfile } from '@/app/user-provider';
 import { format, isPast } from 'date-fns';
 import { useEffect, useRef, useState } from 'react';
@@ -239,17 +239,17 @@ function TaskAttachments({ taskId, onUploadSuccess }: { taskId: string, onUpload
       setLoading(false);
     }
     fetchAttachments();
-  }, [taskId, toast]);
+  }, [taskId, toast, onUploadSuccess]);
 
-  const handleDownload = async (attachment: Attachment) => {
+  const handleFileAction = async (attachment: Attachment) => {
     try {
       const { data, error } = await getTaskAttachmentSignedUrl(attachment.file_path);
       if (error || !data?.signedUrl) {
-        throw new Error(error || 'Could not get download URL.');
+        throw new Error(error || 'Could not get attachment URL.');
       }
       window.open(data.signedUrl, '_blank');
     } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Download Failed', description: e.message });
+      toast({ variant: 'destructive', title: 'Action Failed', description: e.message });
     }
   };
 
@@ -268,13 +268,18 @@ function TaskAttachments({ taskId, onUploadSuccess }: { taskId: string, onUpload
            <ul className="space-y-2">
             {attachments.map(att => (
               <li key={att.id} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <FileIcon className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{att.file_name}</span>
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <FileIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="font-medium truncate" title={att.file_name}>{att.file_name}</span>
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(att)}>
-                  <Download className="h-4 w-4" />
-                </Button>
+                <div className="flex">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleFileAction(att)}>
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleFileAction(att)}>
+                        <Download className="h-4 w-4" />
+                    </Button>
+                </div>
               </li>
             ))}
            </ul>
@@ -293,7 +298,7 @@ export default function TaskDetailsPage() {
   const taskId = params.taskId as string;
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshAttachments, setRefreshAttachments] = useState(0);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const fetchTask = async () => {
     if (!taskId) return;
@@ -310,7 +315,7 @@ export default function TaskDetailsPage() {
 
   useEffect(() => {
     fetchTask();
-  }, [taskId, refreshAttachments]);
+  }, [taskId, refreshTrigger]);
 
   if (loading) {
     return <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin h-8 w-8"/></div>
@@ -394,7 +399,7 @@ export default function TaskDetailsPage() {
                             <div className="text-sm">{task.progress || 0}% complete</div>
                             <Progress value={task.progress || 0} className="h-2"/>
                         </div>
-                        <TaskAttachments taskId={task.id} onUploadSuccess={() => setRefreshAttachments(c => c + 1)} />
+                        <TaskAttachments taskId={task.id} onUploadSuccess={() => setRefreshTrigger(c => c + 1)} />
                     </div>
                 </div>
             </CardContent>
