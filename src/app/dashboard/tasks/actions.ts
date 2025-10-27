@@ -140,6 +140,7 @@ export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
 
     revalidatePath(`/dashboard/tasks/${project_id}`);
     revalidatePath('/dashboard/approvals');
+    revalidatePath(`/dashboard/tasks/view/${id}`);
 
     return { data };
 }
@@ -377,4 +378,95 @@ export async function addTaskComment(formData: z.infer<typeof taskCommentSchema>
     
     // No revalidation needed due to real-time subscription
     return { data };
+}
+
+
+// --- Attachment Actions ---
+
+const attachmentSchema = z.object({
+  task_id: z.string(),
+  file_path: z.string(),
+  file_name: z.string(),
+});
+
+export async function addTaskAttachment(formData: z.infer<typeof attachmentSchema>) {
+  const supabase = createServerActionClient({ cookies });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const parsedData = attachmentSchema.safeParse(formData);
+  if (!parsedData.success) {
+    return { error: `Invalid form data: ${parsedData.error.message}` };
+  }
+
+  const { data, error } = await supabase
+    .from('task_attachments')
+    .insert([{ ...parsedData.data, uploaded_by: user.id }])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Supabase error creating attachment record:', error);
+    return { error: `Failed to create attachment record: ${error.message}` };
+  }
+
+  revalidatePath(`/dashboard/tasks/view/${parsedData.data.task_id}`);
+  return { data };
+}
+
+export async function uploadTaskFile(file: File, taskId: string) {
+    const supabase = createServerActionClient({ cookies });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not authenticated' };
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+    const filePath = `tasks/${taskId}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+    if (uploadError) {
+        console.error('Supabase storage error:', uploadError);
+        return { path: null, error: `Failed to upload file: ${uploadError.message}` };
+    }
+
+    return { path: filePath, error: null };
+}
+
+export async function getTaskAttachments(taskId: string) {
+  const supabase = createServerActionClient({ cookies });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { data: null, error: 'Not authenticated' };
+
+  const { data, error } = await supabase
+    .from('task_attachments')
+    .select('id, file_name, file_path, created_at')
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching attachments:', error);
+    return { data: null, error: `Could not fetch attachments: ${error.message}` };
+  }
+
+  return { data, error: null };
+}
+
+export async function getTaskAttachmentSignedUrl(filePath: string) {
+  const supabase = createServerActionClient({ cookies });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { data: null, error: 'Not authenticated' };
+
+  const { data, error } = await supabase.storage
+    .from('documents')
+    .createSignedUrl(filePath, 60); // URL is valid for 60 seconds
+
+  if (error) {
+    console.error('Error creating signed URL:', error);
+    return { data: null, error: 'Could not get attachment URL.' };
+  }
+
+  return { data, error: null };
 }

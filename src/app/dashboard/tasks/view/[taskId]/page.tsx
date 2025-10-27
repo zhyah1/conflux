@@ -3,27 +3,25 @@
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Paperclip, Pencil, Send, MoreHorizontal, User, Tag, Clock, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
+import { Calendar, Paperclip, Pencil, Send, MoreHorizontal, User, Tag, Clock, CheckCircle, Loader2, ArrowLeft, Download, File as FileIcon } from 'lucide-react';
 import { useUser, type UserProfile } from '@/app/user-provider';
 import { format, isPast } from 'date-fns';
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
-import { addTaskComment, getTaskById, getTaskComments } from '../../actions';
+import { addTaskComment, getTaskById, getTaskComments, getTaskAttachments, getTaskAttachmentSignedUrl } from '../../actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '../../../components/page-header';
 import { EditTaskForm } from '../../edit-task-form';
+import { UploadAttachmentForm } from '../../upload-attachment-form';
 
 type User = {
   id: string;
@@ -61,6 +59,13 @@ type Comment = {
   created_at: string;
   user: UserProfile;
 };
+
+type Attachment = {
+  id: string;
+  file_name: string;
+  file_path: string;
+  created_at: string;
+}
 
 function TaskComments({ taskId }: { taskId: string }) {
   const [comments, setComments] = useState<Comment[]>([]);
@@ -217,6 +222,70 @@ function TaskComments({ taskId }: { taskId: string }) {
   )
 }
 
+function TaskAttachments({ taskId, onUploadSuccess }: { taskId: string, onUploadSuccess: () => void }) {
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function fetchAttachments() {
+      setLoading(true);
+      const { data, error } = await getTaskAttachments(taskId);
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error fetching attachments', description: error });
+      } else {
+        setAttachments(data || []);
+      }
+      setLoading(false);
+    }
+    fetchAttachments();
+  }, [taskId, toast]);
+
+  const handleDownload = async (attachment: Attachment) => {
+    try {
+      const { data, error } = await getTaskAttachmentSignedUrl(attachment.file_path);
+      if (error || !data?.signedUrl) {
+        throw new Error(error || 'Could not get download URL.');
+      }
+      window.open(data.signedUrl, '_blank');
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Download Failed', description: e.message });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h4 className="font-semibold text-sm flex items-center gap-2"><Paperclip className="w-4 h-4" />Attachments</h4>
+        <UploadAttachmentForm taskId={taskId} onUploadSuccess={onUploadSuccess}>
+          <Button variant="outline" size="sm">Add attachment</Button>
+        </UploadAttachmentForm>
+      </div>
+       <div className="bg-background rounded-lg p-4 border border-dashed">
+         {loading ? (
+           <Skeleton className="h-10 w-full" />
+         ) : attachments.length > 0 ? (
+           <ul className="space-y-2">
+            {attachments.map(att => (
+              <li key={att.id} className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <FileIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{att.file_name}</span>
+                </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(att)}>
+                  <Download className="h-4 w-4" />
+                </Button>
+              </li>
+            ))}
+           </ul>
+         ) : (
+            <p className="text-sm text-center text-muted-foreground">No attachments</p>
+         )}
+      </div>
+    </div>
+  );
+}
+
 
 export default function TaskDetailsPage() {
   const params = useParams();
@@ -224,22 +293,24 @@ export default function TaskDetailsPage() {
   const taskId = params.taskId as string;
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshAttachments, setRefreshAttachments] = useState(0);
 
-  useEffect(() => {
+  const fetchTask = async () => {
     if (!taskId) return;
     setLoading(true);
-    const fetchTask = async () => {
-        const { data, error } = await getTaskById(taskId);
-        if (error) {
-            console.error(error);
-            setTask(null);
-        } else {
-            setTask(data as Task);
-        }
-        setLoading(false);
+    const { data, error } = await getTaskById(taskId);
+    if (error) {
+        console.error(error);
+        setTask(null);
+    } else {
+        setTask(data as Task);
     }
+    setLoading(false);
+  }
+
+  useEffect(() => {
     fetchTask();
-  }, [taskId]);
+  }, [taskId, refreshAttachments]);
 
   if (loading) {
     return <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin h-8 w-8"/></div>
@@ -275,8 +346,8 @@ export default function TaskDetailsPage() {
         </PageHeader>
         <Card>
             <CardContent className="p-0">
-                <div className="grid grid-cols-3">
-                    <div className="col-span-2 p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3">
+                    <div className="md:col-span-2 p-6 space-y-6">
                         <div>
                         <h3 className="font-semibold mb-2">Description</h3>
                         <p className="text-sm text-muted-foreground">
@@ -323,13 +394,7 @@ export default function TaskDetailsPage() {
                             <div className="text-sm">{task.progress || 0}% complete</div>
                             <Progress value={task.progress || 0} className="h-2"/>
                         </div>
-                        <div className="space-y-1">
-                            <h4 className="font-semibold text-sm flex items-center gap-2"><Paperclip className="w-4 h-4" />Attachments</h4>
-                            <div className="text-center text-muted-foreground bg-background rounded-lg p-4 border border-dashed">
-                                <p className="text-sm">No attachments</p>
-                                <Button variant="outline" size="sm" className="mt-2 w-full">Add attachment</Button>
-                            </div>
-                        </div>
+                        <TaskAttachments taskId={task.id} onUploadSuccess={() => setRefreshAttachments(c => c + 1)} />
                     </div>
                 </div>
             </CardContent>
