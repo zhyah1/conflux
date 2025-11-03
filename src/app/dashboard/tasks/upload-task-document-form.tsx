@@ -26,11 +26,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import {
-  extractTaskDetailsFromDocument,
-} from '@/ai/flows/extract-task-details-from-document';
 import { addMultipleTasks } from './actions';
 import { useRouter } from 'next/navigation';
+import type { ExtractedTask } from '@/ai/flows/extract-task-details-from-document';
 
 const uploadSchema = z.object({
   file: z
@@ -38,14 +36,30 @@ const uploadSchema = z.object({
     .refine((files) => files?.length === 1, 'File is required.'),
 });
 
-function fileToDataUri(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+function parseTaskDocument(content: string): ExtractedTask[] {
+  const tasks: ExtractedTask[] = [];
+  const taskBlocks = content.split('---').map(block => block.trim()).filter(Boolean);
+
+  for (const block of taskBlocks) {
+    const titleMatch = block.match(/# Task:\s*(.*)/);
+    const priorityMatch = block.match(/\*\*Priority:\*\*\s*(High|Medium|Low)/i);
+    const statusMatch = block.match(/\*\*Status:\*\*\s*(Waiting for Approval|Backlog|In Progress|Blocked|Done)/i);
+    const dueDateMatch = block.match(/\*\*Due Date:\*\*\s*(\d{4}-\d{2}-\d{2})/);
+    const descriptionMatch = block.match(/\*\*Description:\*\*\s*([\s\S]*)/);
+    
+    if (titleMatch) {
+      tasks.push({
+        title: titleMatch[1].trim(),
+        priority: (priorityMatch ? priorityMatch[1] : 'Medium') as "High" | "Medium" | "Low",
+        status: (statusMatch ? statusMatch[1] : 'Backlog') as "Waiting for Approval" | "Backlog" | "In Progress" | "Blocked" | "Done",
+        due_date: dueDateMatch ? dueDateMatch[1] : undefined,
+        description: descriptionMatch ? descriptionMatch[1].trim() : '',
+      });
+    }
+  }
+  return tasks;
 }
+
 
 export function UploadTaskDocumentForm({
   children,
@@ -67,13 +81,13 @@ export function UploadTaskDocumentForm({
     setIsProcessing(true);
     try {
       const file = values.file[0];
-      const dataUri = await fileToDataUri(file);
+      const fileContent = await file.text();
 
-      // 1. Extract tasks using AI
-      const extractedTasks = await extractTaskDetailsFromDocument(dataUri);
+      // 1. Parse tasks using the client-side parser
+      const extractedTasks = parseTaskDocument(fileContent);
 
       if (!extractedTasks || extractedTasks.length === 0) {
-        throw new Error('AI could not extract any tasks from the document.');
+        throw new Error('Could not find any valid tasks in the document. Please check the formatting.');
       }
 
       // 2. Add all tasks to the database directly
@@ -115,7 +129,7 @@ export function UploadTaskDocumentForm({
               Upload Task Document
             </DialogTitle>
             <DialogDescription>
-              Select a document (.pdf, .txt, .md) to automatically create tasks.
+              Select a document (.txt, .md) to automatically create tasks based on a template.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -130,7 +144,7 @@ export function UploadTaskDocumentForm({
                   <FormItem>
                     <FormLabel>Document</FormLabel>
                     <FormControl>
-                      <Input type="file" {...form.register('file')} accept=".pdf,.txt,.md" />
+                      <Input type="file" {...form.register('file')} accept=".txt,.md" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
