@@ -115,7 +115,7 @@ export function UploadTaskDocumentForm({
               Upload Task Document
             </DialogTitle>
             <DialogDescription>
-              Select a document to automatically create a task.
+              Select a document (.pdf, .txt, .md) to automatically create a task.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -130,7 +130,7 @@ export function UploadTaskDocumentForm({
                   <FormItem>
                     <FormLabel>Document</FormLabel>
                     <FormControl>
-                      <Input type="file" {...form.register('file')} />
+                      <Input type="file" {...form.register('file')} accept=".pdf,.txt,.md" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
