@@ -7,23 +7,9 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
+import { ExtractedTaskDetailsSchema, type ExtractedTaskDetails } from '@/app/dashboard/tasks/add-task-form';
 
-export const ExtractedTaskDetailsSchema = z.object({
-  title: z.string().describe('The title of the task.'),
-  priority: z
-    .enum(['High', 'Medium', 'Low'])
-    .describe('The priority of the task.'),
-  status: z
-    .enum(['Waiting for Approval', 'Backlog', 'In Progress', 'Blocked', 'Done'])
-    .describe('The current status of the task.'),
-  description: z.string().describe('A detailed description of the task.'),
-  due_date: z
-    .string()
-    .optional()
-    .describe('The due date for the task in YYYY-MM-DD format.'),
-});
-export type ExtractedTaskDetails = z.infer<typeof ExtractedTaskDetailsSchema>;
 
 const ExtractTaskInputSchema = z.object({
   documentDataUri: z

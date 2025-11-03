@@ -43,7 +43,23 @@ import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-import { ExtractedTaskDetails } from '@/ai/flows/extract-task-details-from-document';
+
+export const ExtractedTaskDetailsSchema = z.object({
+  title: z.string().describe('The title of the task.'),
+  priority: z
+    .enum(['High', 'Medium', 'Low'])
+    .describe('The priority of the task.'),
+  status: z
+    .enum(['Waiting for Approval', 'Backlog', 'In Progress', 'Blocked', 'Done'])
+    .describe('The current status of the task.'),
+  description: z.string().describe('A detailed description of the task.'),
+  due_date: z
+    .string()
+    .optional()
+    .describe('The due date for the task in YYYY-MM-DD format.'),
+});
+export type ExtractedTaskDetails = z.infer<typeof ExtractedTaskDetailsSchema>;
+
 
 type User = {
   id: string;
