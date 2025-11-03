@@ -8,8 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { ExtractedTaskDetailsSchema, type ExtractedTaskDetails } from '@/app/dashboard/tasks/add-task-form';
-
+import type { ExtractedTaskDetails } from '@/app/dashboard/tasks/add-task-form';
 
 const ExtractTaskInputSchema = z.object({
   documentDataUri: z
@@ -18,6 +17,23 @@ const ExtractTaskInputSchema = z.object({
       "The document content as a data URI, including MIME type and Base64 encoding. e.g., 'data:application/pdf;base64,<data>'"
     ),
 });
+
+// Define the output schema locally to avoid potential Zod version/instance conflicts.
+const ExtractedTaskDetailsOutputSchema = z.object({
+  title: z.string().describe('The title of the task.'),
+  priority: z
+    .enum(['High', 'Medium', 'Low'])
+    .describe('The priority of the task.'),
+  status: z
+    .enum(['Waiting for Approval', 'Backlog', 'In Progress', 'Blocked', 'Done'])
+    .describe('The current status of the task.'),
+  description: z.string().describe('A detailed description of the task.'),
+  due_date: z
+    .string()
+    .optional()
+    .describe('The due date for the task in YYYY-MM-DD format.'),
+});
+
 
 export async function extractTaskDetailsFromDocument(
   documentDataUri: string
@@ -28,7 +44,7 @@ export async function extractTaskDetailsFromDocument(
 const prompt = ai.definePrompt({
   name: 'extractTaskDetailsPrompt',
   input: { schema: ExtractTaskInputSchema },
-  output: { schema: ExtractedTaskDetailsSchema },
+  output: { schema: ExtractedTaskDetailsOutputSchema },
   prompt: `You are a project management assistant. Analyze the following document and extract the task details.
 
   Document Content:
@@ -47,7 +63,7 @@ const extractTaskDetailsFlow = ai.defineFlow(
   {
     name: 'extractTaskDetailsFlow',
     inputSchema: ExtractTaskInputSchema,
-    outputSchema: ExtractedTaskDetailsSchema,
+    outputSchema: ExtractedTaskDetailsOutputSchema,
   },
   async (input) => {
     const { output } = await prompt(input);
