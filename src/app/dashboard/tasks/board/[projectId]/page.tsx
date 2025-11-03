@@ -2,7 +2,7 @@
 
 import { PageHeader } from '../../../components/page-header';
 import { Button } from '@/components/ui/button';
-import { Plus, MoreHorizontal, Loader2, ArrowLeft, Filter, Search, LayoutGrid, GanttChartSquare } from 'lucide-react';
+import { Plus, MoreHorizontal, Loader2, ArrowLeft, Filter, Search, LayoutGrid, GanttChartSquare, Upload } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -49,6 +49,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { UploadTaskDocumentForm } from '../../upload-task-document-form';
 
 
 type User = {
@@ -422,10 +423,14 @@ export default function TaskBoardPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.projectId as string;
+  const { profile } = useUser();
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('kanban');
+
+  const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor';
+
 
   useEffect(() => {
     if (!projectId) {
@@ -502,6 +507,11 @@ export default function TaskBoardPage() {
         description={'Manage tasks and track progress.'}
       >
         <div className="flex gap-2">
+            {canManageTasks && (
+                <UploadTaskDocumentForm projectId={projectId}>
+                    <Button variant="outline"><Upload className="mr-2 h-4 w-4"/>Upload Task Doc</Button>
+                </UploadTaskDocumentForm>
+            )}
             <Button onClick={() => router.push(backButtonLink)} variant="outline">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back

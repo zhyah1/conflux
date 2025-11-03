@@ -42,7 +42,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { ExtractedTaskDetails } from '@/ai/flows/extract-task-details-from-document';
 
 type User = {
   id: string;
@@ -62,8 +63,25 @@ const taskSchema = z.object({
   progress: z.coerce.number().min(0).max(100).optional().nullable(),
 });
 
-export function AddTaskForm({ children, projectId, status = 'Backlog' }: { children: React.ReactNode, projectId: string, status?: string }) {
-  const [open, setOpen] = useState(false);
+type AddTaskFormProps = {
+  children: React.ReactNode;
+  projectId: string;
+  status?: string;
+  initialData?: ExtractedTaskDetails | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+};
+
+
+export function AddTaskForm({ 
+    children, 
+    projectId, 
+    status = 'Backlog',
+    initialData = null,
+    open: controlledOpen,
+    onOpenChange: setControlledOpen,
+}: AddTaskFormProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignableUsers, setAssignableUsers] = useState<User[]>([]);
   const [approvers, setApprovers] = useState<User[]>([]);
@@ -71,20 +89,30 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
   const router = useRouter();
   const { profile, user } = useUser();
 
+  const open = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen;
+  const setOpen = setControlledOpen !== undefined ? setControlledOpen : setUncontrolledOpen;
+
+
+  const getDefaultValues = () => ({
+    title: initialData?.title || '',
+    priority: initialData?.priority || 'Medium',
+    status: initialData?.status || status,
+    assignee_id: profile?.role === 'subcontractor' ? user?.id : null,
+    project_id: projectId,
+    approver_id: undefined,
+    description: initialData?.description || '',
+    due_date: initialData?.due_date ? parseISO(initialData.due_date) : undefined,
+    progress: 0,
+  });
+
   const form = useForm<z.infer<typeof taskSchema>>({
     resolver: zodResolver(taskSchema),
-    defaultValues: {
-      title: '',
-      priority: 'Medium',
-      status: status,
-      assignee_id: profile?.role === 'subcontractor' ? user?.id : null,
-      project_id: projectId,
-      approver_id: undefined,
-      description: '',
-      due_date: undefined,
-      progress: 0,
-    },
+    defaultValues: getDefaultValues(),
   });
+
+  useEffect(() => {
+    form.reset(getDefaultValues());
+  }, [initialData, status, projectId, open]);
 
   const watchStatus = form.watch('status');
   const needsApproval = watchStatus === 'Waiting for Approval';
@@ -144,21 +172,6 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
     }
   }, [open, profile, projectId, user]);
 
-  // Reset form status when the prop changes
-  useEffect(() => {
-    form.reset({
-      title: '',
-      priority: 'Medium',
-      status,
-      project_id: projectId,
-      assignee_id: profile?.role === 'subcontractor' ? user?.id : null,
-      approver_id: undefined,
-      description: '',
-      due_date: undefined,
-      progress: 0,
-    });
-  }, [status, projectId, form, open, profile, user]);
-
 
   const onSubmit = async (values: z.infer<typeof taskSchema>) => {
     setIsSubmitting(true);
@@ -191,9 +204,9 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-headline">Add New Task</DialogTitle>
+          <DialogTitle className="font-headline">{initialData ? 'Review Extracted Task' : 'Add New Task'}</DialogTitle>
           <DialogDescription>
-            Fill in the details below to create a new task.
+            {initialData ? 'Review the details extracted by AI before creating the task.' : 'Fill in the details below to create a new task.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -233,7 +246,7 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Select a status" />
@@ -257,7 +270,7 @@ export function AddTaskForm({ children, projectId, status = 'Backlog' }: { child
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Priority</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Select a priority" />
