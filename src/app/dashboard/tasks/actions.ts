@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
+import { type ExtractedTask } from '@/ai/flows/extract-task-details-from-document';
+import { parseISO } from 'date-fns';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Task title is required.'),
@@ -91,6 +93,50 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
 
   return { data };
 }
+
+export async function addMultipleTasks(tasks: ExtractedTask[], projectId: string) {
+  const supabase = createServerActionClient({ cookies });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+  if (!profile) return { error: 'Profile not found' };
+
+  if (!['admin', 'pmc', 'contractor'].includes(profile.role)) {
+    return { error: 'You do not have permission to add tasks.' };
+  }
+
+  const tasksToInsert = tasks.map((task, index) => ({
+    id: `TASK-${Date.now() + index}`,
+    title: task.title,
+    priority: task.priority,
+    status: task.status,
+    description: task.description,
+    due_date: task.due_date ? parseISO(task.due_date).toISOString() : null,
+    project_id: projectId,
+    created_by: user.id,
+    progress: 0,
+  }));
+
+  if (tasksToInsert.length === 0) {
+    return { data: [] };
+  }
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .insert(tasksToInsert)
+    .select();
+
+  if (error) {
+    console.error('Supabase error creating multiple tasks:', error);
+    return { error: `Failed to create tasks: ${error.message}` };
+  }
+  
+  revalidatePath(`/dashboard/tasks/board/${projectId}`);
+
+  return { data };
+}
+
 
 const updateTaskSchema = z.object({
   id: z.string(),

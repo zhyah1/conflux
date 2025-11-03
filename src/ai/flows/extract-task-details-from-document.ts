@@ -8,7 +8,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { ExtractedTaskDetails } from '@/app/dashboard/tasks/add-task-form';
 
 const ExtractTaskInputSchema = z.object({
   documentDataUri: z
@@ -19,7 +18,7 @@ const ExtractTaskInputSchema = z.object({
 });
 
 // Define the output schema locally to avoid potential Zod version/instance conflicts.
-const ExtractedTaskDetailsOutputSchema = z.object({
+const SingleTaskSchema = z.object({
   title: z.string().describe('The title of the task.'),
   priority: z
     .enum(['High', 'Medium', 'Low'])
@@ -34,10 +33,15 @@ const ExtractedTaskDetailsOutputSchema = z.object({
     .describe('The due date for the task in YYYY-MM-DD format.'),
 });
 
+const ExtractedTaskDetailsOutputSchema = z.array(SingleTaskSchema);
+
+export type ExtractedTask = z.infer<typeof SingleTaskSchema>;
+export type ExtractedTasks = z.infer<typeof ExtractedTaskDetailsOutputSchema>;
+
 
 export async function extractTaskDetailsFromDocument(
   documentDataUri: string
-): Promise<ExtractedTaskDetails> {
+): Promise<ExtractedTasks> {
   return extractTaskDetailsFlow({ documentDataUri });
 }
 
@@ -45,17 +49,17 @@ const prompt = ai.definePrompt({
   name: 'extractTaskDetailsPrompt',
   input: { schema: ExtractTaskInputSchema },
   output: { schema: ExtractedTaskDetailsOutputSchema },
-  prompt: `You are a project management assistant. Analyze the following document and extract the task details.
+  prompt: `You are a project management assistant. Analyze the following document and extract details for ALL tasks found within it.
 
   Document Content:
   {{media url=documentDataUri}}
 
-  Based on the document, provide the task's title, priority, status, a detailed description, and a due date if mentioned.
-  The priority should be one of "High", "Medium", or "Low".
-  The status should be one of "Waiting for Approval", "Backlog", "In Progress", "Blocked", or "Done".
+  For each task, provide its title, priority, status, a detailed description, and a due date if mentioned.
+  The priority must be one of "High", "Medium", or "Low".
+  The status must be one of "Waiting for Approval", "Backlog", "In Progress", "Blocked", or "Done".
   If a due date is present, format it as YYYY-MM-DD.
 
-  Return the data in a valid JSON format.
+  Return an array of JSON objects, with each object representing a single task. If no tasks are found, return an empty array.
   `,
 });
 

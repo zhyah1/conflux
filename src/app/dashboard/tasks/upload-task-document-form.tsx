@@ -28,9 +28,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import {
   extractTaskDetailsFromDocument,
-  type ExtractedTaskDetails,
 } from '@/ai/flows/extract-task-details-from-document';
-import { AddTaskForm } from './add-task-form';
+import { addMultipleTasks } from './actions';
+import { useRouter } from 'next/navigation';
 
 const uploadSchema = z.object({
   file: z
@@ -56,10 +56,8 @@ export function UploadTaskDocumentForm({
 }) {
   const [open, setOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [extractedData, setExtractedData] =
-    useState<ExtractedTaskDetails | null>(null);
-  const [addTaskOpen, setAddTaskOpen] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof uploadSchema>>({
     resolver: zodResolver(uploadSchema),
@@ -67,26 +65,33 @@ export function UploadTaskDocumentForm({
 
   const onSubmit = async (values: z.infer<typeof uploadSchema>) => {
     setIsProcessing(true);
-    setExtractedData(null);
     try {
       const file = values.file[0];
       const dataUri = await fileToDataUri(file);
 
-      const result = await extractTaskDetailsFromDocument(dataUri);
+      // 1. Extract tasks using AI
+      const extractedTasks = await extractTaskDetailsFromDocument(dataUri);
 
-      if (!result) {
-        throw new Error('AI could not extract details from the document.');
+      if (!extractedTasks || extractedTasks.length === 0) {
+        throw new Error('AI could not extract any tasks from the document.');
       }
 
-      setExtractedData(result);
-      setOpen(false); // Close the upload dialog
-      setAddTaskOpen(true); // Open the pre-filled task form dialog
+      // 2. Add all tasks to the database directly
+      const result = await addMultipleTasks(extractedTasks, projectId);
+
+       if (result.error) {
+        throw new Error(result.error);
+      }
 
       toast({
-        title: 'Details Extracted',
-        description:
-          'Please review the extracted task details before creating the task.',
+        title: 'Tasks Added Successfully',
+        description: `${result.data?.length || 0} tasks have been automatically created from the document.`,
       });
+      
+      setOpen(false);
+      form.reset();
+      router.refresh();
+
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'An unknown error occurred.';
@@ -100,11 +105,6 @@ export function UploadTaskDocumentForm({
     }
   };
 
-  const handleAddTaskDialogClose = () => {
-    setAddTaskOpen(false);
-    setExtractedData(null);
-  };
-
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -115,7 +115,7 @@ export function UploadTaskDocumentForm({
               Upload Task Document
             </DialogTitle>
             <DialogDescription>
-              Select a document (.pdf, .txt, .md) to automatically create a task.
+              Select a document (.pdf, .txt, .md) to automatically create tasks.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -150,7 +150,7 @@ export function UploadTaskDocumentForm({
                       Processing...
                     </>
                   ) : (
-                    'Extract Details'
+                    'Process and Add Tasks'
                   )}
                 </Button>
               </DialogFooter>
@@ -158,17 +158,6 @@ export function UploadTaskDocumentForm({
           </Form>
         </DialogContent>
       </Dialog>
-      {extractedData && (
-        <AddTaskForm
-          projectId={projectId}
-          initialData={extractedData}
-          open={addTaskOpen}
-          onOpenChange={handleAddTaskDialogClose}
-        >
-          {/* This is a dummy trigger, the dialog is controlled by state */}
-          <span />
-        </AddTaskForm>
-      )}
     </>
   );
 }
