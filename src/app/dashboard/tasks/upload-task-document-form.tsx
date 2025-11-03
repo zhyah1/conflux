@@ -29,6 +29,8 @@ import { Loader2 } from 'lucide-react';
 import { addMultipleTasks } from './actions';
 import { useRouter } from 'next/navigation';
 import type { ExtractedTask } from '@/ai/flows/extract-task-details-from-document';
+import * as pdfjs from 'pdfjs-dist';
+import 'pdfjs-dist/build/pdf.worker.min.mjs';
 
 const uploadSchema = z.object({
   file: z
@@ -60,6 +62,18 @@ function parseTaskDocument(content: string): ExtractedTask[] {
   return tasks;
 }
 
+async function getPdfText(file: File) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjs.getDocument(arrayBuffer).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map((item: any) => item.str).join(' ');
+    }
+    return text;
+}
+
 
 export function UploadTaskDocumentForm({
   children,
@@ -81,7 +95,13 @@ export function UploadTaskDocumentForm({
     setIsProcessing(true);
     try {
       const file = values.file[0];
-      const fileContent = await file.text();
+      let fileContent = '';
+
+      if (file.type === 'application/pdf') {
+          fileContent = await getPdfText(file);
+      } else {
+          fileContent = await file.text();
+      }
 
       // 1. Parse tasks using the client-side parser
       const extractedTasks = parseTaskDocument(fileContent);
@@ -129,7 +149,7 @@ export function UploadTaskDocumentForm({
               Upload Task Document
             </DialogTitle>
             <DialogDescription>
-              Select a document (.txt, .md) to automatically create tasks based on a template.
+              Select a document (.txt, .md, .pdf) to automatically create tasks based on a template.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -144,7 +164,7 @@ export function UploadTaskDocumentForm({
                   <FormItem>
                     <FormLabel>Document</FormLabel>
                     <FormControl>
-                      <Input type="file" {...form.register('file')} accept=".txt,.md" />
+                      <Input type="file" {...form.register('file')} accept=".txt,.md,.pdf" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

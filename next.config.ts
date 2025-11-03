@@ -30,6 +30,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  webpack: (config, { isServer }) => {
+    // Correctly handle pdfjs-dist
+    config.resolve.alias['pdfjs-dist'] = require.resolve('pdfjs-dist');
+    return config;
+  },
 };
 
 export default nextConfig;
