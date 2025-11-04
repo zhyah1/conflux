@@ -11,8 +11,8 @@ The entire process, from file upload to task creation, is designed to be seamles
     *   This action opens a dialog controlled by the `UploadTaskDocumentForm` component.
 
 2.  **Document Processing on the Frontend**:
-    *   The user selects a supported document (`.md` or `.txt`).
-    *   When the "Process and Add Tasks" button is clicked, the browser reads the file's text content directly.
+    *   The user selects a supported document (`.md`, `.txt`, or `.pdf`).
+    *   When the "Process and Add Tasks" button is clicked, the browser reads the file's text content directly. For PDF files, it uses the `pdf.js` library to extract the text.
 
 3.  **Client-Side Data Extraction**:
     *   A parser function on the client-side analyzes the document's content.
