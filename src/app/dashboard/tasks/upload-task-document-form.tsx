@@ -62,16 +62,28 @@ function parseTaskDocument(content: string): ExtractedTask[] {
   return tasks;
 }
 
-async function getPdfText(file: File) {
+async function getPdfText(file: File): Promise<string> {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjs.getDocument(arrayBuffer).promise;
-    let text = '';
+    let fullText = '';
+
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        text += content.items.map((item: any) => item.str).join(' ');
+        const textContent = await page.getTextContent();
+        
+        // Naive text reconstruction with line breaks
+        let lastY = -1;
+        let pageText = '';
+        for (const item of textContent.items) {
+            if (lastY !== -1 && item.transform[5] < lastY) {
+                pageText += '\n';
+            }
+            pageText += item.str;
+            lastY = item.transform[5];
+        }
+        fullText += pageText + '\n';
     }
-    return text;
+    return fullText;
 }
 
 
