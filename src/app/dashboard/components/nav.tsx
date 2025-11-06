@@ -28,6 +28,7 @@ import {
   Book,
   LineChart,
   GanttChartSquare,
+  Database,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
@@ -160,6 +161,19 @@ export function Nav() {
                     <Settings />
                     <span>Settings</span>
                   </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith('/dashboard/docs')}
+                    tooltip="Documentation"
+                    size="lg"
+                    >
+                    <Link href="/dashboard/docs">
+                        <Database />
+                        <span>Docs</span>
+                    </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
          </SidebarMenu>
