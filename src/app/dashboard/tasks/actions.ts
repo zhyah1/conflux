@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-import { type ExtractedTask } from '@/ai/flows/extract-task-details-from-document';
+import { type ExtractedTask } from '@/app/dashboard/tasks/upload-task-document-form';
 import { parseISO } from 'date-fns';
 
 const taskSchema = z.object({
@@ -106,6 +106,23 @@ export async function addMultipleTasks(tasks: ExtractedTask[], projectId: string
     return { error: 'You do not have permission to add tasks.' };
   }
 
+  const supabaseAdmin = await getAdminSupabase();
+  const emailsToLookup = tasks.map(t => t.assignee_email).filter(Boolean) as string[];
+  let userEmailMap = new Map<string, string>();
+
+  if (emailsToLookup.length > 0) {
+    const { data: users, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id, email')
+      .in('email', emailsToLookup);
+
+    if (userError) {
+      console.error('Error looking up user emails:', userError);
+    } else {
+      userEmailMap = new Map(users.map(u => [u.email, u.id]));
+    }
+  }
+
   const tasksToInsert = tasks.map((task, index) => ({
     id: `TASK-${Date.now() + index}`,
     title: task.title,
@@ -116,6 +133,7 @@ export async function addMultipleTasks(tasks: ExtractedTask[], projectId: string
     project_id: projectId,
     created_by: user.id,
     progress: 0,
+    assignee_id: task.assignee_email ? userEmailMap.get(task.assignee_email) || null : null,
   }));
 
   if (tasksToInsert.length === 0) {

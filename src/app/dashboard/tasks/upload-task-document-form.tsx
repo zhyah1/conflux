@@ -38,6 +38,7 @@ export type ExtractedTask = {
   status: 'Waiting for Approval' | 'Backlog' | 'In Progress' | 'Blocked' | 'Done';
   due_date?: string;
   description?: string;
+  assignee_email?: string;
 };
 
 const uploadSchema = z.object({
@@ -99,7 +100,7 @@ async function getExcelTasks(file: File): Promise<ExtractedTask[]> {
   const sheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[sheetName];
   const json = XLSX.utils.sheet_to_json(worksheet, {
-    header: ['title', 'priority', 'status', 'description', 'due_date'],
+    header: ['title', 'priority', 'status', 'description', 'due_date', 'assignee_email'],
     range: 1 // Skip header row
   }) as any[];
   
@@ -108,7 +109,8 @@ async function getExcelTasks(file: File): Promise<ExtractedTask[]> {
     priority: row.priority || 'Medium',
     status: row.status || 'Backlog',
     description: row.description || '',
-    due_date: row.due_date ? new Date(row.due_date).toISOString().split('T')[0] : undefined
+    due_date: row.due_date ? new Date(row.due_date).toISOString().split('T')[0] : undefined,
+    assignee_email: row.assignee_email || undefined,
   }));
 }
 

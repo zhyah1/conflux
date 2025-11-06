@@ -62,9 +62,10 @@ For Excel files, the structure is based on columns. The parser expects the **fir
 3.  **status**
 4.  **description**
 5.  **due_date** (formatted as YYYY-MM-DD)
+6.  **assignee_email** (the email of the user to assign the task to)
 
-| title                        | priority | status      | description                                     | due_date   |
-| ---------------------------- | -------- | ----------- | ----------------------------------------------- | ---------- |
-| Urgent - Fix Lobby Plumbing  | High     | Backlog     | Significant water leak reported in the lobby.   | 2024-12-15 |
-| Procure HVAC Units           | Medium   | Backlog     | Source and procure 12 HVAC units.               | 2025-01-20 |
-| Draft initial project charter| Low      | In Progress | Create the initial draft of the project charter.|            |
+| title                        | priority | status      | description                                     | due_date   | assignee_email       |
+| ---------------------------- | -------- | ----------- | ----------------------------------------------- | ---------- | -------------------- |
+| Urgent - Fix Lobby Plumbing  | High     | Backlog     | Significant water leak reported in the lobby.   | 2024-12-15 | contractor@example.com |
+| Procure HVAC Units           | Medium   | Backlog     | Source and procure 12 HVAC units.               | 2025-01-20 | pmc@example.com      |
+| Draft initial project charter| Low      | In Progress | Create the initial draft of the project charter.|            |                      |
