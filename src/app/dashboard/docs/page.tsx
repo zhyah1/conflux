@@ -341,6 +341,48 @@ Create the initial draft of the project charter for the "West Wing Renovation" p
 `;
 
 
+// This is a simple Markdown-to-HTML converter that supports headings, bold, lists, and tables.
+function markdownToHtml(md: string) {
+    md = md.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+    md = md.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+    md = md.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+    md = md.replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>');
+    md = md.replace(/`([^`]+)`/gim, '<code>$1</code>');
+    md = md.replace(/^-\s+(.*$)/gim, '<li>$1</li>');
+     md = md.replace(/<\/li><li>/gim, '</li>\n<li>'); // Add newline between li
+    md = md.replace(/^1\.\s+(.*$)/gim, '<li>$1</li>');
+
+
+    // Tables
+    md = md.replace(/^\s*\|(.+)\|\s*$/gm, (match, content) => {
+        const cells = content.split('|').map((c: string) => c.trim());
+        if (match.includes('---')) {
+        return ''; // The separator line is not needed in HTML
+        }
+        return `<tr>${cells.map((c: string) => `<td>${c}</td>`).join('')}</tr>`;
+    });
+
+    md = md.replace(/(<tr>(<td>.*?<\/td>)+<\/tr>)+/g, '<table><tbody>$&</tbody></table>');
+    md = md.replace(/<\/table><table>/g, ''); // Join adjacent tables
+
+    // Handle paragraphs and lists
+    md = md.replace(/<\/h1>|<br>/gim, '</h1>\n');
+    md = md.replace(/<\/h2>|<br>/gim, '</h2>\n');
+    md = md.replace(/<\/h3>|<br>/gim, '</h3>\n');
+
+    md = md.split('\n').map(line => line.trim() === '' ? '' : `<p>${line}</p>`).join('');
+    md = md.replace(/<p><h1>/g, '<h1>').replace(/<\/h1><\/p>/g, '</h1>');
+    md = md.replace(/<p><h2>/g, '<h2>').replace(/<\/h2><\/p>/g, '</h2>');
+    md = md.replace(/<p><h3>/g, '<h3>').replace(/<\/h3><\/p>/g, '</h3>');
+    md = md.replace(/<p><li>/g, '<li>').replace(/<\/li><\/p>/g, '</li>');
+    md = md.replace(/<p><table>/g, '<table>').replace(/<\/table><\/p>/g, '</table>');
+    md = md.replace(/(<li>.+<\/li>)+/g, '<ul>$&</ul>');
+    md = md.replace(/<\/ul><ul>/g, '');
+
+
+    return md;
+}
+
 export default function DocsPage() {
   return (
     <div className="flex flex-col gap-6">
@@ -365,9 +407,7 @@ export default function DocsPage() {
                     User roles and permissions system for the application.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="prose dark:prose-invert max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans">{roleSystemMd}</pre>
-                </CardContent>
+                <CardContent className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: markdownToHtml(roleSystemMd) }} />
               </Card>
             </TabsContent>
             <TabsContent value="architecture">
@@ -378,9 +418,7 @@ export default function DocsPage() {
                     High-level overview of the technical architecture and database schema.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="prose dark:prose-invert max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans">{architectureAndDatabaseMd}</pre>
-                </CardContent>
+                <CardContent className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: markdownToHtml(architectureAndDatabaseMd) }} />
               </Card>
             </TabsContent>
             <TabsContent value="task-creation">
@@ -391,9 +429,7 @@ export default function DocsPage() {
                     Workflow for the deterministic parser that automates task creation.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="prose dark:prose-invert max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans">{documentTaskCreationMd}</pre>
-                </CardContent>
+                <CardContent className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: markdownToHtml(documentTaskCreationMd) }}/>
               </Card>
             </TabsContent>
             <TabsContent value="sample-doc">
@@ -404,9 +440,7 @@ export default function DocsPage() {
                     An example of a correctly formatted document for task creation.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="prose dark:prose-invert max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans">{sampleTaskDocumentMd}</pre>
-                </CardContent>
+                <CardContent className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: markdownToHtml(sampleTaskDocumentMd) }}/>
               </Card>
             </TabsContent>
           </Tabs>
