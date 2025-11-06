@@ -64,7 +64,7 @@ export function Nav() {
       const { data: projectsData } = await getProjects();
       if (projectsData) setProjectCount(projectsData.length);
 
-      const { data: issuesData } = await getIssues();
+      const { data: issuesData, error: issuesError } = await getIssues();
       if (issuesData) setIssueCount(issuesData.count);
 
       const { data: documentsData } = await getDocuments();
