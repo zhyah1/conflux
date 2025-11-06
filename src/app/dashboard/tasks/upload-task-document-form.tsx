@@ -84,14 +84,14 @@ async function getPdfText(file: File): Promise<string> {
         let pageText = '';
         textContent.items.forEach(item => {
             if ('str' in item) {
-                if (lastY !== -1 && item.transform[5] < lastY) {
+                if (lastY !== -1 && item.transform[5] < lastY - 5) { // Threshold for new line
                     pageText += '\n';
                 }
-                pageText += item.str;
+                pageText += item.str + ' ';
                 lastY = item.transform[5];
             }
         });
-        fullText += pageText + '\n';
+        fullText += pageText.replace(/\s+/g, ' ').trim() + '\n';
     }
     return fullText;
 }
@@ -192,7 +192,7 @@ export function UploadTaskDocumentForm({
               Upload Task Document
             </DialogTitle>
             <DialogDescription>
-              Select a document (.txt, .md, .pdf, .xlsx) to automatically create tasks based on a template.
+              Select a document (.txt, .md, .pdf, .xlsx, .xls) to automatically create tasks based on a template.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
