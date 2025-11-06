@@ -82,13 +82,15 @@ async function getPdfText(file: File): Promise<string> {
         
         let lastY = -1;
         let pageText = '';
-        for (const item of textContent.items) {
-            if (lastY !== -1 && item.transform[5] < lastY) {
-                pageText += '\n';
+        textContent.items.forEach(item => {
+            if ('str' in item) {
+                if (lastY !== -1 && item.transform[5] < lastY) {
+                    pageText += '\n';
+                }
+                pageText += item.str;
+                lastY = item.transform[5];
             }
-            pageText += item.str;
-            lastY = item.transform[5];
-        }
+        });
         fullText += pageText + '\n';
     }
     return fullText;
@@ -101,7 +103,9 @@ async function getExcelTasks(file: File): Promise<ExtractedTask[]> {
   const worksheet = workbook.Sheets[sheetName];
   const json = XLSX.utils.sheet_to_json(worksheet, {
     header: ['title', 'priority', 'status', 'description', 'due_date', 'assignee_email'],
-    range: 1 // Skip header row
+    range: 1, // Skip header row
+    raw: false, // This ensures dates are formatted as strings
+    dateNF: 'yyyy-mm-dd', // Specify the date format
   }) as any[];
   
   return json.map(row => ({
@@ -109,7 +113,7 @@ async function getExcelTasks(file: File): Promise<ExtractedTask[]> {
     priority: row.priority || 'Medium',
     status: row.status || 'Backlog',
     description: row.description || '',
-    due_date: row.due_date ? new Date(row.due_date).toISOString().split('T')[0] : undefined,
+    due_date: row.due_date,
     assignee_email: row.assignee_email || undefined,
   }));
 }
