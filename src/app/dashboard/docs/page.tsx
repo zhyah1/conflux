@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '../components/page-header';
@@ -33,28 +34,149 @@ There are six predefined roles in the system, ordered here from most to least pr
 
 ## 2. Permission Matrix
 
-The following table summarizes the key permissions for each role.
-
-| Feature             | Owner / Admin | PMC                      | Contractor               | Subcontractor            | Client               |
-| ------------------- | :-----------: | :----------------------: | :----------------------: | :----------------------: | :------------------: |
-| **User Management** |               |                          |                          |                          |                      |
-| Invite Users        |      ✅       |            ❌            |            ❌            |            ❌            |          ❌          |
-| Assign Roles        |      ✅       |            ❌            |            ❌            |            ❌            |          ❌          |
-| View All Users      |      ✅       |            ❌            |            ❌            |            ❌            |          ❌          |
-| **Project Mgmt.**   |               |                          |                          |                          |                      |
-| Create Master Project|      ✅       |            ❌            |            ❌            |            ❌            |          ❌          |
-| Create Sub-Project  |      ✅       |            ✅            |            ❌            |            ❌            |          ❌          |
-| View All Projects   |      ✅       |            ❌            |            ❌            |            ❌            |          ❌          |
-| View Assigned Only  |      N/A      |            ✅            |            ✅            |            ✅            |          ✅          |
-| Edit Any Project    |      ✅       |            ❌            |            ❌            |            ❌            |          ❌          |
-| Edit Assigned Only  |      N/A      | ✅ (Can assign users)    | ✅ (Can assign users)    | ✅ (Status/Progress)     |          ❌          |
-| Delete Projects     |      ✅       |            ❌            |            ❌            |            ❌            |          ❌          |
-| **Task Management** |               |                          |                          |                          |                      |
-| View Tasks (Assigned Project) |      ✅       | ✅                       | ✅                       | ✅                       | ✅ (Read-only)      |
-| Create Tasks        |      ✅       | ✅                       | ✅                       | ✅                       |          ❌          |
-| Edit Any Task       |      ✅       | ✅                       | ✅ (If assigned)         | ✅ (If assigned)         |          ❌          |
-| Assign Tasks To...  |      Any      | Contractors, Subcontractors | Self, Subcontractors     | Self                     |          N/A         |
-| Delete Tasks        |      ✅       | ✅                       | ✅ (If assigned)         | ✅ (If assigned)         |          ❌          |
+<table class="w-full">
+    <thead>
+        <tr>
+            <th class="text-left">Feature</th>
+            <th class="text-center">Owner / Admin</th>
+            <th class="text-center">PMC</th>
+            <th class="text-center">Contractor</th>
+            <th class="text-center">Subcontractor</th>
+            <th class="text-center">Client</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td colspan="6" class="font-bold pt-4">User Management</td>
+        </tr>
+        <tr>
+            <td>Invite Users</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+        </tr>
+        <tr>
+            <td>Assign Roles</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+        </tr>
+        <tr>
+            <td>View All Users</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+        </tr>
+        <tr>
+            <td colspan="6" class="font-bold pt-4">Project Mgmt.</td>
+        </tr>
+        <tr>
+            <td>Create Master Project</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+        </tr>
+        <tr>
+            <td>Create Sub-Project</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+        </tr>
+        <tr>
+            <td>View All Projects</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+        </tr>
+        <tr>
+            <td>View Assigned Only</td>
+            <td class="text-center">N/A</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅</td>
+        </tr>
+        <tr>
+            <td>Edit Any Project</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+        </tr>
+        <tr>
+            <td>Edit Assigned Only</td>
+            <td class="text-center">N/A</td>
+            <td class="text-center">✅ (Can assign users)</td>
+            <td class="text-center">✅ (Can assign users)</td>
+            <td class="text-center">✅ (Status/Progress)</td>
+            <td class="text-center">❌</td>
+        </tr>
+        <tr>
+            <td>Delete Projects</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+            <td class="text-center">❌</td>
+        </tr>
+        <tr>
+            <td colspan="6" class="font-bold pt-4">Task Management</td>
+        </tr>
+        <tr>
+            <td>View Tasks (Assigned Project)</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅ (Read-only)</td>
+        </tr>
+        <tr>
+            <td>Create Tasks</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">❌</td>
+        </tr>
+        <tr>
+            <td>Edit Any Task</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅ (If assigned)</td>
+            <td class="text-center">✅ (If assigned)</td>
+            <td class="text-center">❌</td>
+        </tr>
+        <tr>
+            <td>Assign Tasks To...</td>
+            <td class="text-center">Any</td>
+            <td class="text-center">Contractors, Subcontractors</td>
+            <td class="text-center">Self, Subcontractors</td>
+            <td class="text-center">Self</td>
+            <td class="text-center">N/A</td>
+        </tr>
+        <tr>
+            <td>Delete Tasks</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅</td>
+            <td class="text-center">✅ (If assigned)</td>
+            <td class="text-center">✅ (If assigned)</td>
+            <td class="text-center">❌</td>
+        </tr>
+    </tbody>
+</table>
 
 ---
 
@@ -348,37 +470,23 @@ function markdownToHtml(md: string) {
     md = md.replace(/^### (.*$)/gim, '<h3>$1</h3>');
     md = md.replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>');
     md = md.replace(/`([^`]+)`/gim, '<code>$1</code>');
-    md = md.replace(/^-\s+(.*$)/gim, '<li>$1</li>');
-     md = md.replace(/<\/li><li>/gim, '</li>\n<li>'); // Add newline between li
-    md = md.replace(/^1\.\s+(.*$)/gim, '<li>$1</li>');
-
-
-    // Tables
-    md = md.replace(/^\s*\|(.+)\|\s*$/gm, (match, content) => {
-        const cells = content.split('|').map((c: string) => c.trim());
-        if (match.includes('---')) {
-        return ''; // The separator line is not needed in HTML
-        }
-        return `<tr>${cells.map((c: string) => `<td>${c}</td>`).join('')}</tr>`;
-    });
-
-    md = md.replace(/(<tr>(<td>.*?<\/td>)+<\/tr>)+/g, '<table><tbody>$&</tbody></table>');
-    md = md.replace(/<\/table><table>/g, ''); // Join adjacent tables
+    md = md.replace(/^(?!\<table)(-\s+.*$)/gim, '<li>$1</li>');
+    md = md.replace(/<\/li><li>/gim, '</li>\n<li>'); // Add newline between li
+    md = md.replace(/^(?!\<table)(1\.\s+.*$)/gim, '<li>$1</li>');
 
     // Handle paragraphs and lists
-    md = md.replace(/<\/h1>|<br>/gim, '</h1>\n');
-    md = md.replace(/<\/h2>|<br>/gim, '</h2>\n');
-    md = md.replace(/<\/h3>|<br>/gim, '</h3>\n');
+    md = md.split('\n').map(line => {
+        if (line.trim().startsWith('<table')) return line;
+        return line.trim() === '' ? '' : `<p>${line}</p>`;
+    }).join('');
 
-    md = md.split('\n').map(line => line.trim() === '' ? '' : `<p>${line}</p>`).join('');
     md = md.replace(/<p><h1>/g, '<h1>').replace(/<\/h1><\/p>/g, '</h1>');
     md = md.replace(/<p><h2>/g, '<h2>').replace(/<\/h2><\/p>/g, '</h2>');
     md = md.replace(/<p><h3>/g, '<h3>').replace(/<\/h3><\/p>/g, '</h3>');
     md = md.replace(/<p><li>/g, '<li>').replace(/<\/li><\/p>/g, '</li>');
-    md = md.replace(/<p><table>/g, '<table>').replace(/<\/table><\/p>/g, '</table>');
     md = md.replace(/(<li>.+<\/li>)+/g, '<ul>$&</ul>');
     md = md.replace(/<\/ul><ul>/g, '');
-
+    md = md.replace(/<p>---<\/p>/g, '<hr class="my-4"/>');
 
     return md;
 }
