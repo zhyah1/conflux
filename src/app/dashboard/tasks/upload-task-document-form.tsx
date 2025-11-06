@@ -28,9 +28,17 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { addMultipleTasks } from './actions';
 import { useRouter } from 'next/navigation';
-import type { ExtractedTask } from '@/ai/flows/extract-task-details-from-document';
 import * as pdfjs from 'pdfjs-dist';
 import 'pdfjs-dist/build/pdf.worker.min.mjs';
+import * as XLSX from 'xlsx';
+
+export type ExtractedTask = {
+  title: string;
+  priority: 'High' | 'Medium' | 'Low';
+  status: 'Waiting for Approval' | 'Backlog' | 'In Progress' | 'Blocked' | 'Done';
+  due_date?: string;
+  description?: string;
+};
 
 const uploadSchema = z.object({
   file: z
@@ -71,7 +79,6 @@ async function getPdfText(file: File): Promise<string> {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
         
-        // Naive text reconstruction with line breaks
         let lastY = -1;
         let pageText = '';
         for (const item of textContent.items) {
@@ -86,6 +93,24 @@ async function getPdfText(file: File): Promise<string> {
     return fullText;
 }
 
+async function getExcelTasks(file: File): Promise<ExtractedTask[]> {
+  const arrayBuffer = await file.arrayBuffer();
+  const workbook = XLSX.read(arrayBuffer, { type: 'buffer' });
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+  const json = XLSX.utils.sheet_to_json(worksheet, {
+    header: ['title', 'priority', 'status', 'description', 'due_date'],
+    range: 1 // Skip header row
+  }) as any[];
+  
+  return json.map(row => ({
+    title: row.title || '',
+    priority: row.priority || 'Medium',
+    status: row.status || 'Backlog',
+    description: row.description || '',
+    due_date: row.due_date ? new Date(row.due_date).toISOString().split('T')[0] : undefined
+  }));
+}
 
 export function UploadTaskDocumentForm({
   children,
@@ -107,22 +132,22 @@ export function UploadTaskDocumentForm({
     setIsProcessing(true);
     try {
       const file = values.file[0];
-      let fileContent = '';
+      let extractedTasks: ExtractedTask[] = [];
 
       if (file.type === 'application/pdf') {
-          fileContent = await getPdfText(file);
+          const fileContent = await getPdfText(file);
+          extractedTasks = parseTaskDocument(fileContent);
+      } else if (file.type.includes('spreadsheet') || file.type.includes('excel')) {
+          extractedTasks = await getExcelTasks(file);
       } else {
-          fileContent = await file.text();
+          const fileContent = await file.text();
+          extractedTasks = parseTaskDocument(fileContent);
       }
-
-      // 1. Parse tasks using the client-side parser
-      const extractedTasks = parseTaskDocument(fileContent);
 
       if (!extractedTasks || extractedTasks.length === 0) {
         throw new Error('Could not find any valid tasks in the document. Please check the formatting.');
       }
 
-      // 2. Add all tasks to the database directly
       const result = await addMultipleTasks(extractedTasks, projectId);
 
        if (result.error) {
@@ -161,7 +186,7 @@ export function UploadTaskDocumentForm({
               Upload Task Document
             </DialogTitle>
             <DialogDescription>
-              Select a document (.txt, .md, .pdf) to automatically create tasks based on a template.
+              Select a document (.txt, .md, .pdf, .xlsx) to automatically create tasks based on a template.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -176,7 +201,7 @@ export function UploadTaskDocumentForm({
                   <FormItem>
                     <FormLabel>Document</FormLabel>
                     <FormControl>
-                      <Input type="file" {...form.register('file')} accept=".txt,.md,.pdf" />
+                      <Input type="file" {...form.register('file')} accept=".txt,.md,.pdf,.xlsx,.xls" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
