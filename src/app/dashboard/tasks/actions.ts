@@ -6,7 +6,6 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { type ExtractedTask } from '@/app/dashboard/tasks/upload-task-document-form';
-import { parseISO } from 'date-fns';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Task title is required.'),
@@ -129,7 +128,7 @@ export async function addMultipleTasks(tasks: ExtractedTask[], projectId: string
     priority: task.priority,
     status: task.status,
     description: task.description,
-    due_date: task.due_date ? parseISO(task.due_date).toISOString() : null,
+    due_date: task.due_date ? new Date(task.due_date).toISOString() : null,
     project_id: projectId,
     created_by: user.id,
     progress: 0,
