@@ -29,7 +29,7 @@ import { Loader2 } from 'lucide-react';
 import { addMultipleTasks } from './actions';
 import { useRouter } from 'next/navigation';
 import * as pdfjs from 'pdfjs-dist';
-import 'pdfjs-dist/build/pdf.worker.min.mjs';
+import 'pdfjs-dist/build/pdf.worker.mjs';
 import * as XLSX from 'xlsx';
 
 export type ExtractedTask = {

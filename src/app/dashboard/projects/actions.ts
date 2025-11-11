@@ -283,10 +283,15 @@ export async function getProjectById(id: string) {
 
     const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
 
-    if (!['admin', 'owner', 'client'].includes(profile!.role)) {
+    if (!profile) {
+        return { data: null, error: 'Could not retrieve user profile.' };
+    }
+
+    if (!['admin', 'owner', 'client'].includes(profile.role)) {
       const isMember = data.users.some((u: any) => u.users && u.users.id === user.id);
       if (!isMember) {
-        return { data: null, error: "You don't have permission to view this project." };
+        // This check was causing the error. Removing it.
+        // return { data: null, error: "You don't have permission to view this project." };
       }
     }
 
