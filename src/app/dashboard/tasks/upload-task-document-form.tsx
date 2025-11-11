@@ -29,8 +29,10 @@ import { Loader2 } from 'lucide-react';
 import { addMultipleTasks } from './actions';
 import { useRouter } from 'next/navigation';
 import * as pdfjs from 'pdfjs-dist';
-import 'pdfjs-dist/build/pdf.worker.mjs';
 import * as XLSX from 'xlsx';
+
+// Set the worker source for pdfjs-dist
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 export type ExtractedTask = {
   title: string;
