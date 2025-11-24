@@ -50,7 +50,7 @@ export function getDynamicStatus(item: Schedulable) {
     return {
         completion: manualCompletion,
         expectedCompletion: 0,
-        status: 'Planning',
+        status: item.status, // Use manually set status like 'Planning'
         isDelayed: false,
     }
   }
@@ -68,13 +68,11 @@ export function getDynamicStatus(item: Schedulable) {
   }
 
   const expectedCompletion = Math.max(0, Math.min(100, Math.round((elapsedDuration / totalDuration) * 100)));
-  
-  const isDelayed = manualCompletion < expectedCompletion;
 
   return {
     completion: manualCompletion,
     expectedCompletion: expectedCompletion,
-    status: isDelayed ? 'Delayed' : 'On Track',
-    isDelayed: isDelayed,
+    status: item.status, // Use manually set status like 'On Track' or 'In Progress'
+    isDelayed: false,
   };
 }
