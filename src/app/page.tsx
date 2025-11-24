@@ -3,6 +3,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Logo } from '@/components/logo';
 
 export default function LandingPage() {
   return (
@@ -18,6 +19,7 @@ export default function LandingPage() {
             data-ai-hint="construction site"
           />
           <div className="container max-w-4xl px-4 text-foreground dark:text-white">
+            <Logo className="h-16 w-16 text-3xl mx-auto mb-6" />
             <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl font-headline">
               Build Better. Build Smarter. Build Together.
             </h1>
@@ -32,7 +34,6 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-
       </main>
     </div>
   );
