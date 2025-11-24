@@ -3,7 +3,7 @@ import { Logo } from '@/components/logo';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, GanttChartSquare, Users, FolderKanban, BrainCircuit } from 'lucide-react';
+import { ArrowRight, GanttChartSquare, Users, FolderKanban, BrainCircuit } from 'lucide-react';
 
 const features = [
     {
@@ -64,19 +64,17 @@ export default function AboutPage() {
                 </div>
             </header>
 
-            <main>
+            <main className="container">
                 <section className="py-20 text-center">
-                     <div className="container">
-                        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl font-headline">
-                            The Future of Construction Management
-                        </h1>
-                        <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
-                            Construx is designed to bring clarity, efficiency, and intelligence to every phase of your construction projects.
-                        </p>
-                    </div>
+                    <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl font-headline">
+                        The Future of Construction Management
+                    </h1>
+                    <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
+                        Construx is designed to bring clarity, efficiency, and intelligence to every phase of your construction projects.
+                    </p>
                 </section>
 
-                <section className="py-20 bg-muted/40">
+                <section className="py-20 bg-muted/40 rounded-lg">
                     <div className="container">
                         <div className="grid gap-12 md:grid-cols-2">
                             <div className="flex items-center justify-center">
@@ -112,18 +110,16 @@ export default function AboutPage() {
                 </section>
 
                 <section className="py-24 text-center">
-                    <div className="container">
-                        <h2 className="text-3xl font-bold tracking-tight font-headline">
-                            Ready to Transform Your Projects?
-                        </h2>
-                        <p className="mt-4 max-w-xl mx-auto text-muted-foreground">
-                            Join today and start building better, smarter, and together.
-                        </p>
-                        <div className="mt-8">
-                            <Link href="/login" className={cn(buttonVariants({ size: 'lg' }))}>
-                                Get Started Now <ArrowRight className="ml-2 h-5 w-5" />
-                            </Link>
-                        </div>
+                    <h2 className="text-3xl font-bold tracking-tight font-headline">
+                        Ready to Transform Your Projects?
+                    </h2>
+                    <p className="mt-4 max-w-xl mx-auto text-muted-foreground">
+                        Join today and start building better, smarter, and together.
+                    </p>
+                    <div className="mt-8">
+                        <Link href="/login" className={cn(buttonVariants({ size: 'lg' }))}>
+                            Get Started Now <ArrowRight className="ml-2 h-5 w-5" />
+                        </Link>
                     </div>
                 </section>
             </main>
