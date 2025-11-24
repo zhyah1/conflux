@@ -1,10 +1,6 @@
 
-import { Button, buttonVariants } from '@/components/ui/button';
-import { Logo } from '@/components/logo';
-import { cn } from '@/lib/utils';
+import { GanttChartSquare, Users, FolderKanban, BrainCircuit } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
-import { ArrowRight, GanttChartSquare, Users, FolderKanban, BrainCircuit } from 'lucide-react';
 
 const features = [
     {
@@ -31,53 +27,9 @@ const features = [
 
 export default function AboutPage() {
     return (
-        <div className="bg-background text-foreground">
-            <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="container flex h-14 items-center">
-                    <div className="mr-4 flex">
-                        <Link href="/" className="flex items-center space-x-2">
-                            <Logo className="h-8 w-8" />
-                            <span className="font-bold">Construx</span>
-                        </Link>
-                    </div>
-                    <div className="flex flex-1 items-center justify-end space-x-2">
-                        <nav className="flex items-center">
-                            <Link
-                                href="/login"
-                                className={cn(
-                                    buttonVariants({ variant: 'secondary', size: 'sm' }),
-                                    'px-4'
-                                )}
-                            >
-                                Login
-                            </Link>
-                             <Link
-                                href="/login"
-                                className={cn(
-                                    buttonVariants({ size: 'sm' }),
-                                    'ml-2'
-                                )}
-                            >
-                                Get Started
-                            </Link>
-                        </nav>
-                    </div>
-                </div>
-            </header>
-
+        <div className="bg-background text-foreground min-h-screen flex items-center justify-center">
             <main>
-                <section className="py-20 text-center">
-                    <div className="container">
-                        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl font-headline">
-                            The Future of Construction Management
-                        </h1>
-                        <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
-                            Construx is designed to bring clarity, efficiency, and intelligence to every phase of your construction projects.
-                        </p>
-                    </div>
-                </section>
-
-                <section className="py-20 bg-muted/40">
+                <section className="py-20">
                     <div className="container">
                         <div className="grid gap-12 md:grid-cols-2">
                             <div className="flex items-center justify-center">
@@ -111,37 +63,7 @@ export default function AboutPage() {
                         </div>
                     </div>
                 </section>
-
-                <section className="py-24 text-center">
-                    <div className="container">
-                        <h2 className="text-3xl font-bold tracking-tight font-headline">
-                            Ready to Transform Your Projects?
-                        </h2>
-                        <p className="mt-4 max-w-xl mx-auto text-muted-foreground">
-                            Join today and start building better, smarter, and together.
-                        </p>
-                        <div className="mt-8">
-                            <Link href="/login" className={cn(buttonVariants({ size: 'lg' }))}>
-                                Get Started Now <ArrowRight className="ml-2 h-5 w-5" />
-                            </Link>
-                        </div>
-                    </div>
-                </section>
             </main>
-
-            <footer className="border-t">
-                <div className="container flex flex-col items-center justify-between gap-4 py-10 md:h-24 md:flex-row md:py-0">
-                    <div className="flex items-center gap-2">
-                        <Logo className="h-6 w-6" />
-                        <p className="text-center text-sm leading-loose md:text-left">
-                           Built for the modern construction era.
-                        </p>
-                    </div>
-                    <p className="text-center text-sm text-muted-foreground md:text-left">
-                        © {new Date().getFullYear()} Construx, Inc. All rights reserved.
-                    </p>
-                </div>
-            </footer>
         </div>
     );
 }
