@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/chart';
 import type { Project } from '../projects/page';
 import type { ChartConfig } from '@/components/ui/chart';
+import { getDynamicStatus } from '@/lib/utils';
 
 type ProjectProgressChartProps = {
   data: Project[];
@@ -22,11 +23,14 @@ const chartColors = [
 ];
 
 export function ProjectProgressChart({ data }: ProjectProgressChartProps) {
-  const chartData = data.map((project, index) => ({
-    name: project.name.split(' ').slice(0, 2).join(' '), // Shorten name for chart label
-    completion: project.completion,
-    fill: chartColors[index % chartColors.length],
-  }));
+  const chartData = data.map((project, index) => {
+    const dynamicStatus = getDynamicStatus(project);
+    return {
+      name: project.name.split(' ').slice(0, 2).join(' '), // Shorten name for chart label
+      completion: dynamicStatus.expectedCompletion,
+      fill: chartColors[index % chartColors.length],
+    };
+  });
 
   const chartConfig = chartData.reduce((acc, project) => {
     acc[project.name] = {
