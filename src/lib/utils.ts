@@ -17,6 +17,7 @@ export function getDynamicStatus(item: Schedulable) {
   if (!item.start_date || !item.end_date) {
     return {
       completion: item.completion || 0,
+      expectedCompletion: item.completion || 0,
       status: item.status,
       isDelayed: false,
     };
@@ -25,10 +26,12 @@ export function getDynamicStatus(item: Schedulable) {
   const today = startOfToday();
   const startDate = new Date(item.start_date);
   const endDate = new Date(item.end_date);
+  const manualCompletion = item.completion || 0;
 
-  if (item.status === 'Completed' || item.completion === 100) {
+  if (item.status === 'Completed' || manualCompletion === 100) {
     return {
       completion: 100,
+      expectedCompletion: 100,
       status: 'Completed',
       isDelayed: false,
     };
@@ -36,7 +39,8 @@ export function getDynamicStatus(item: Schedulable) {
   
   if (today > endDate) {
       return {
-          completion: item.completion,
+          completion: manualCompletion,
+          expectedCompletion: 100,
           status: 'Delayed',
           isDelayed: true,
       };
@@ -44,7 +48,8 @@ export function getDynamicStatus(item: Schedulable) {
   
   if (today < startDate) {
     return {
-        completion: 0,
+        completion: manualCompletion,
+        expectedCompletion: 0,
         status: 'Planning',
         isDelayed: false,
     }
@@ -55,7 +60,8 @@ export function getDynamicStatus(item: Schedulable) {
   
   if (totalDuration <= 0) {
      return {
-        completion: item.completion,
+        completion: manualCompletion,
+        expectedCompletion: manualCompletion,
         status: item.status,
         isDelayed: false,
      }
@@ -63,10 +69,11 @@ export function getDynamicStatus(item: Schedulable) {
 
   const expectedCompletion = Math.max(0, Math.min(100, Math.round((elapsedDuration / totalDuration) * 100)));
   
-  const isDelayed = item.completion < expectedCompletion;
+  const isDelayed = manualCompletion < expectedCompletion;
 
   return {
-    completion: item.completion,
+    completion: manualCompletion,
+    expectedCompletion: expectedCompletion,
     status: isDelayed ? 'Delayed' : 'On Track',
     isDelayed: isDelayed,
   };

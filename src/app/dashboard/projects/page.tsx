@@ -143,8 +143,8 @@ const ProjectRow = ({ project, level = 0 }: { project: Project; level?: number }
         </TableCell>
         <TableCell className="hidden md:table-cell">
           <div className="flex items-center gap-2">
-             <Progress value={dynamic.completion} className="h-2" />
-             <span>{dynamic.completion}%</span>
+             <Progress value={dynamic.expectedCompletion} className="h-2" />
+             <span>{dynamic.expectedCompletion}%</span>
           </div>
         </TableCell>
         <TableCell>
