@@ -41,9 +41,8 @@ export type Task = {
   approver_id: string | null;
   description: string | null;
   due_date: string | null;
+  start_date: string | null;
   progress: number | null;
-  start_date: string;
-  end_date: string;
   completion: number;
 };
 
@@ -340,8 +339,7 @@ export default function TaskDetailsPage() {
   const isOverdue = task.due_date ? isPast(new Date(task.due_date)) && task.status !== 'Done' : false;
   const dynamicStatus = getDynamicStatus({
       ...task,
-      start_date: task.start_date || new Date().toISOString(), // Use dummy dates if not present
-      end_date: task.due_date || new Date().toISOString(),
+      end_date: task.due_date,
       completion: task.progress || 0
   })
 
