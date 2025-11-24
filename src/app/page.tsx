@@ -1,6 +1,5 @@
 
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Logo } from '@/components/logo';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -18,11 +17,11 @@ export default function LandingPage() {
             className="object-cover -z-10 brightness-50"
             data-ai-hint="construction site"
           />
-          <div className="container max-w-4xl px-4 text-white">
+          <div className="container max-w-4xl px-4 text-foreground dark:text-white">
             <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl font-headline">
               Build Better. Build Smarter. Build Together.
             </h1>
-            <p className="mt-4 text-lg md:text-xl text-white/80">
+            <p className="mt-4 text-lg md:text-xl text-foreground/80 dark:text-white/80">
               Construx is the ultimate project management solution for the modern construction industry.
               Streamline your projects from groundbreaking to handover.
             </p>
