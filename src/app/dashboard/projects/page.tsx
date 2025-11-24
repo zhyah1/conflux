@@ -162,12 +162,17 @@ const ProjectRow = ({ project, level = 0 }: { project: Project; level?: number }
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const { profile } = useUser();
+  const { profile, user, loading: userLoading } = useUser();
 
   useEffect(() => {
     async function fetchProjects() {
+      if (userLoading) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
-      const { data, error } = await getProjects();
+      const { data, error } = await getProjects() || {};
       if (!error && data) {
         const allProjects = data as unknown as Project[];
         const projectMap = new Map(allProjects.map(p => [p.id, { ...p, subProjects: [] as Project[] }]));
@@ -199,7 +204,7 @@ export default function ProjectsPage() {
       setLoading(false);
     }
     fetchProjects();
-  }, []);
+  }, [user, userLoading]);
   
   const canAddProject = profile?.role === 'admin' || profile?.role === 'pmc';
 
