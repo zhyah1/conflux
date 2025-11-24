@@ -3,7 +3,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Logo } from '@/components/logo';
+import { Sun } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -18,32 +18,67 @@ export default function LandingPage() {
             className="object-cover -z-20 brightness-50"
             data-ai-hint="construction site"
           />
-          {/* CSS Skyline */}
-          <div className="absolute bottom-0 left-0 right-0 h-1/2 -z-10">
-              <div className="absolute bottom-0 left-[5%] w-20 h-48 bg-foreground/30 backdrop-blur-sm"></div>
-              <div className="absolute bottom-0 left-[10%] w-16 h-64 bg-foreground/40 backdrop-blur-sm border-t-8 border-accent"></div>
-              <div className="absolute bottom-0 left-[20%] w-24 h-80 bg-foreground/20 backdrop-blur-sm"></div>
-              {/* Traditional peak */}
-              <div className="absolute bottom-0 left-[28%] w-0 h-0 
-                border-l-[50px] border-l-transparent
-                border-r-[50px] border-r-transparent
-                border-b-[80px] border-b-accent/50">
+          {/* CSS Skyline from image */}
+           <div className="absolute inset-0 -z-10">
+              {/* Ground */}
+              <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-t from-zinc-800 to-zinc-900"></div>
+
+              {/* Sun */}
+              <Sun className="absolute top-[15%] right-[15%] h-12 w-12 text-yellow-400/80 animate-pulse" />
+
+              {/* Left Building */}
+              <div className="absolute bottom-2 left-[10%] w-48 h-48">
+                {/* Building Base */}
+                <div className="absolute bottom-0 w-full h-3/4 bg-[#6b4f3a] rounded-t-lg">
+                    {/* Windows */}
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 w-3/4 h-1/3 bg-black/20 grid grid-cols-3 grid-rows-2 gap-1 p-1 rounded">
+                        <div className="bg-yellow-300/30 rounded-sm"></div>
+                        <div className="bg-yellow-300/30 rounded-sm"></div>
+                        <div className="bg-yellow-300/30 rounded-sm"></div>
+                        <div className="bg-yellow-300/30 rounded-sm"></div>
+                        <div className="bg-yellow-300/30 rounded-sm"></div>
+                        <div className="bg-yellow-300/30 rounded-sm"></div>
+                    </div>
+                     {/* Door */}
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-16 bg-[#523d2e] rounded-t-md flex items-center justify-center">
+                       <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
+                    </div>
+                </div>
+                 {/* Roof/Awning */}
+                <div className="absolute -top-8 -left-4 w-48 h-20 bg-gradient-to-br from-red-600 to-orange-500 rounded-lg -rotate-[15deg] origin-bottom-left"></div>
+                 <div className="absolute -top-2 left-12 w-32 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg -rotate-[15deg] origin-bottom-left opacity-90"></div>
               </div>
-               <div className="absolute bottom-0 left-[calc(28%-10px)] w-32 h-56 bg-foreground/30 backdrop-blur-sm"></div>
-              {/* Modern Tower */}
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-96 bg-foreground/50 backdrop-blur-sm flex justify-center items-start pt-4">
-                <div className="w-2 h-20 bg-accent animate-pulse"></div>
+              
+              {/* Right Building */}
+              <div className="absolute bottom-2 right-[12%] w-40 h-80 bg-slate-800 rounded-t-xl overflow-hidden border-x-2 border-orange-500/50">
+                  <div className="absolute inset-0 grid grid-cols-4 grid-rows-8 gap-2 p-2">
+                    {Array.from({length: 32}).map((_, i) => (
+                        <div key={i} className="bg-blue-300/10 rounded-sm"></div>
+                    ))}
+                  </div>
+                  <div className="absolute top-1/2 left-0 right-0 h-1.5 bg-orange-500/50"></div>
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-10 bg-[#523d2e] rounded-t-lg border-x-4 border-t-4 border-orange-500/50"></div>
               </div>
-              <div className="absolute bottom-0 right-[20%] w-12 h-72 bg-foreground/20 backdrop-blur-sm"></div>
-              <div className="absolute bottom-0 right-[10%] w-28 h-56 bg-foreground/40 backdrop-blur-sm border-t-4 border-b-8 border-accent"></div>
-               <div className="absolute bottom-0 right-[5%] w-16 h-40 bg-foreground/30 backdrop-blur-sm"></div>
+
+              {/* People/Bushes */}
+              <div className="absolute bottom-2 left-[25%]">
+                <div className="w-4 h-6 bg-green-500 rounded-t-full"></div>
+                <div className="w-4 h-2 bg-green-600"></div>
+              </div>
+               <div className="absolute bottom-2 left-[50%]">
+                <div className="w-3 h-4 bg-green-500 rounded-t-full"></div>
+                <div className="w-3 h-1.5 bg-green-600"></div>
+              </div>
+
+               {/* Faint Circle */}
+              <div className="absolute top-1/2 left-1/3 w-32 h-32 border-2 border-green-500/10 rounded-full"></div>
           </div>
+
           <div className="container max-w-4xl px-4 text-white">
-            <Logo className="h-24 w-24 text-5xl mx-auto mb-8 bg-gradient-to-br from-primary to-accent shadow-2xl" />
             <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl font-headline text-shadow">
               Build Better. Build Smarter. Build Together.
             </h1>
-            <p className="mt-4 text-lg md:text-xl text-white/80 text-shadow-md">
+            <p className="mt-4 text-lg md:text-xl text-foreground/80 text-shadow-md">
               Construx is the ultimate project management solution for the modern construction industry.
               Streamline your projects from groundbreaking to handover.
             </p>
