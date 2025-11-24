@@ -1,148 +1,151 @@
-'use client';
 
-import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
+import { cn } from '@/lib/utils';
+import Image from 'next/image';
+import Link from 'next/link';
+import { Building, GanttChartSquare, CheckCircle, Users } from 'lucide-react';
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const router = useRouter();
-  const { toast } = useToast();
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      if (isSignUp) {
-        // Sign up
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-           options: {
-            data: {
-              full_name: email.split('@')[0], // Use email username as name
-              role: 'admin', // Make first user admin
-            },
-          },
-        });
-        
-        if (error) {
-          toast({
-            variant: 'destructive',
-            title: 'Sign Up Error',
-            description: error.message
-          });
-        } else {
-          toast({
-            title: 'Success',
-            description: 'Account created successfully! Please check your email for verification.'
-          });
-          // Don't redirect immediately, let them verify email.
-          setIsSignUp(false); // Switch back to login view
-        }
-      } else {
-        // Sign in
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
-        if (error) {
-          toast({
-            variant: 'destructive',
-            title: 'Sign In Error',
-            description: error.message
-          });
-        } else {
-          toast({
-            title: 'Success',
-            description: 'Signed in successfully!'
-          });
-          router.push('/dashboard');
-        }
-      }
-    } catch (error) {
-      console.error('Auth error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'An unexpected error occurred'
-      });
-    }
-    
-    setLoading(false);
-  };
-
+export default function LandingPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-           <Logo className="h-10 w-10 text-primary mx-auto mb-2" />
-          <CardTitle className="font-headline">{isSignUp ? 'Create Account' : 'Welcome to Construx'}</CardTitle>
-          <CardDescription>
-            {isSignUp 
-              ? 'Create your account to get started' 
-              : 'Sign in to your account to continue'
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleAuth} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your.email@example.com"
-                required
-              />
+    <div className="flex flex-col min-h-screen bg-background">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center">
+          <div className="mr-4 flex items-center">
+            <Logo className="h-8 w-8 mr-2" />
+            <span className="font-bold">Construx</span>
+          </div>
+          <nav className="flex items-center space-x-6 text-sm font-medium">
+            <Link href="#features" className="text-muted-foreground transition-colors hover:text-foreground">Features</Link>
+            <Link href="#about" className="text-muted-foreground transition-colors hover:text-foreground">About</Link>
+          </nav>
+          <div className="flex flex-1 items-center justify-end space-x-4">
+            <Link href="/login" className={cn(buttonVariants({ variant: 'ghost' }))}>Login</Link>
+            <Link href="/login" className={cn(buttonVariants({ variant: 'default' }))}>Get Started</Link>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="relative h-[60vh] min-h-[500px] flex items-center justify-center text-center">
+          <Image
+            src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjb25zdHJ1Y3Rpb258ZW58MHx8fHwxNzE4NzgzNzM4fDA&ixlib=rb-4.1.0&q=80&w=1920"
+            alt="Construction site"
+            fill
+            className="object-cover -z-10 brightness-50"
+            data-ai-hint="construction site"
+          />
+          <div className="container max-w-4xl px-4 text-white">
+            <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl font-headline">
+              Build Better. Build Smarter. Build Together.
+            </h1>
+            <p className="mt-4 text-lg md:text-xl text-white/80">
+              Construx is the ultimate project management solution for the modern construction industry.
+              Streamline your projects from groundbreaking to handover.
+            </p>
+            <div className="mt-8 flex justify-center gap-4">
+              <Link href="/login" className={cn(buttonVariants({ size: 'lg' }))}>
+                Start Your Free Trial
+              </Link>
+              <Link href="#features" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'text-white border-white')}>
+                Learn More
+              </Link>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Your password"
-                minLength={6}
-                required
-              />
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section id="features" className="py-16 md:py-24 bg-secondary">
+          <div className="container">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold tracking-tight font-headline">All-in-One Construction Management</h2>
+              <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
+                From planning and execution to team collaboration and reporting, Construx has you covered.
+              </p>
             </div>
-            
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
-            </Button>
-            
-            <div className="text-center">
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm"
-              >
-                {isSignUp 
-                  ? 'Already have an account? Sign in' 
-                  : 'Need an account? Sign up'
-                }
-              </Button>
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex items-center">
+                   <div className="p-3 rounded-full bg-primary/10">
+                    <Building className="h-6 w-6 text-primary" />
+                   </div>
+                  <CardTitle>Project Planning</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm">
+                    Define project phases, set budgets, and establish timelines with our intuitive planning tools.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex items-center">
+                   <div className="p-3 rounded-full bg-primary/10">
+                    <GanttChartSquare className="h-6 w-6 text-primary" />
+                   </div>
+                  <CardTitle>Task Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm">
+                    Create, assign, and track tasks on a visual Kanban board. Monitor progress and resolve issues faster.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex items-center">
+                   <div className="p-3 rounded-full bg-primary/10">
+                    <Users className="h-6 w-6 text-primary" />
+                   </div>
+                  <CardTitle>Team Collaboration</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm">
+                    Keep your entire team—from PMCs to subcontractors—aligned with role-based access and centralized communication.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex items-center">
+                   <div className="p-3 rounded-full bg-primary/10">
+                    <CheckCircle className="h-6 w-6 text-primary" />
+                   </div>
+                  <CardTitle>Approval Workflows</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm">
+                    Streamline decision-making with automated approval requests for critical tasks.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+        </section>
+
+        {/* Call to Action Section */}
+        <section id="about" className="py-16 md:py-24">
+          <div className="container text-center">
+            <h2 className="text-3xl font-bold tracking-tight font-headline">Ready to Transform Your Projects?</h2>
+            <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
+              Join hundreds of leading construction firms who trust Construx to deliver projects on time and on budget.
+            </p>
+            <div className="mt-8">
+              <Link href="/login" className={cn(buttonVariants({ size: 'lg' }))}>
+                Get Started with Construx
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t">
+        <div className="container py-6 flex items-center justify-between text-sm text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} Construx, Inc. All rights reserved.</p>
+          <div className="flex gap-4">
+            <Link href="#" className="hover:text-foreground">Privacy Policy</Link>
+            <Link href="#" className="hover:text-foreground">Terms of Service</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
