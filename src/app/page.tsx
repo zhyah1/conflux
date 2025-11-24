@@ -9,13 +9,13 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center justify-between">
+        <div className="container flex h-14 items-center">
           <Link href="/" className="flex items-center gap-2">
             <Logo className="h-8 w-8" />
             <span className="font-bold">Construx</span>
           </Link>
           
-          <div className="flex items-center space-x-4">
+          <div className="ml-auto flex items-center space-x-4">
             <Link href="/login" className={cn(buttonVariants({ variant: 'ghost' }))}>Login</Link>
             <Link href="/login" className={cn(buttonVariants({ variant: 'default' }))}>Get Started</Link>
           </div>
