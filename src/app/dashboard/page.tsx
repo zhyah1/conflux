@@ -48,12 +48,14 @@ import { getProjects } from './projects/actions';
 import type { Project } from './projects/page';
 import { Progress } from '@/components/ui/progress';
 import { getDynamicStatus } from '@/lib/utils';
+import { useUser } from '../user-provider';
 
 export default function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [recentProjects, setRecentProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [progressChartView, setProgressChartView] = useState('main');
+  const { user } = useUser();
 
   const [totalBudget, setTotalBudget] = useState(0);
   const [totalSpent, setTotalSpent] = useState(0);
@@ -65,6 +67,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function fetchProjectsData() {
+      if (!user) {
+        setLoading(false);
+        return;
+      };
       setLoading(true);
       const { data, error } = await getProjects();
 
@@ -113,7 +119,7 @@ export default function Dashboard() {
       setLoading(false);
     }
     fetchProjectsData();
-  }, []);
+  }, [user]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {

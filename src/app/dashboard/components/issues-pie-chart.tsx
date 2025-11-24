@@ -10,6 +10,7 @@ import { getIssues } from '@/app/dashboard/issues/actions';
 import type { Issue } from '@/app/dashboard/issues/page';
 import type { ChartConfig } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useUser } from '@/app/user-provider';
 
 const chartConfig = {
   High: {
@@ -29,9 +30,14 @@ const chartConfig = {
 export function IssuesPieChart() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useUser();
 
   useEffect(() => {
     async function fetchIssueData() {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       const { data: issuesData, error } = await getIssues();
       if (!error && issuesData) {
@@ -47,13 +53,13 @@ export function IssuesPieChart() {
           { name: 'Low', value: priorityCounts['Low'] || 0, fill: 'hsl(var(--chart-2))' },
         ];
         setData(chartData);
-      } else {
+      } else if (error && error !== 'Not authenticated') {
         console.error("Failed to fetch issues for chart", error);
       }
       setLoading(false);
     }
     fetchIssueData();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
