@@ -82,4 +82,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  }
+  .text-shadow-md {
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
 }
