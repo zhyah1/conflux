@@ -54,6 +54,14 @@ export type Issue = {
   project_name: string;
   project_id: string;
   assignee_id: string | null;
+  project: {
+    id: string;
+    name: string;
+    parent: {
+      id: string;
+      name: string;
+    } | null;
+  };
 };
 
 export const columns: ColumnDef<Issue>[] = [
@@ -78,9 +86,20 @@ export const columns: ColumnDef<Issue>[] = [
     cell: ({ row }) => <div className="capitalize">{row.getValue('title')}</div>,
   },
    {
-    accessorKey: 'project_name',
+    accessorKey: 'project.name',
     header: 'Project',
-    cell: ({ row }) => <div className="capitalize">{row.getValue('project_name')}</div>,
+    cell: ({ row }) => {
+      const project = row.original.project;
+      if (project.parent) {
+        return (
+          <div className="flex flex-col">
+            <span className="text-sm text-muted-foreground">{project.parent.name}</span>
+            <span className="font-medium">/ {project.name}</span>
+          </div>
+        );
+      }
+      return <div className="font-medium">{project.name}</div>;
+    },
   },
   {
     accessorKey: 'status',

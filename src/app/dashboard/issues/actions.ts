@@ -43,7 +43,14 @@ export async function getIssues(page = 1, pageSize = 10, projectId?: string) {
     status,
     priority,
     assignee_id,
-    project:project_id ( id, name )
+    project:project_id ( 
+      id, 
+      name,
+      parent:parent_id (
+        id,
+        name
+      )
+    )
   `).range(from, to);
 
   if (projectId) {
