@@ -4,8 +4,6 @@ import { Logo } from '@/components/logo';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Building, GanttChartSquare, CheckCircle, Users, Book, ShieldAlert, LineChart, PieChart } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function LandingPage() {
   return (
@@ -29,7 +27,7 @@ export default function LandingPage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative h-[60vh] min-h-[500px] flex items-center justify-center text-center">
+        <section className="relative h-[calc(100vh_-_3.5rem)] min-h-[500px] flex items-center justify-center text-center">
           <Image
             src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjb25zdHJ1Y3Rpb258ZW58MHx8fHwxNzE4NzgzNzM4fDA&ixlib=rb-4.1.0&q=80&w=1920"
             alt="Construction site"
@@ -56,20 +54,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Call to Action Section */}
-        <section id="about" className="py-16 md:py-24">
-          <div className="container text-center">
-            <h2 className="text-3xl font-bold tracking-tight font-headline">Ready to Transform Your Projects?</h2>
-            <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
-              Join hundreds of leading construction firms who trust Construx to deliver projects on time and on budget.
-            </p>
-            <div className="mt-8">
-              <Link href="/login" className={cn(buttonVariants({ size: 'lg' }))}>
-                Get Started with Construx
-              </Link>
-            </div>
-          </div>
-        </section>
       </main>
 
       <footer className="border-t">
