@@ -14,10 +14,6 @@ export default function LandingPage() {
             <Logo className="h-8 w-8 mr-2" />
             <span className="font-bold">Construx</span>
           </div>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
-            <Link href="#features" className="text-muted-foreground transition-colors hover:text-foreground">Features</Link>
-            <Link href="#about" className="text-muted-foreground transition-colors hover:text-foreground">About</Link>
-          </nav>
           <div className="flex flex-1 items-center justify-end space-x-4">
             <Link href="/login" className={cn(buttonVariants({ variant: 'ghost' }))}>Login</Link>
             <Link href="/login" className={cn(buttonVariants({ variant: 'default' }))}>Get Started</Link>
@@ -47,24 +43,11 @@ export default function LandingPage() {
               <Link href="/login" className={cn(buttonVariants({ size: 'lg' }))}>
                 Start Your Free Trial
               </Link>
-              <Link href="#features" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'text-white border-white')}>
-                Learn More
-              </Link>
             </div>
           </div>
         </section>
 
       </main>
-
-      <footer className="border-t">
-        <div className="container py-6 flex items-center justify-between text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Construx, Inc. All rights reserved.</p>
-          <div className="flex gap-4">
-            <Link href="#" className="hover:text-foreground">Privacy Policy</Link>
-            <Link href="#" className="hover:text-foreground">Terms of Service</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
