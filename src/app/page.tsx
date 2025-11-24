@@ -15,11 +15,11 @@ export default function LandingPage() {
             src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjb25zdHJ1Y3Rpb258ZW58MHx8fHwxNzE4NzgzNzM4fDA&ixlib=rb-4.1.0&q=80&w=1920"
             alt="Construction site"
             fill
-            className="object-cover -z-20 brightness-50"
+            className="object-cover -z-20 brightness-50 dark:brightness-50"
             data-ai-hint="construction site"
           />
-          {/* CSS Skyline from image */}
-           <div className="absolute inset-0 -z-10">
+          {/* CSS Skyline */}
+           <div className="absolute inset-0 -z-10 text-white dark:text-white">
               {/* Ground */}
               <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-t from-zinc-800 to-zinc-900"></div>
 
@@ -74,11 +74,11 @@ export default function LandingPage() {
               <div className="absolute top-1/2 left-1/3 w-32 h-32 border-2 border-green-500/10 rounded-full"></div>
           </div>
 
-          <div className="container max-w-4xl px-4 text-white">
+          <div className="container max-w-4xl px-4 text-foreground dark:text-white">
             <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl font-headline text-shadow">
               Build Better. Build Smarter. Build Together.
             </h1>
-            <p className="mt-4 text-lg md:text-xl text-foreground/80 text-shadow-md">
+            <p className="mt-4 text-lg md:text-xl text-foreground/80 dark:text-foreground/80 text-shadow-md">
               Construx is the ultimate project management solution for the modern construction industry.
               Streamline your projects from groundbreaking to handover.
             </p>
