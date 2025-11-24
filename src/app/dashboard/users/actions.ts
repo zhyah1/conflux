@@ -24,48 +24,26 @@ export async function inviteUser(email: string, role: string) {
     return { error: 'You do not have permission to invite users.' };
   }
 
-  // Create the user in Supabase Auth
-  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-    email,
-    email_confirm: true, // User will receive a confirmation email
-    user_metadata: { 
+  // Invite the user using Supabase's built-in invitation flow
+  const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
+    data: {
       role: role,
       full_name: email.split('@')[0],
     },
-  });
-
-  if (authError) {
-    console.error('Error creating user in Auth:', authError);
-    return { error: `Auth Error: ${authError.message}` };
-  }
-
-  const userId = authData.user.id;
-
-  // Create the user's profile
-  const { error: profileError } = await supabase.from('users').insert({
-    id: userId,
-    email: email,
-    role: role,
-    full_name: email.split('@')[0],
-  });
-
-  if (profileError) {
-      console.warn('Error inserting user profile (might be a duplicate, which is okay):', profileError);
-  }
-
-  // Send a password reset email so the user can set their password.
-  // This serves as the invitation email.
-  const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/login`,
   });
 
-  if (resetError) {
-    console.error('Error sending password reset email:', resetError);
-    return { error: `User account created, but failed to send invitation email: ${resetError.message}` };
+  if (error) {
+    console.error('Error inviting user:', error);
+    // Provide a more user-friendly error message
+    if (error.message.includes('unique constraint')) {
+        return { error: 'A user with this email already exists.' };
+    }
+    return { error: `Invite Error: ${error.message}` };
   }
 
   revalidatePath('/dashboard/users');
-  return { data: authData };
+  return { data };
 }
 
 export async function deleteUser(userId: string) {
