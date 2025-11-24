@@ -4,7 +4,7 @@ import { Logo } from '@/components/logo';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Building, GanttChartSquare, CheckCircle, Users } from 'lucide-react';
+import { Building, GanttChartSquare, CheckCircle, Users, Book, ShieldAlert, LineChart, PieChart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function LandingPage() {
@@ -75,7 +75,7 @@ export default function LandingPage() {
                 </CardHeader>
                 <CardContent className="text-center">
                   <p className="text-muted-foreground text-sm">
-                    Define project phases, set budgets, and establish timelines with our intuitive planning tools.
+                    Define master projects and sub-phases, set budgets, and establish timelines with our intuitive planning tools.
                   </p>
                 </CardContent>
               </Card>
@@ -88,7 +88,7 @@ export default function LandingPage() {
                 </CardHeader>
                 <CardContent className="text-center">
                   <p className="text-muted-foreground text-sm">
-                    Create, assign, and track tasks on a visual Kanban board. Monitor progress and resolve issues faster.
+                    Create, assign, and drag-and-drop tasks on a visual Kanban board. Monitor progress and resolve issues faster.
                   </p>
                 </CardContent>
               </Card>
@@ -101,7 +101,7 @@ export default function LandingPage() {
                 </CardHeader>
                 <CardContent className="text-center">
                   <p className="text-muted-foreground text-sm">
-                    Keep your entire team—from PMCs to subcontractors—aligned with role-based access and centralized communication.
+                    Keep your entire team—from PMCs to subcontractors—aligned with role-based access and real-time discussion threads.
                   </p>
                 </CardContent>
               </Card>
@@ -114,7 +114,59 @@ export default function LandingPage() {
                 </CardHeader>
                 <CardContent className="text-center">
                   <p className="text-muted-foreground text-sm">
-                    Streamline decision-making with automated approval requests for critical tasks.
+                    Streamline decision-making with automated approval requests for critical tasks, ensuring accountability and no delays.
+                  </p>
+                </CardContent>
+              </Card>
+               <Card>
+                <CardHeader className="items-center text-center">
+                   <div className="p-3 rounded-full bg-primary/10">
+                    <Book className="h-6 w-6 text-primary" />
+                   </div>
+                  <CardTitle>Document Management</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-muted-foreground text-sm">
+                    A centralized repository for all your project documents, plans, and reports, complete with AI-powered audit suggestions.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="items-center text-center">
+                   <div className="p-3 rounded-full bg-primary/10">
+                    <ShieldAlert className="h-6 w-6 text-primary" />
+                   </div>
+                  <CardTitle>Issue Tracking</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-muted-foreground text-sm">
+                    Log, assign, and track project issues from identification to resolution with a dedicated issue management system.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="items-center text-center">
+                   <div className="p-3 rounded-full bg-primary/10">
+                    <LineChart className="h-6 w-6 text-primary" />
+                   </div>
+                  <CardTitle>Visual Timelines</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-muted-foreground text-sm">
+                    Visualize your entire project schedule with interactive Gantt charts. Understand dependencies and track milestones.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="items-center text-center">
+                   <div className="p-3 rounded-full bg-primary/10">
+                    <PieChart className="h-6 w-6 text-primary" />
+                   </div>
+                  <CardTitle>Insightful Dashboards</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-muted-foreground text-sm">
+                    Get a 360-degree view of your project portfolio with charts for budget, progress, and issue distribution.
                   </p>
                 </CardContent>
               </Card>
