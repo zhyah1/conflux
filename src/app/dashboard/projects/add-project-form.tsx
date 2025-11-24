@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -78,9 +79,12 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
 
   useEffect(() => {
     async function fetchUsers() {
+      if (!profile) return;
+      // Fetch users from the same organization
       const { data, error } = await supabase
         .from('users')
-        .select('id, full_name, role');
+        .select('id, full_name, role')
+        .eq('org_id', profile.org_id);
 
       if (error) {
         console.error('Error fetching users for form', error);
@@ -91,7 +95,7 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
     if (open) {
       fetchUsers();
     }
-  }, [open]);
+  }, [open, profile]);
 
   const form = useForm<z.infer<typeof projectSchema>>({
     resolver: zodResolver(projectSchema),
@@ -375,6 +379,7 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
                     <Checkbox
                       checked={field.value}
                       onCheckedChange={field.onChange}
+                      disabled={!!parentId}
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
@@ -382,13 +387,12 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
                       Auto-create standard sub-phases
                     </FormLabel>
                     <FormDescription>
-                      This will automatically create the 6 standard phases (Preconstruction, Structural Work, etc.) for this project.
+                      Only available for master projects. This will automatically create 6 standard phases.
                     </FormDescription>
                   </div>
                 </FormItem>
               )}
             />
-
 
             <DialogFooter className="col-span-2 mt-4">
               <DialogClose asChild>

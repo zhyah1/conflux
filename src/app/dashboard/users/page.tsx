@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '../components/page-header';
@@ -59,7 +60,7 @@ type User = {
   email: string;
 };
 
-const roles = ['owner', 'admin', 'pmc', 'contractor', 'consultant', 'subcontractor', 'client'];
+const roles = ['admin', 'pmc', 'contractor', 'consultant', 'subcontractor', 'client'];
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -72,19 +73,16 @@ export default function UsersPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
-  const canManageUsers = profile?.role === 'admin';
+  const canManageUsers = profile?.role === 'admin' || profile?.role === 'owner';
 
   const fetchUsers = async () => {
+    if (!profile) return;
     setLoading(true);
-    
-    if (!canManageUsers) {
-      setLoading(false);
-      return;
-    }
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, full_name, role, email');
+      .select('id, full_name, role, email')
+      .eq('org_id', profile.org_id); // Filter by organization
 
     if (error) {
       toast({ 
@@ -108,7 +106,7 @@ export default function UsersPage() {
             fetchUsers();
         }
     }
-  }, [profile, canManageUsers, router]);
+  }, [profile]);
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,6 +140,12 @@ export default function UsersPage() {
       await fetchUsers();
     }
     setIsDeleting(false);
+  }
+
+  if (!profile && !loading) {
+    // If still no profile and not loading, redirect
+    router.push('/dashboard');
+    return null;
   }
 
   if (loading) {
@@ -184,7 +188,7 @@ export default function UsersPage() {
         <CardHeader>
           <CardTitle className="font-headline">Invite New User</CardTitle>
           <CardDescription>
-            Send an invitation to a new team member and assign them a role.
+            Send an invitation to a new team member and assign them a role in your organization.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -208,7 +212,7 @@ export default function UsersPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {roles.map((role) => (
-                       <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                       <SelectItem key={role} value={role} className="capitalize" disabled={role === 'owner'}>{role}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
