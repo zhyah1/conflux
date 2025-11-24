@@ -213,7 +213,7 @@ export async function getProjects() {
     if (!profile) return { data: null, error: 'Profile not found' };
 
     let query;
-    const supabaseAdmin = getAdminSupabase();
+    const supabaseAdmin = await getAdminSupabase();
 
     if (['admin', 'owner'].includes(profile.role)) {
       // Admins/Owners see all projects
@@ -280,7 +280,7 @@ export async function getProjectById(id: string) {
     const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
     if (!profile) return { data: null, error: 'Profile not found' };
     
-    const supabaseAdmin = getAdminSupabase();
+    const supabaseAdmin = await getAdminSupabase();
     
     const { data, error } = await supabaseAdmin
         .from('projects')
