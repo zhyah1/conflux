@@ -76,8 +76,6 @@ export async function getIssues(page = 1, pageSize = 10, projectId?: string) {
     const formattedData = issuesData.map(issue => ({
       ...issue,
       assignee: 'Unassigned',
-      project_name: issue.project?.name || 'Unknown Project',
-      project_id: issue.project?.id
     }));
     return { data: formattedData, error: null, count: count ?? 0 };
   }
@@ -97,8 +95,6 @@ export async function getIssues(page = 1, pageSize = 10, projectId?: string) {
   const formattedData = issuesData.map(issue => ({
     ...issue,
     assignee: issue.assignee_id ? userMap.get(issue.assignee_id) || 'Unknown User' : 'Unassigned',
-    project_name: issue.project?.name || 'Unknown Project',
-    project_id: issue.project?.id
   }));
 
   return { data: formattedData, error: null, count: count ?? 0 };
