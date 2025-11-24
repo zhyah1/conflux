@@ -67,52 +67,52 @@ export default function LandingPage() {
             </div>
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
               <Card>
-                <CardHeader className="flex items-center">
+                <CardHeader className="items-center text-center">
                    <div className="p-3 rounded-full bg-primary/10">
                     <Building className="h-6 w-6 text-primary" />
                    </div>
                   <CardTitle>Project Planning</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="text-center">
                   <p className="text-muted-foreground text-sm">
                     Define project phases, set budgets, and establish timelines with our intuitive planning tools.
                   </p>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className="flex items-center">
+                <CardHeader className="items-center text-center">
                    <div className="p-3 rounded-full bg-primary/10">
                     <GanttChartSquare className="h-6 w-6 text-primary" />
                    </div>
                   <CardTitle>Task Management</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="text-center">
                   <p className="text-muted-foreground text-sm">
                     Create, assign, and track tasks on a visual Kanban board. Monitor progress and resolve issues faster.
                   </p>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className="flex items-center">
+                <CardHeader className="items-center text-center">
                    <div className="p-3 rounded-full bg-primary/10">
                     <Users className="h-6 w-6 text-primary" />
                    </div>
                   <CardTitle>Team Collaboration</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="text-center">
                   <p className="text-muted-foreground text-sm">
                     Keep your entire team—from PMCs to subcontractors—aligned with role-based access and centralized communication.
                   </p>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className="flex items-center">
+                <CardHeader className="items-center text-center">
                    <div className="p-3 rounded-full bg-primary/10">
                     <CheckCircle className="h-6 w-6 text-primary" />
                    </div>
                   <CardTitle>Approval Workflows</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="text-center">
                   <p className="text-muted-foreground text-sm">
                     Streamline decision-making with automated approval requests for critical tasks.
                   </p>
