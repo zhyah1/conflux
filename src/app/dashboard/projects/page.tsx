@@ -25,6 +25,7 @@ import { ProjectActions } from './project-actions';
 import { getProjects } from './actions';
 import { useUser } from '@/app/user-provider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getDynamicStatus } from '@/lib/utils';
 
 export type User = {
   id: string;
@@ -60,6 +61,8 @@ const getInitials = (name?: string | null) => {
 const ProjectRow = ({ project, level = 0 }: { project: Project; level?: number }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const hasSubProjects = project.subProjects && project.subProjects.length > 0;
+  
+  const dynamic = getDynamicStatus(project);
 
   return (
     <>
@@ -83,15 +86,15 @@ const ProjectRow = ({ project, level = 0 }: { project: Project; level?: number }
         <TableCell>
           <Badge
             variant={
-              project.status === 'Completed'
+              dynamic.status === 'Completed'
                 ? 'outline'
-                : project.status === 'Delayed'
+                : dynamic.status === 'Delayed'
                 ? 'destructive'
                 : 'secondary'
             }
-            className={project.status === 'On Track' ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' : ''}
+            className={dynamic.status === 'On Track' ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' : ''}
           >
-            {project.status}
+            {dynamic.status}
           </Badge>
         </TableCell>
         <TableCell className="hidden md:table-cell">
@@ -140,8 +143,8 @@ const ProjectRow = ({ project, level = 0 }: { project: Project; level?: number }
         </TableCell>
         <TableCell className="hidden md:table-cell">
           <div className="flex items-center gap-2">
-             <Progress value={project.completion} className="h-2" />
-             <span>{project.completion}%</span>
+             <Progress value={dynamic.completion} className="h-2" />
+             <span>{dynamic.completion}%</span>
           </div>
         </TableCell>
         <TableCell>

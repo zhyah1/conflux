@@ -47,6 +47,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getProjects } from './projects/actions';
 import type { Project } from './projects/page';
 import { Progress } from '@/components/ui/progress';
+import { getDynamicStatus } from '@/lib/utils';
 
 export default function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -84,15 +85,16 @@ export default function Dashboard() {
         // Calculate status counts
         const counts = allProjects.reduce(
           (acc, p) => {
+            const { status } = getDynamicStatus(p);
             if (
-              p.status === 'Completed' ||
-              p.status === 'On Track' ||
-              p.status === 'Delayed'
+              status === 'Completed' ||
+              status === 'On Track' ||
+              status === 'Delayed'
             ) {
-              if (acc[p.status]) {
-                acc[p.status]++;
+              if (acc[status]) {
+                acc[status]++;
               } else {
-                acc[p.status] = 1;
+                acc[status] = 1;
               }
             }
             return acc;
@@ -291,40 +293,43 @@ export default function Dashboard() {
                   </TableRow>
                 ))
               ) : (
-                recentProjects.map((project) => (
-                  <TableRow key={project.id}>
-                    <TableCell>
-                      <div className="font-medium">{project.name}</div>
-                      <div className="hidden text-sm text-muted-foreground md:inline">
-                        {project.owner}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          project.status === 'Completed'
-                            ? 'outline'
-                            : project.status === 'Delayed'
-                            ? 'destructive'
-                            : 'secondary'
-                        }
-                        className={
-                          project.status === 'On Track'
-                            ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200'
-                            : ''
-                        }
-                      >
-                        {project.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Progress value={project.completion} className="h-2 w-24" />
-                        <span>{project.completion}%</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                recentProjects.map((project) => {
+                  const dynamic = getDynamicStatus(project);
+                  return (
+                    <TableRow key={project.id}>
+                      <TableCell>
+                        <div className="font-medium">{project.name}</div>
+                        <div className="hidden text-sm text-muted-foreground md:inline">
+                          {project.owner}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            dynamic.status === 'Completed'
+                              ? 'outline'
+                              : dynamic.status === 'Delayed'
+                              ? 'destructive'
+                              : 'secondary'
+                          }
+                          className={
+                            dynamic.status === 'On Track'
+                              ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200'
+                              : ''
+                          }
+                        >
+                          {dynamic.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Progress value={dynamic.completion} className="h-2 w-24" />
+                          <span>{dynamic.completion}%</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

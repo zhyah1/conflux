@@ -3,25 +3,27 @@
 import {
   Card,
   CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Paperclip, Pencil, Send, MoreHorizontal, User, Tag, Clock, CheckCircle, Loader2, ArrowLeft, Download, File as FileIcon, Eye } from 'lucide-react';
+import { Calendar, Paperclip, Pencil, Send, MoreHorizontal, User, Tag, Clock, CheckCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { useUser, type UserProfile } from '@/app/user-provider';
 import { format, isPast } from 'date-fns';
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
-import { addTaskComment, getTaskById, getTaskComments, getTaskAttachments, getTaskAttachmentSignedUrl } from '../../actions';
+import { addTaskComment, getTaskById, getTaskComments } from '../../actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { useParams, useRouter } from 'next/navigation';
 import { PageHeader } from '../../../components/page-header';
 import { EditTaskForm } from '../../edit-task-form';
-import { UploadAttachmentForm } from '../../upload-attachment-form';
 import { getDynamicStatus } from '@/lib/utils';
 
 type User = {
@@ -63,13 +65,6 @@ type Comment = {
   created_at: string;
   user: UserProfile;
 };
-
-type Attachment = {
-  id: string;
-  file_name: string;
-  file_path: string;
-  created_at: string;
-}
 
 function TaskComments({ taskId }: { taskId: string }) {
   const [comments, setComments] = useState<Comment[]>([]);
@@ -226,100 +221,30 @@ function TaskComments({ taskId }: { taskId: string }) {
   )
 }
 
-function TaskAttachments({ taskId, onUploadSuccess }: { taskId: string, onUploadSuccess: () => void }) {
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    async function fetchAttachments() {
-      setLoading(true);
-      const { data, error } = await getTaskAttachments(taskId);
-      if (error) {
-        toast({ variant: 'destructive', title: 'Error fetching attachments', description: error });
-      } else {
-        setAttachments(data || []);
-      }
-      setLoading(false);
-    }
-    fetchAttachments();
-  }, [taskId, toast, onUploadSuccess]);
-
-  const handleFileAction = async (attachment: Attachment) => {
-    try {
-      const { data, error } = await getTaskAttachmentSignedUrl(attachment.file_path);
-      if (error || !data?.signedUrl) {
-        throw new Error(error || 'Could not get attachment URL.');
-      }
-      window.open(data.signedUrl, '_blank');
-    } catch (e: any) {
-      toast({ variant: 'destructive', title: 'Action Failed', description: e.message });
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h4 className="font-semibold text-sm flex items-center gap-2"><Paperclip className="w-4 h-4" />Attachments</h4>
-        <UploadAttachmentForm taskId={taskId} onUploadSuccess={onUploadSuccess}>
-          <Button variant="outline" size="sm">Add attachment</Button>
-        </UploadAttachmentForm>
-      </div>
-       <div className="bg-background rounded-lg p-4 border border-dashed">
-         {loading ? (
-           <Skeleton className="h-10 w-full" />
-         ) : attachments.length > 0 ? (
-           <ul className="space-y-2">
-            {attachments.map(att => (
-              <li key={att.id} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <FileIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <span className="font-medium truncate" title={att.file_name}>{att.file_name}</span>
-                </div>
-                <div className="flex">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleFileAction(att)}>
-                        <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleFileAction(att)}>
-                        <Download className="h-4 w-4" />
-                    </Button>
-                </div>
-              </li>
-            ))}
-           </ul>
-         ) : (
-            <p className="text-sm text-center text-muted-foreground">No attachments</p>
-         )}
-      </div>
-    </div>
-  );
-}
-
 
 export default function TaskDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const taskId = params.taskId as string;
+  const projectId = params.projectId as string;
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  const fetchTask = async () => {
-    if (!taskId) return;
-    setLoading(true);
-    const { data, error } = await getTaskById(taskId);
-    if (error) {
-        console.error(error);
-        setTask(null);
-    } else {
-        setTask(data as Task);
-    }
-    setLoading(false);
-  }
 
   useEffect(() => {
+    if (!taskId) return;
+    setLoading(true);
+    const fetchTask = async () => {
+        const { data, error } = await getTaskById(taskId);
+        if (error) {
+            console.error(error);
+            setTask(null);
+        } else {
+            setTask(data as Task);
+        }
+        setLoading(false);
+    }
     fetchTask();
-  }, [taskId, refreshTrigger]);
+  }, [taskId]);
 
   if (loading) {
     return <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin h-8 w-8"/></div>
@@ -349,7 +274,7 @@ export default function TaskDetailsPage() {
     <div className="flex flex-col gap-6">
         <PageHeader title={task.id} description={task.title}>
             <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => router.push(`/dashboard/tasks/board/${task.project_id}`)}>
+                <Button variant="outline" onClick={() => router.push(`/dashboard/tasks/board/${projectId}`)}>
                     <ArrowLeft className="mr-2 h-4 w-4"/>
                     Back to Board
                 </Button>
@@ -361,8 +286,8 @@ export default function TaskDetailsPage() {
         </PageHeader>
         <Card>
             <CardContent className="p-0">
-                <div className="grid grid-cols-1 md:grid-cols-3">
-                    <div className="md:col-span-2 p-6 space-y-6">
+                <div className="grid grid-cols-3">
+                    <div className="col-span-2 p-6 space-y-6">
                         <div>
                         <h3 className="font-semibold mb-2">Description</h3>
                         <p className="text-sm text-muted-foreground">
@@ -376,7 +301,7 @@ export default function TaskDetailsPage() {
                     <div className="col-span-1 border-l bg-muted/30 p-6 space-y-6">
                         <div className="space-y-1">
                             <h4 className="font-semibold text-sm flex items-center gap-2"><Tag className="w-4 h-4" />Status</h4>
-                            <Badge variant={dynamicStatus.status === 'Done' ? 'secondary' : 'default'}>{dynamicStatus.status}</Badge>
+                            <Badge variant={task.status === 'Done' ? 'secondary' : 'default'}>{task.status}</Badge>
                         </div>
                         <div className="space-y-1">
                             <h4 className="font-semibold text-sm flex items-center gap-2"><Clock className="w-4 h-4" />Priority</h4>
@@ -409,7 +334,13 @@ export default function TaskDetailsPage() {
                             <div className="text-sm">{dynamicStatus.completion}% complete</div>
                             <Progress value={dynamicStatus.completion} className="h-2"/>
                         </div>
-                        <TaskAttachments taskId={task.id} onUploadSuccess={() => setRefreshTrigger(c => c + 1)} />
+                        <div className="space-y-1">
+                            <h4 className="font-semibold text-sm flex items-center gap-2"><Paperclip className="w-4 h-4" />Attachments</h4>
+                            <div className="text-center text-muted-foreground bg-background rounded-lg p-4 border border-dashed">
+                                <p className="text-sm">No attachments</p>
+                                <Button variant="outline" size="sm" className="mt-2 w-full">Add attachment</Button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </CardContent>

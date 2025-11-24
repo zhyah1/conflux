@@ -29,6 +29,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useUser } from '@/app/user-provider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getDynamicStatus } from '@/lib/utils';
 
 
 const getInitials = (name?: string | null) => {
@@ -151,6 +152,8 @@ export default function ProjectDetailsPage() {
       </div>
     );
   }
+  
+  const dynamicStatus = getDynamicStatus(project);
 
   return (
     <>
@@ -178,12 +181,12 @@ export default function ProjectDetailsPage() {
               <CardContent>
                   <Badge
                       variant={
-                          project.status === 'Completed' ? 'outline' :
-                          project.status === 'Delayed' ? 'destructive' : 'secondary'
+                          dynamicStatus.status === 'Completed' ? 'outline' :
+                          dynamicStatus.status === 'Delayed' ? 'destructive' : 'secondary'
                       }
-                      className={project.status === 'On Track' ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' : ''}
+                      className={dynamicStatus.status === 'On Track' ? 'bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200' : ''}
                   >
-                      {project.status}
+                      {dynamicStatus.status}
                   </Badge>
               </CardContent>
           </Card>
@@ -219,8 +222,8 @@ export default function ProjectDetailsPage() {
                   <Percent className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                  <div className="text-2xl font-bold">{project.completion}%</div>
-                  <Progress value={project.completion} className="h-2 mt-1" />
+                  <div className="text-2xl font-bold">{dynamicStatus.completion}%</div>
+                  <Progress value={dynamicStatus.completion} className="h-2 mt-1" />
               </CardContent>
           </Card>
         </div>
@@ -268,22 +271,25 @@ export default function ProjectDetailsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {subProjects.map(sub => (
-                                    <TableRow key={sub.id}>
-                                        <TableCell className="font-medium">{sub.name}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={sub.status === 'Delayed' ? 'destructive' : 'secondary'}>{sub.status}</Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">{sub.completion}%</TableCell>
-                                        <TableCell>
-                                            <Button asChild variant="outline" size="icon" className="h-8 w-8">
-                                                <Link href={`/dashboard/tasks/board/${sub.id}`}>
-                                                    <ArrowRight className="h-4 w-4" />
-                                                </Link>
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                {subProjects.map(sub => {
+                                    const subDynamicStatus = getDynamicStatus(sub);
+                                    return (
+                                        <TableRow key={sub.id}>
+                                            <TableCell className="font-medium">{sub.name}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={subDynamicStatus.status === 'Delayed' ? 'destructive' : 'secondary'}>{subDynamicStatus.status}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right">{subDynamicStatus.completion}%</TableCell>
+                                            <TableCell>
+                                                <Button asChild variant="outline" size="icon" className="h-8 w-8">
+                                                    <Link href={`/dashboard/tasks/board/${sub.id}`}>
+                                                        <ArrowRight className="h-4 w-4" />
+                                                    </Link>
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })}
                             </TableBody>
                          </Table>
                     </CardContent>
