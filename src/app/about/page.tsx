@@ -49,12 +49,12 @@ export default function AboutPage() {
 
                  <section className="my-12">
                     <Image 
-                        src="https://images.unsplash.com/photo-1536895058696-a69b1c7ba34f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjb25zdHJ1Y3Rpb24lMjBibHVlcHJpbnR8ZW58MHx8fHwxNzU5MjY5NTY5fDA&ixlib=rb-4.1.0&q=80&w=1920"
+                        src="https://static.vecteezy.com/system/resources/thumbnails/027/103/993/small/engineer-with-yellow-helmet-ensures-worker-safety-amidst-new-highrise-construction-and-cranes-against-an-evening-sunset-backdrop-free-photo.jpg"
                         alt="Construction Blueprint"
-                        width={1024}
-                        height={512}
+                        width={600}
+                        height={400}
                         className="rounded-lg shadow-xl mx-auto"
-                        data-ai-hint="construction blueprint"
+                        data-ai-hint="construction engineer sunset"
                     />
                 </section>
 
