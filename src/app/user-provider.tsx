@@ -1,4 +1,3 @@
-
 'use client';
 
 import { supabase } from '@/lib/supabase';
@@ -11,7 +10,6 @@ export type UserProfile = {
   email: string;
   role: string;
   avatar_url: string;
-  org_id: string; // Add organization ID
 };
 
 type UserContextType = {

@@ -80,11 +80,10 @@ export function AddProjectForm({ children, allProjects }: { children: React.Reac
   useEffect(() => {
     async function fetchUsers() {
       if (!profile) return;
-      // Fetch users from the same organization
+      // Fetch all users
       const { data, error } = await supabase
         .from('users')
-        .select('id, full_name, role')
-        .eq('org_id', profile.org_id);
+        .select('id, full_name, role');
 
       if (error) {
         console.error('Error fetching users for form', error);

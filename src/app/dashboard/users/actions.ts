@@ -16,8 +16,8 @@ export async function inviteUser(email: string, role: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
-  // Fetch the inviting user's profile to get their org_id
-  const { data: profile } = await supabase.from('users').select('role, org_id').eq('id', user.id).single();
+  // Fetch the inviting user's profile
+  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
   if (!['admin', 'owner'].includes(profile.role)) {
@@ -31,7 +31,6 @@ export async function inviteUser(email: string, role: string) {
     user_metadata: { 
       role: role,
       full_name: email.split('@')[0],
-      // We will set org_id in the profiles table, not here.
     },
   });
 
@@ -42,18 +41,15 @@ export async function inviteUser(email: string, role: string) {
 
   const userId = authData.user.id;
 
-  // Create the user's profile, associating them with the admin's organization
+  // Create the user's profile
   const { error: profileError } = await supabase.from('users').insert({
     id: userId,
     email: email,
     role: role,
     full_name: email.split('@')[0],
-    org_id: profile.org_id, // Associate new user with the admin's org
   });
 
   if (profileError) {
-      // If the profile already exists, we can ignore the error and proceed.
-      // This can happen if a user is re-invited.
       console.warn('Error inserting user profile (might be a duplicate, which is okay):', profileError);
   }
 
@@ -81,7 +77,7 @@ export async function deleteUser(userId: string) {
   const { data: { user: adminUser } } = await supabase.auth.getUser();
   if (!adminUser) return { error: 'Not authenticated' };
 
-  const { data: adminProfile } = await supabase.from('users').select('role, org_id').eq('id', adminUser.id).single();
+  const { data: adminProfile } = await supabase.from('users').select('role').eq('id', adminUser.id).single();
   if (!adminProfile) return { error: 'Admin profile not found' };
 
   if (!['admin', 'owner'].includes(adminProfile.role)) {
@@ -90,12 +86,6 @@ export async function deleteUser(userId: string) {
 
   if (adminUser.id === userId) {
     return { error: "You cannot delete your own account." };
-  }
-
-  // Verify the user to be deleted is in the same organization
-  const { data: userToDeleteProfile } = await supabase.from('users').select('org_id').eq('id', userId).single();
-  if (!userToDeleteProfile || userToDeleteProfile.org_id !== adminProfile.org_id) {
-    return { error: "You can only delete users within your own organization." };
   }
 
   // First delete from the public.users table (due to foreign key on auth.users)

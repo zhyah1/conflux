@@ -81,8 +81,7 @@ export default function UsersPage() {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, full_name, role, email')
-      .eq('org_id', profile.org_id); // Filter by organization
+      .select('id, full_name, role, email');
 
     if (error) {
       toast({ 
@@ -188,7 +187,7 @@ export default function UsersPage() {
         <CardHeader>
           <CardTitle className="font-headline">Invite New User</CardTitle>
           <CardDescription>
-            Send an invitation to a new team member and assign them a role in your organization.
+            Send an invitation to a new team member and assign them a role.
           </CardDescription>
         </CardHeader>
         <CardContent>

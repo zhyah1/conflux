@@ -32,7 +32,7 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
-  const { data: profile } = await supabase.from('users').select('role, org_id').eq('id', user.id).single();
+  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found.' };
 
   if (!['admin', 'pmc', 'owner'].includes(profile.role)) {
@@ -56,7 +56,6 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
     .insert([{
       ...projectData,
       id: newProjectId,
-      org_id: profile.org_id, // Assign project to user's organization
       start_date: projectData.start_date.toISOString(),
       end_date: projectData.end_date.toISOString(),
     }])
@@ -97,7 +96,6 @@ export async function addProject(formData: z.infer<typeof projectSchema>) {
         start_date: projectData.start_date.toISOString(),
         end_date: projectData.end_date.toISOString(),
         parent_id: newProjectId,
-        org_id: profile.org_id, // Also assign sub-phases to the org
         phase_order: index + 1, // Add the order here
     }));
     const { error: subPhaseError } = await supabase.from('projects').insert(subPhasesToInsert);
@@ -120,7 +118,7 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Not authenticated' };
 
-    const { data: profile } = await supabase.from('users').select('role, org_id').eq('id', user.id).single();
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
     if (!profile) return { error: 'Profile not found' };
     
     const parsedData = updateProjectSchema.safeParse(formData);
@@ -130,10 +128,9 @@ export async function updateProject(formData: z.infer<typeof updateProjectSchema
     
     const { id, create_sub_phases, assignee_ids, ...projectData } = parsedData.data;
 
-    // Check if user is a member of the project or an admin in the same org
-    const { data: projectToUpdate } = await supabase.from('projects').select('org_id, users:project_users(user_id)').eq('id', id).single();
+    // Check if user is a member of the project or an admin
+    const { data: projectToUpdate } = await supabase.from('projects').select('users:project_users(user_id)').eq('id', id).single();
     if (!projectToUpdate) return { error: "Project not found."};
-    if (projectToUpdate.org_id !== profile.org_id) return { error: "You cannot edit projects outside your organization." };
     
     const isMember = projectToUpdate.users?.some((m: any) => m.user_id === user.id);
 
@@ -201,7 +198,7 @@ export async function deleteProject(id: string) {
     return { success: true };
 }
 
-// Get all projects based on user role and organization
+// Get all projects based on user role
 export async function getProjects() {
     const supabase = createServerActionClient({ cookies });
     const { data: { user } } = await supabase.auth.getUser();
@@ -209,28 +206,27 @@ export async function getProjects() {
 
     const { data: profile } = await supabase
         .from('users')
-        .select('role, org_id')
+        .select('role')
         .eq('id', user.id)
         .single();
     
     if (!profile) return { data: null, error: 'Profile not found' };
-    if (!profile.org_id) return { data: [], error: 'User is not part of an organization.' };
 
     let query;
+    const supabaseAdmin = getAdminSupabase();
 
     if (['admin', 'owner'].includes(profile.role)) {
-      // Admins/Owners see all projects in their org
-      query = supabase
+      // Admins/Owners see all projects
+      query = supabaseAdmin
         .from('projects')
         .select(`
             *,
             users:project_users(
                 users(id, full_name, avatar_url, role)
             )
-        `)
-        .eq('org_id', profile.org_id);
+        `);
     } else {
-      // Other roles see only projects they are assigned to within their org
+      // Other roles see only projects they are assigned to
       const { data: userProjects, error: userProjectsError } = await supabase
         .from('project_users')
         .select('project_id')
@@ -246,7 +242,7 @@ export async function getProjects() {
         return { data: [], error: null };
       }
 
-      query = supabase
+      query = supabaseAdmin
         .from('projects')
         .select(`
             *,
@@ -254,8 +250,7 @@ export async function getProjects() {
                 users(id, full_name, avatar_url, role)
             )
         `)
-        .in('id', projectIds)
-        .eq('org_id', profile.org_id); // Double-check org membership
+        .in('id', projectIds);
     }
     
     const { data, error } = await query.order('start_date', { ascending: false }).order('phase_order', { ascending: true });
@@ -273,7 +268,7 @@ export async function getProjects() {
     return { data: formattedData, error: null };
 }
 
-// Get a single project by ID, respecting RLS and org
+// Get a single project by ID, respecting RLS
 export async function getProjectById(id: string) {
     if (!id) {
         return { data: null, error: 'Project ID is required.' };
@@ -282,10 +277,12 @@ export async function getProjectById(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: 'Not authenticated' };
 
-    const { data: profile } = await supabase.from('users').select('role, org_id').eq('id', user.id).single();
-    if (!profile || !profile.org_id) return { data: null, error: 'Profile or organization not found' };
+    const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+    if (!profile) return { data: null, error: 'Profile not found' };
     
-    const { data, error } = await supabase
+    const supabaseAdmin = getAdminSupabase();
+    
+    const { data, error } = await supabaseAdmin
         .from('projects')
         .select(`
             *,
@@ -294,7 +291,6 @@ export async function getProjectById(id: string) {
             )
         `)
         .eq('id', id)
-        .eq('org_id', profile.org_id) // Ensure project is in user's org
         .single();
     
      if (error) {
@@ -322,7 +318,6 @@ export async function getProjectComments(projectId: string) {
   const { data: { user } } = await createServerActionClient({ cookies }).auth.getUser();
   if (!user) return { data: null, error: 'Not authenticated' };
   
-  // You might want to also scope comments by org_id in a real app, by joining projects table
   const { data: commentsData, error: commentsError } = await supabaseAdmin
     .from('project_comments')
     .select('*')

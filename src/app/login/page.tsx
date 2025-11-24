@@ -25,14 +25,14 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        // Sign up a new user, who will become an 'owner' of a new organization.
+        // Sign up a new user
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
            options: {
             data: {
               full_name: email.split('@')[0], 
-              // The role is set to 'owner' by a database trigger upon new user creation.
+              role: 'admin', // Default role for new sign-ups
             },
           },
         });
@@ -89,7 +89,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
            <Logo className="h-10 w-10 text-primary mx-auto mb-2" />
-          <CardTitle className="font-headline">{isSignUp ? 'Create Your Workspace' : 'Welcome back to Construx'}</CardTitle>
+          <CardTitle className="font-headline">{isSignUp ? 'Create An Account' : 'Welcome back to Construx'}</CardTitle>
           <CardDescription>
             {isSignUp 
               ? 'Create an account to start managing your projects.' 
