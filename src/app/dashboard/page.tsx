@@ -55,7 +55,7 @@ export default function Dashboard() {
   const [recentProjects, setRecentProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [progressChartView, setProgressChartView] = useState('main');
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
 
   const [totalBudget, setTotalBudget] = useState(0);
   const [totalSpent, setTotalSpent] = useState(0);
@@ -67,12 +67,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function fetchProjectsData() {
+      if (userLoading) return; // Wait for user session to be determined
       if (!user) {
         setLoading(false);
         return;
-      };
+      }
       setLoading(true);
-      const { data, error } = await getProjects();
+      const { data, error } = (await getProjects()) || {};
 
       if (!error && data) {
         const allProjects = data as Project[];
@@ -119,7 +120,7 @@ export default function Dashboard() {
       setLoading(false);
     }
     fetchProjectsData();
-  }, [user]);
+  }, [user, userLoading]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
