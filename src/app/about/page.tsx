@@ -1,6 +1,7 @@
 
 import { GanttChartSquare, Users, FolderKanban, BrainCircuit } from 'lucide-react';
 import Image from 'next/image';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 const features = [
     {
@@ -27,40 +28,43 @@ const features = [
 
 export default function AboutPage() {
     return (
-        <div className="bg-background text-foreground min-h-screen flex items-center justify-center">
-            <main>
-                <section className="py-20">
-                    <div className="container">
-                        <div className="grid gap-12 md:grid-cols-2">
-                            <div className="flex items-center justify-center">
-                                <Image 
-                                    src="https://images.unsplash.com/photo-1572949645841-094f3a9c4c94?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjb25zdHJ1Y3Rpb24lMjBwbGFubmluZ3xlbnwwfHx8fDE3NTg5OTM3MjB8MA&ixlib=rb-4.1.0&q=80&w=1080"
-                                    alt="Construction Planning"
-                                    width={500}
-                                    height={500}
-                                    className="rounded-lg shadow-xl"
-                                    data-ai-hint="construction planning"
-                                />
-                            </div>
-                            <div className="flex flex-col justify-center">
-                                <h2 className="text-3xl font-bold font-headline mb-6">Key Features</h2>
-                                <ul className="space-y-6">
-                                    {features.map((feature, index) => (
-                                        <li key={index} className="flex items-start">
-                                            <div className="flex-shrink-0">
-                                                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-primary text-primary-foreground">
-                                                    <feature.icon className="h-6 w-6" />
-                                                </div>
-                                            </div>
-                                            <div className="ml-4">
-                                                <h3 className="text-lg font-semibold">{feature.title}</h3>
-                                                <p className="mt-1 text-muted-foreground">{feature.description}</p>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
+        <div className="bg-background text-foreground min-h-screen">
+            <main className="container mx-auto py-12 md:py-20 px-4">
+                <section className="text-center">
+                    <h1 className="text-4xl font-bold font-headline mb-4">Why Choose Construx?</h1>
+                    <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+                        An integrated platform designed to bring clarity, efficiency, and intelligence to your construction projects.
+                    </p>
+                </section>
+
+                 <section className="my-12">
+                    <Image 
+                        src="https://images.unsplash.com/photo-1536895058696-a69b1c7ba34f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjb25zdHJ1Y3Rpb24lMjBibHVlcHJpbnR8ZW58MHx8fHwxNzU5MjY5NTY5fDA&ixlib=rb-4.1.0&q=80&w=1920"
+                        alt="Construction Blueprint"
+                        width={1200}
+                        height={600}
+                        className="rounded-lg shadow-xl mx-auto"
+                        data-ai-hint="construction blueprint"
+                    />
+                </section>
+
+                <section>
+                    <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+                        {features.map((feature, index) => (
+                            <Card key={index} className="flex flex-col">
+                                <CardHeader className="flex flex-row items-center gap-4 pb-4">
+                                     <div className="flex-shrink-0">
+                                        <div className="flex items-center justify-center h-12 w-12 rounded-md bg-primary text-primary-foreground">
+                                            <feature.icon className="h-6 w-6" />
+                                        </div>
+                                    </div>
+                                    <CardTitle className="text-lg font-semibold">{feature.title}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-muted-foreground">{feature.description}</p>
+                                </CardContent>
+                            </Card>
+                        ))}
                     </div>
                 </section>
             </main>
