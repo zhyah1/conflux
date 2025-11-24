@@ -50,6 +50,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { UploadTaskDocumentForm } from '../../upload-task-document-form';
+import { Progress } from '@/components/ui/progress';
+import { getDynamicStatus } from '@/lib/utils';
 
 
 type User = {
@@ -70,6 +72,8 @@ export type Task = {
   description: string | null;
   due_date: string | null;
   progress: number | null;
+  start_date: string | null;
+  completion: number;
 };
 
 type TaskStatus = 'Waiting for Approval' | 'Backlog' | 'In Progress' | 'Blocked' | 'Done';
@@ -129,14 +133,21 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
   const canEditTask = profile.role === 'admin' || profile.role === 'owner' || projectUsers.includes(profile.id);
   const canCheckDelays = profile.role === 'admin' || profile.role === 'pmc';
   const canRequestApproval = task.status !== 'Waiting for Approval';
+  
+  const dynamicStatus = getDynamicStatus({
+    ...task,
+    completion: task.progress || 0,
+    end_date: task.due_date,
+  });
+
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
         <Link href={`/dashboard/tasks/view/${task.id}`} className="block">
             <Card className="mb-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="p-3">
-                <div className="flex justify-between items-start mb-2">
-                  <p className="font-semibold text-sm leading-snug">{task.title}</p>
+              <CardContent className="p-3 space-y-3">
+                <div className="flex justify-between items-start">
+                  <p className="font-semibold text-sm leading-snug pr-2">{task.title}</p>
                    {canEditTask && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={(e) => {e.preventDefault(); e.stopPropagation();}}>
@@ -162,6 +173,15 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
                       </DropdownMenu>
                    )}
                 </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Progress</span>
+                    <span>{dynamicStatus.expectedCompletion}%</span>
+                  </div>
+                  <Progress value={dynamicStatus.expectedCompletion} className="h-1"/>
+                </div>
+
                 <div className="flex items-center justify-between">
                   <Badge
                     variant={
