@@ -39,9 +39,6 @@ export async function inviteUser(email: string, role: string) {
     if (error.message.includes('unique constraint')) {
         return { error: 'A user with this email already exists.' };
     }
-    if (error.message.includes('rate limit exceeded')) {
-        return { error: 'Email rate limit exceeded. This is common on the free plan. Please wait an hour or configure a custom SMTP provider in your Supabase project.' };
-    }
     return { error: `Invite Error: ${error.message}` };
   }
 
