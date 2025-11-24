@@ -1,3 +1,4 @@
+
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { cn } from '@/lib/utils';
@@ -64,17 +65,19 @@ export default function AboutPage() {
                 </div>
             </header>
 
-            <main className="container">
+            <main>
                 <section className="py-20 text-center">
-                    <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl font-headline">
-                        The Future of Construction Management
-                    </h1>
-                    <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
-                        Construx is designed to bring clarity, efficiency, and intelligence to every phase of your construction projects.
-                    </p>
+                    <div className="container">
+                        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl font-headline">
+                            The Future of Construction Management
+                        </h1>
+                        <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
+                            Construx is designed to bring clarity, efficiency, and intelligence to every phase of your construction projects.
+                        </p>
+                    </div>
                 </section>
 
-                <section className="py-20 bg-muted/40 rounded-lg">
+                <section className="py-20 bg-muted/40">
                     <div className="container">
                         <div className="grid gap-12 md:grid-cols-2">
                             <div className="flex items-center justify-center">
@@ -110,16 +113,18 @@ export default function AboutPage() {
                 </section>
 
                 <section className="py-24 text-center">
-                    <h2 className="text-3xl font-bold tracking-tight font-headline">
-                        Ready to Transform Your Projects?
-                    </h2>
-                    <p className="mt-4 max-w-xl mx-auto text-muted-foreground">
-                        Join today and start building better, smarter, and together.
-                    </p>
-                    <div className="mt-8">
-                        <Link href="/login" className={cn(buttonVariants({ size: 'lg' }))}>
-                            Get Started Now <ArrowRight className="ml-2 h-5 w-5" />
-                        </Link>
+                    <div className="container">
+                        <h2 className="text-3xl font-bold tracking-tight font-headline">
+                            Ready to Transform Your Projects?
+                        </h2>
+                        <p className="mt-4 max-w-xl mx-auto text-muted-foreground">
+                            Join today and start building better, smarter, and together.
+                        </p>
+                        <div className="mt-8">
+                            <Link href="/login" className={cn(buttonVariants({ size: 'lg' }))}>
+                                Get Started Now <ArrowRight className="ml-2 h-5 w-5" />
+                            </Link>
+                        </div>
                     </div>
                 </section>
             </main>
