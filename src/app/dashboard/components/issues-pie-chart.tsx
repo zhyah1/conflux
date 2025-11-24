@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -30,16 +31,17 @@ const chartConfig = {
 export function IssuesPieChart() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
 
   useEffect(() => {
     async function fetchIssueData() {
+      if (userLoading) return;
       if (!user) {
         setLoading(false);
         return;
       }
       setLoading(true);
-      const { data: issuesData, error } = await getIssues();
+      const { data: issuesData, error } = (await getIssues()) || {};
       if (!error && issuesData) {
         const allIssues = issuesData as unknown as Issue[];
         const priorityCounts = allIssues.reduce((acc, issue) => {
@@ -59,7 +61,7 @@ export function IssuesPieChart() {
       setLoading(false);
     }
     fetchIssueData();
-  }, [user]);
+  }, [user, userLoading]);
 
   if (loading) {
     return (
