@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -33,6 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useUser } from '@/app/user-provider';
 
 const getInitials = (name?: string | null) => {
   if (!name) return '';
@@ -47,11 +49,17 @@ export default function TasksProjectListPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const { user, loading: userLoading } = useUser();
 
   useEffect(() => {
     async function fetchProjects() {
+      if (userLoading) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
-      const { data, error } = await getProjects();
+      const { data, error } = (await getProjects()) || {};
 
       if (!error && data) {
         const allProjects = data as unknown as Project[];
@@ -82,13 +90,13 @@ export default function TasksProjectListPage() {
         });
 
         setProjects(hierarchicalProjects);
-      } else {
+      } else if (error && error !== 'Not authenticated') {
         console.error('Error fetching projects:', error);
       }
       setLoading(false);
     }
     fetchProjects();
-  }, []);
+  }, [user, userLoading]);
 
   const projectsToShow = currentProject ? currentProject.subProjects || [] : projects;
 
