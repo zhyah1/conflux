@@ -107,7 +107,7 @@ export default function Dashboard() {
           'On Track': counts['On Track'] || 0,
           Delayed: counts['Delayed'] || 0,
         });
-      } else {
+      } else if (error && error !== 'Not authenticated') {
         console.error('Error fetching projects:', error);
       }
       setLoading(false);
