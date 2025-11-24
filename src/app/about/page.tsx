@@ -49,12 +49,12 @@ export default function AboutPage() {
 
                  <section className="my-12">
                     <Image 
-                        src="https://picsum.photos/seed/blueprint/1200/600"
-                        alt="Construction Blueprint"
-                        width={600}
-                        height={400}
+                        src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=1200"
+                        alt="Construction site"
+                        width={1200}
+                        height={600}
                         className="rounded-lg shadow-xl mx-auto"
-                        data-ai-hint="construction blueprint"
+                        data-ai-hint="construction site"
                     />
                 </section>
 
