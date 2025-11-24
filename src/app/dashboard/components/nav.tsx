@@ -61,13 +61,13 @@ export function Nav() {
 
   useEffect(() => {
     async function fetchCounts() {
-      const { data: projectsData } = await getProjects();
+      const { data: projectsData } = await getProjects() || {};
       if (projectsData) setProjectCount(projectsData.length);
 
-      const { data: issuesData, error: issuesError } = await getIssues();
-      if (issuesData) setIssueCount(issuesData.count);
+      const { data: issuesData, count } = await getIssues() || {};
+      if (issuesData) setIssueCount(count || 0);
 
-      const { data: documentsData } = await getDocuments();
+      const { data: documentsData } = await getDocuments() || {};
       if (documentsData) setDocumentCount(documentsData.length);
     }
     fetchCounts();
