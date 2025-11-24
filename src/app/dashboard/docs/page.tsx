@@ -23,14 +23,15 @@ This document outlines the user roles and permissions system for the Construx pr
 
 ## 1. Overview of Roles
 
-There are six predefined roles in the system, ordered here from most to least privileged:
+There are seven predefined roles in the system, ordered here from most to least privileged:
 
 1.  **Owner**: The account creator or top-level stakeholder. Has unrestricted super-administrator privileges.
 2.  **Admin**: A user with full administrative access, nearly identical to the Owner. Can manage all aspects of the application.
 3.  **PMC (Project Management Consultancy)**: Manages master projects. Can create sub-projects (phases) and assign Contractors to them.
 4.  **Contractor**: Manages the execution of a project or sub-project. Can assign tasks to Subcontractors and themselves.
-5.  **Subcontractor**: A specialized worker or team responsible for executing specific tasks within a project.
-6.  **Client**: A stakeholder with read-only access to view the progress of projects they are assigned to.
+5.  **Consultant**: Same as contractor. Manages the execution of a project or sub-project. Can assign tasks to Subcontractors and themselves.
+6.  **Subcontractor**: A specialized worker or team responsible for executing specific tasks within a project.
+7.  **Client**: A stakeholder with read-only access to view the progress of projects they are assigned to.
 
 ## 2. Permission Matrix
 
@@ -40,7 +41,7 @@ There are six predefined roles in the system, ordered here from most to least pr
             <th class="text-left">Feature</th>
             <th class="text-center">Owner / Admin</th>
             <th class="text-center">PMC</th>
-            <th class="text-center">Contractor</th>
+            <th class="text-center">Contractor / Consultant</th>
             <th class="text-center">Subcontractor</th>
             <th class="text-center">Client</th>
         </tr>
@@ -197,9 +198,9 @@ PMCs act as high-level managers for master projects. They are responsible for st
 -   **Project Management**: Can create sub-projects (phases) under a master project they are assigned to. They cannot create new master projects. They can edit the projects they manage, primarily to assign or un-assign Contractors.
 -   **Task Management**: Can create, edit, and delete tasks within the projects they oversee. They can assign tasks to Contractors and Subcontractors.
 
-### Contractor
+### Contractor & Consultant
 
-Contractors are responsible for the day-to-day execution of a project or a specific sub-phase. They manage their own work and delegate specific tasks to Subcontractors.
+Contractors and Consultants are responsible for the day-to-day execution of a project or a specific sub-phase. They manage their own work and delegate specific tasks to Subcontractors.
 
 -   **Project Management**: Can view details of projects they are assigned to. They can edit the project to update its status or progress, but cannot change core details like budget or timeline. They can assign Subcontractors to projects they manage.
 -   **Task Management**: Can create new tasks within their assigned projects. They can assign tasks to themselves or to any Subcontractor on the project team. They can edit and update the status of tasks they are assigned to.
@@ -248,7 +249,7 @@ This table stores profile information for each user and is linked to the \`auth.
 | \`id\`         | \`uuid\`    | Primary Key. Foreign key to \`auth.users.id\`.                |
 | \`full_name\`  | \`text\`    | The user's full name.                                       |
 | \`email\`      | \`text\`    | The user's email address.                                   |
-| \`role\`       | \`text\`    | The user's assigned role (e.g., \`admin\`, \`pmc\`, \`client\`).   |
+| \`role\`       | \`text\`    | The user's assigned role (e.g., \`admin\`, \`pmc\`, \`consultant\`, \`client\`).   |
 | \`avatar_url\` | \`text\`    | A URL to the user's profile picture.                        |
 
 #### \`projects\`
@@ -415,7 +416,7 @@ For Excel files, the structure is based on columns. The parser expects the **fir
 
 | title                        | priority | status      | description                                     | due_date   | assignee_email       |
 | ---------------------------- | -------- | ----------- | ----------------------------------------------- | ---------- | -------------------- |
-| Urgent - Fix Lobby Plumbing  | High     | Backlog     | Significant water leak reported in the lobby.   | 2024-12-15 | contractor@example.com |
+| Urgent - Fix Lobby Plumbing  | High     | Backlog     | Significant water leak reported in the lobby.   | 2024-12-15 | consultant@example.com |
 | Procure HVAC Units           | Medium   | Backlog     | Source and procure 12 HVAC units.               | 2025-01-20 | pmc@example.com      |
 | Draft initial project charter| Low      | In Progress | Create the initial draft of the project charter.|            |                      |
 `;

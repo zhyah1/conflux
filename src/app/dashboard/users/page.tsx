@@ -48,7 +48,7 @@ type User = {
   email: string;
 };
 
-const roles = ['owner', 'admin', 'pmc', 'contractor', 'subcontractor', 'client'];
+const roles = ['owner', 'admin', 'pmc', 'contractor', 'consultant', 'subcontractor', 'client'];
 
 export default function UsersPage() {
   const { toast } = useToast();

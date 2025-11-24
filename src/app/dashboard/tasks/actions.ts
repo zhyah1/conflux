@@ -44,7 +44,7 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  if (!['admin', 'pmc', 'contractor', 'subcontractor'].includes(profile.role)) {
+  if (!['admin', 'pmc', 'contractor', 'consultant', 'subcontractor'].includes(profile.role)) {
      return { error: 'You do not have permission to add tasks.' };
   }
   
@@ -101,7 +101,7 @@ export async function addMultipleTasks(tasks: ExtractedTask[], projectId: string
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  if (!['admin', 'pmc', 'contractor'].includes(profile.role)) {
+  if (!['admin', 'pmc', 'contractor', 'consultant'].includes(profile.role)) {
     return { error: 'You do not have permission to add tasks.' };
   }
 

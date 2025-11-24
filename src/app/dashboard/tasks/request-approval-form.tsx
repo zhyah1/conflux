@@ -61,7 +61,7 @@ export function RequestApprovalForm({ children, task, projectUsers }: { children
     async function fetchApprovers() {
       if (!profile) return;
       
-      const targetRoles: string[] = ['admin', 'pmc', 'contractor'];
+      const targetRoles: string[] = ['admin', 'pmc', 'contractor', 'consultant'];
       
       const { data: projectUsersData, error: projectUsersError } = await supabase
         .from('project_users')

@@ -256,7 +256,7 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
   
-  const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor';
+  const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor' || profile?.role === 'consultant';
 
   const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
 
@@ -449,7 +449,7 @@ export default function TaskBoardPage() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('kanban');
 
-  const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor';
+  const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor' || profile?.role === 'consultant';
 
 
   useEffect(() => {

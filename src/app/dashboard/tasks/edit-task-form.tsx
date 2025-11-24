@@ -72,8 +72,8 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
   const router = useRouter();
   const { profile } = useUser();
 
-  const canEditAllFields = profile && ['admin', 'pmc', 'contractor'].includes(profile.role);
-  const canEditAssignee = profile && ['admin', 'pmc', 'contractor'].includes(profile.role);
+  const canEditAllFields = profile && ['admin', 'pmc', 'contractor', 'consultant'].includes(profile.role);
+  const canEditAssignee = profile && ['admin', 'pmc', 'contractor', 'consultant'].includes(profile.role);
   
   useEffect(() => {
     async function fetchUsers() {
@@ -82,12 +82,13 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
       let targetRoles: string[] = [];
       switch (profile.role) {
         case 'admin':
-          targetRoles = ['pmc', 'contractor', 'subcontractor'];
+          targetRoles = ['pmc', 'contractor', 'consultant', 'subcontractor'];
           break;
         case 'pmc':
-          targetRoles = ['contractor', 'subcontractor'];
+          targetRoles = ['contractor', 'consultant', 'subcontractor'];
           break;
         case 'contractor':
+        case 'consultant':
           targetRoles = ['subcontractor'];
           break;
       }

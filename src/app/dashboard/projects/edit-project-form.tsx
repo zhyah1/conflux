@@ -77,8 +77,8 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
 
   const isOwner = profile?.role === 'owner';
   const canEditAllFields = profile && ['admin', 'pmc'].includes(profile.role) && !isOwner;
-  const canEditAssignments = profile && ['admin', 'pmc', 'contractor'].includes(profile.role) && !isOwner;
-  const isContractorOrSub = profile && ['contractor', 'subcontractor'].includes(profile.role);
+  const canEditAssignments = profile && ['admin', 'pmc', 'contractor', 'consultant'].includes(profile.role) && !isOwner;
+  const isContractorOrSub = profile && ['contractor', 'consultant', 'subcontractor'].includes(profile.role);
 
   
   useEffect(() => {
@@ -88,12 +88,13 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
       let targetRoles: string[] = [];
        switch (profile.role) {
         case 'admin':
-          targetRoles = ['pmc', 'contractor', 'subcontractor', 'client'];
+          targetRoles = ['pmc', 'contractor', 'consultant', 'subcontractor', 'client'];
           break;
         case 'pmc':
-          targetRoles = ['contractor', 'subcontractor'];
+          targetRoles = ['contractor', 'consultant', 'subcontractor'];
           break;
         case 'contractor':
+        case 'consultant':
           targetRoles = ['subcontractor'];
           break;
       }
