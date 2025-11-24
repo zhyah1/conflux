@@ -1,4 +1,3 @@
-
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -15,76 +14,46 @@ export default function LandingPage() {
             src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjb25zdHJ1Y3Rpb258ZW58MHx8fHwxNzE4NzgzNzM4fDA&ixlib=rb-4.1.0&q=80&w=1920"
             alt="Construction site"
             fill
-            className="object-cover -z-20 brightness-50 dark:brightness-50"
+            className="object-cover -z-20 brightness-[0.35] dark:brightness-[0.35]"
             data-ai-hint="construction site"
           />
-          {/* CSS Skyline */}
-           <div className="absolute inset-0 -z-10 text-white dark:text-white">
-              {/* Ground */}
-              <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-t from-zinc-800 to-zinc-900"></div>
-
-              {/* Sun */}
-              <Sun className="absolute top-[15%] right-[15%] h-12 w-12 text-yellow-400/80 animate-pulse" />
-
-              {/* Left Building */}
-              <div className="absolute bottom-2 left-[10%] w-48 h-48">
-                {/* Building Base */}
-                <div className="absolute bottom-0 w-full h-3/4 bg-[#6b4f3a] rounded-t-lg">
-                    {/* Windows */}
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 w-3/4 h-1/3 bg-black/20 grid grid-cols-3 grid-rows-2 gap-1 p-1 rounded">
-                        <div className="bg-yellow-300/30 rounded-sm"></div>
-                        <div className="bg-yellow-300/30 rounded-sm"></div>
-                        <div className="bg-yellow-300/30 rounded-sm"></div>
-                        <div className="bg-yellow-300/30 rounded-sm"></div>
-                        <div className="bg-yellow-300/30 rounded-sm"></div>
-                        <div className="bg-yellow-300/30 rounded-sm"></div>
-                    </div>
-                     {/* Door */}
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-16 bg-[#523d2e] rounded-t-md flex items-center justify-center">
-                       <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
-                    </div>
+          
+          <div className="absolute inset-0 bg-black/40 -z-10"></div>
+          
+          {/* Content */}
+          <div className="container max-w-4xl px-4 text-background dark:text-background relative z-10">
+             <div className="flex justify-center mb-8">
+               <div
+                  className={`flex items-center justify-center font-bold text-5xl bg-primary text-primary-foreground rounded-md h-20 w-20 shadow-lg`}
+                >
+                  Cx
                 </div>
-                 {/* Roof/Awning */}
-                <div className="absolute -top-8 -left-4 w-48 h-20 bg-gradient-to-br from-red-600 to-orange-500 rounded-lg -rotate-[15deg] origin-bottom-left"></div>
-                 <div className="absolute -top-2 left-12 w-32 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg -rotate-[15deg] origin-bottom-left opacity-90"></div>
-              </div>
-              
-              {/* Right Building */}
-              <div className="absolute bottom-2 right-[12%] w-40 h-80 bg-slate-800 rounded-t-xl overflow-hidden border-x-2 border-orange-500/50">
-                  <div className="absolute inset-0 grid grid-cols-4 grid-rows-8 gap-2 p-2">
-                    {Array.from({length: 32}).map((_, i) => (
-                        <div key={i} className="bg-blue-300/10 rounded-sm"></div>
-                    ))}
-                  </div>
-                  <div className="absolute top-1/2 left-0 right-0 h-1.5 bg-orange-500/50"></div>
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-10 bg-[#523d2e] rounded-t-lg border-x-4 border-t-4 border-orange-500/50"></div>
-              </div>
-
-              {/* People/Bushes */}
-              <div className="absolute bottom-2 left-[25%]">
-                <div className="w-4 h-6 bg-green-500 rounded-t-full"></div>
-                <div className="w-4 h-2 bg-green-600"></div>
-              </div>
-               <div className="absolute bottom-2 left-[50%]">
-                <div className="w-3 h-4 bg-green-500 rounded-t-full"></div>
-                <div className="w-3 h-1.5 bg-green-600"></div>
-              </div>
-
-               {/* Faint Circle */}
-              <div className="absolute top-1/2 left-1/3 w-32 h-32 border-2 border-green-500/10 rounded-full"></div>
-          </div>
-
-          <div className="container max-w-4xl px-4 text-foreground dark:text-white">
-            <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl font-headline text-shadow">
+            </div>
+            <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl font-headline drop-shadow-2xl">
               Build Better. Build Smarter. Build Together.
             </h1>
-            <p className="mt-4 text-lg md:text-xl text-foreground/80 dark:text-foreground/80 text-shadow-md">
+            <p className="mt-4 text-lg md:text-xl text-background/90 dark:text-background/90 drop-shadow-xl max-w-3xl mx-auto">
               Construx is the ultimate project management solution for the modern construction industry.
-              Streamline your projects from groundbreaking to handover.
+              Streamline your projects from groundbreaking to handover with traditional excellence.
             </p>
             <div className="mt-8 flex justify-center gap-4">
-              <Link href="/login" className={cn(buttonVariants({ size: 'lg' }), "backdrop-blur-sm bg-primary/80 hover:bg-primary")}>
+              <Link 
+                href="/login" 
+                className={cn(
+                  buttonVariants({ size: 'lg' }), 
+                  "backdrop-blur-sm bg-primary hover:bg-primary/90 border-2 border-primary/50 shadow-2xl shadow-amber-900/50 text-primary-foreground font-semibold"
+                )}
+              >
                 Get Started
+              </Link>
+              <Link 
+                href="/about" 
+                className={cn(
+                  buttonVariants({ size: 'lg', variant: 'outline' }), 
+                  "backdrop-blur-sm bg-white/10 hover:bg-white/20 border-2 border-white/50 text-white font-semibold shadow-xl"
+                )}
+              >
+                Learn More
               </Link>
             </div>
           </div>
