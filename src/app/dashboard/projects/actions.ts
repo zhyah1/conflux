@@ -306,6 +306,8 @@ export async function getProjectById(id: string) {
 
 export async function getProjectComments(projectId: string) {
   const supabaseAdmin = await getAdminSupabase();
+  const { data: { user } } = await createServerActionClient({ cookies }).auth.getUser();
+  if (!user) return { data: null, error: 'Not authenticated' };
 
   const { data: commentsData, error: commentsError } = await supabaseAdmin
     .from('project_comments')

@@ -209,6 +209,9 @@ export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
 }
 
 export async function getTasksByProjectId(projectId: string) {
+  const { data: { user } } = await createServerActionClient({ cookies }).auth.getUser();
+  if (!user) return { data: null, error: 'Not authenticated' };
+
   // Use the admin client to bypass RLS for this server-side fetch.
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -229,6 +232,9 @@ export async function getTasksByProjectId(projectId: string) {
 }
 
 export async function getTaskById(taskId: string) {
+  const { data: { user } } = await createServerActionClient({ cookies }).auth.getUser();
+  if (!user) return { data: null, error: 'Not authenticated' };
+  
   const supabaseAdmin = await getAdminSupabase();
 
   const { data, error } = await supabaseAdmin
@@ -371,6 +377,9 @@ export async function decideOnApproval(taskId: string, newStatus: 'Backlog' | 'B
 
 // Server action to get comments for a specific task
 export async function getTaskComments(taskId: string) {
+  const { data: { user } } = await createServerActionClient({ cookies }).auth.getUser();
+  if (!user) return { data: null, error: 'Not authenticated' };
+
   const supabaseAdmin = await getAdminSupabase();
   
   const { data: commentsData, error: commentsError } = await supabaseAdmin
