@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,9 +37,20 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { inviteUser } from './actions';
+import { inviteUser, deleteUser } from './actions';
 import { useUser } from '@/app/user-provider';
 import { useRouter } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 
 type User = {
   id: string;
@@ -58,6 +69,8 @@ export default function UsersPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [selectedRole, setSelectedRole] = useState('contractor');
   const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   const canManageUsers = profile?.role === 'admin';
 
@@ -115,6 +128,21 @@ export default function UsersPage() {
       await fetchUsers();
     }
   };
+  
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    setIsDeleting(true);
+    const result = await deleteUser(userToDelete.id);
+
+    if (result.error) {
+      toast({ variant: 'destructive', title: 'Error', description: `Failed to remove user: ${result.error}` });
+    } else {
+      toast({ title: 'Success', description: `User ${userToDelete.full_name} has been removed.` });
+      setUserToDelete(null);
+      await fetchUsers();
+    }
+    setIsDeleting(false);
+  }
 
   if (loading) {
      return (
@@ -145,6 +173,7 @@ export default function UsersPage() {
 
 
   return (
+    <>
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Users"
@@ -220,12 +249,14 @@ export default function UsersPage() {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost">
+                          <Button size="icon" variant="ghost" disabled={user.id === profile?.id}>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                          <DropdownMenuItem className="text-destructive">Remove User</DropdownMenuItem>
+                           <DropdownMenuItem onSelect={() => setUserToDelete(user)} className="text-destructive">
+                                Remove User
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -243,5 +274,27 @@ export default function UsersPage() {
         </CardContent>
       </Card>
     </div>
+
+    <AlertDialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the user <span className="font-semibold">{userToDelete?.full_name}</span>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={handleDeleteUser}
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="animate-spin" /> : 'Delete User'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

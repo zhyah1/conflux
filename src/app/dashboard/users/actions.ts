@@ -65,3 +65,48 @@ export async function inviteUser(email: string, role: string) {
   revalidatePath('/dashboard/users');
   return { data: authData };
 }
+
+export async function deleteUser(userId: string) {
+  const supabase = createServerActionClient({ cookies }, {
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY
+  });
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+
+  const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
+  if (!profile) return { error: 'Profile not found' };
+
+  if (!['admin'].includes(profile.role)) {
+    return { error: 'You do not have permission to delete users.' };
+  }
+
+  if (user.id === userId) {
+    return { error: "You cannot delete your own account." };
+  }
+
+  const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+
+  if (authError) {
+    console.error('Error deleting user from Auth:', authError);
+    // Don't return here, still attempt to delete from profiles table
+  }
+  
+  const { error: profileError } = await supabase
+    .from('users')
+    .delete()
+    .eq('id', userId);
+
+  if (profileError) {
+     console.error('Error deleting user from profiles:', profileError);
+     return { error: `DB Error: ${profileError.message}` };
+  }
+  
+  if (authError) {
+      return { error: `Auth Error: ${authError.message}. Profile was deleted.` };
+  }
+
+  revalidatePath('/dashboard/users');
+  return { success: true };
+}
