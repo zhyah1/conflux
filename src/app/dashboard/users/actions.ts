@@ -23,8 +23,13 @@ export async function inviteUser(email: string, role: string) {
     return { error: 'You do not have permission to invite users.' };
   }
   
+  // Get the base URL from environment variables to avoid localhost issues
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const redirectTo = `${baseUrl}/login`;
+
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-    data: { role: role, full_name: email.split('@')[0] }
+    data: { role: role, full_name: email.split('@')[0] },
+    redirectTo,
   });
 
   if (error) {
