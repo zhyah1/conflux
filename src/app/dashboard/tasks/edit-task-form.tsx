@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -15,6 +16,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -66,11 +68,11 @@ const updateTaskSchema = z.object({
 
 type EditTaskFormProps = {
   task: Task;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  children: React.ReactNode;
 };
 
-export function EditTaskForm({ task, open, onOpenChange }: EditTaskFormProps) {
+export function EditTaskForm({ task, children }: EditTaskFormProps) {
+  const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignableUsers, setAssignableUsers] = useState<User[]>([]);
   const { toast } = useToast();
@@ -161,7 +163,7 @@ export function EditTaskForm({ task, open, onOpenChange }: EditTaskFormProps) {
         title: 'Task Updated',
         description: `Task "${values.title}" has been successfully updated.`,
       });
-      onOpenChange(false);
+      setOpen(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       toast({
@@ -175,7 +177,8 @@ export function EditTaskForm({ task, open, onOpenChange }: EditTaskFormProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">Edit Task</DialogTitle>
@@ -351,7 +354,7 @@ export function EditTaskForm({ task, open, onOpenChange }: EditTaskFormProps) {
 
             <DialogFooter className="pt-4">
               <DialogClose asChild>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
               </DialogClose>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
