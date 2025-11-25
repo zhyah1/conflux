@@ -22,38 +22,28 @@ export async function inviteUser(email: string, role: string) {
     return { error: 'You do not have permission to invite users.' };
   }
   
-  // 1. Manually create the user
-  const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-    email: email,
-    email_confirm: true, // Auto-confirm the email
-    user_metadata: {
-      full_name: email.split('@')[0],
-      role: role
-    }
-  });
+  const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
+    email,
+    {
+      data: { 
+        full_name: email.split('@')[0],
+        role: role
+      },
+      redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/login`
+    },
+  );
 
-  if (createError) {
-    console.error('Error creating user:', createError);
-    if (createError.message.includes('unique constraint')) {
+  if (inviteError) {
+    console.error('Error inviting user:', inviteError);
+    if (inviteError.message.includes('unique constraint')) {
         return { error: 'A user with this email already exists.' };
     }
-    return { error: `Create User Error: ${createError.message}` };
-  }
-
-  // 2. Send a password reset (enrollment) email
-  const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/login`
-  });
-
-  if (resetError) {
-      console.error('Error sending password reset for new user:', resetError);
-      // Even if the email fails, the user was created. Let the admin know.
-      return { error: `User created, but failed to send setup email: ${resetError.message}` };
+    return { error: `Invite User Error: ${inviteError.message}` };
   }
 
 
   revalidatePath('/dashboard/users');
-  return { data: newUser };
+  return { data: inviteData };
 }
 
 export async function deleteUser(userId: string) {
