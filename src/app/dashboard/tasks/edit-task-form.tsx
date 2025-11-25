@@ -339,7 +339,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
                 <FormItem>
                   <FormLabel>Progress: {field.value}%</FormLabel>
                   <FormControl>
-                     <Input type="range" min="0" max="100" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                     <Input type="range" min="0" max="100" value={field.value ?? 0} onChange={e => field.onChange(parseInt(e.target.value, 10))} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -366,3 +366,5 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
     </Dialog>
   );
 }
+
+    
