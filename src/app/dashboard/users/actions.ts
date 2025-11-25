@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
@@ -22,28 +23,40 @@ export async function inviteUser(email: string, role: string) {
     return { error: 'You do not have permission to invite users.' };
   }
   
-  const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
-    email,
-    {
-      data: { 
-        full_name: email.split('@')[0],
-        role: role
-      },
-      redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/login`
-    },
-  );
+  // Generate a random password
+  const randomPassword = Math.random().toString(36).slice(-8);
 
-  if (inviteError) {
-    console.error('Error inviting user:', inviteError);
-    if (inviteError.message.includes('unique constraint')) {
+  const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+    email,
+    password: randomPassword,
+    email_confirm: true,
+    user_metadata: {
+      full_name: email.split('@')[0],
+      role: role,
+    }
+  });
+
+  if (createError) {
+    console.error('Error creating user:', createError);
+    if (createError.message.includes('unique constraint')) {
         return { error: 'A user with this email already exists.' };
     }
-    return { error: `Invite User Error: ${inviteError.message}` };
+    return { error: `Create User Error: ${createError.message}` };
+  }
+
+  // Send a password recovery email to allow the user to set their password
+  const { error: recoveryError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/login`
+  });
+
+  if (recoveryError) {
+      console.error('Error sending recovery email:', recoveryError);
+      return { error: `User created, but failed to send setup email: ${recoveryError.message}` };
   }
 
 
   revalidatePath('/dashboard/users');
-  return { data: inviteData };
+  return { data: newUser };
 }
 
 export async function deleteUser(userId: string) {
