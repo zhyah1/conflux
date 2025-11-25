@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -61,7 +62,6 @@ const taskSchema = z.object({
   approver_id: z.string().uuid().optional().nullable(),
   description: z.string().optional().nullable(),
   due_date: z.date().optional().nullable(),
-  start_date: z.date().optional().nullable(),
   progress: z.coerce.number().min(0).max(100).optional().nullable(),
 });
 
@@ -103,7 +103,6 @@ export function AddTaskForm({
     project_id: projectId,
     approver_id: undefined,
     description: initialData?.description || '',
-    start_date: new Date(),
     due_date: initialData?.due_date ? parseISO(initialData.due_date) : undefined,
     progress: 0,
   });
