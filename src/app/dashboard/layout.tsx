@@ -10,9 +10,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <Nav />
       </Sidebar>
       <SidebarInset>
-        <div className="flex min-h-screen flex-col">
+        <div className="flex flex-col min-h-screen">
           <Header />
-          <main className="flex-1 p-4 md:p-6">{children}</main>
+          <main className="flex flex-1 p-4 md:p-6">{children}</main>
         </div>
       </SidebarInset>
     </SidebarProvider>
