@@ -13,7 +13,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
@@ -65,8 +64,13 @@ const updateTaskSchema = z.object({
   progress: z.coerce.number().min(0).max(100).optional().nullable(),
 });
 
-export function EditTaskForm({ children, task }: { children: React.ReactNode; task: Task }) {
-  const [open, setOpen] = useState(false);
+type EditTaskFormProps = {
+  task: Task;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+export function EditTaskForm({ task, open, onOpenChange }: EditTaskFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignableUsers, setAssignableUsers] = useState<User[]>([]);
   const { toast } = useToast();
@@ -157,7 +161,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
         title: 'Task Updated',
         description: `Task "${values.title}" has been successfully updated.`,
       });
-      setOpen(false);
+      onOpenChange(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       toast({
@@ -171,8 +175,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">Edit Task</DialogTitle>
@@ -348,7 +351,7 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
 
             <DialogFooter className="pt-4">
               <DialogClose asChild>
-                <Button type="button" variant="outline">Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               </DialogClose>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (
@@ -366,5 +369,3 @@ export function EditTaskForm({ children, task }: { children: React.ReactNode; ta
     </Dialog>
   );
 }
-
-    

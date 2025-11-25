@@ -1,3 +1,4 @@
+
 'use client';
 
 import { PageHeader } from '../../../components/page-header';
@@ -100,6 +101,7 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
   const [escalationResult, setEscalationResult] = React.useState<any>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isEditOpen, setIsEditOpen] = React.useState(false);
   const router = useRouter();
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
@@ -142,6 +144,7 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
 
 
   return (
+    <>
     <div ref={setNodeRef} style={style} {...attributes}>
         <Link href={`/dashboard/tasks/view/${task.id}`} className="block">
             <Card className="mb-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
@@ -156,11 +159,7 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent onClick={(e) => {e.preventDefault(); e.stopPropagation();}}>
-                          <EditTaskForm task={task}>
-                             <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
-                              Edit Task
-                             </button>
-                          </EditTaskForm>
+                           <DropdownMenuItem onSelect={() => setIsEditOpen(true)}>Edit Task</DropdownMenuItem>
                           {canRequestApproval && (
                             <RequestApprovalForm task={task} projectUsers={projectUsers}>
                                 <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
@@ -212,6 +211,8 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
             </Card>
         </Link>
     </div>
+    {canEditTask && <EditTaskForm task={task} open={isEditOpen} onOpenChange={setIsEditOpen} />}
+    </>
   );
 }
 
