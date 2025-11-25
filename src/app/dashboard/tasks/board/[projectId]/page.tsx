@@ -443,7 +443,7 @@ export default function TaskBoardPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.projectId as string;
-  const { profile } = useUser();
+  const { profile, loading: userLoading } = useUser();
 
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
@@ -453,8 +453,7 @@ export default function TaskBoardPage() {
 
 
   useEffect(() => {
-    if (!projectId) {
-      setLoading(false);
+    if (userLoading || !projectId) {
       return;
     };
 
@@ -476,9 +475,9 @@ export default function TaskBoardPage() {
 
     fetchProjectData();
 
-  }, [projectId]);
+  }, [projectId, userLoading]);
   
-  if (loading) {
+  if (loading || userLoading) {
      return (
         <div className="flex flex-col h-full gap-6 p-4 md:p-6">
             <PageHeader title={<Skeleton className="h-8 w-64" />} description={<div className="h-5 w-80"><Skeleton className="h-full w-full" /></div>}>
