@@ -16,7 +16,6 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -68,15 +67,14 @@ const updateTaskSchema = z.object({
 
 type EditTaskFormProps = {
   task: Task;
-  children: React.ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 };
 
-export function EditTaskForm({ task, children }: EditTaskFormProps) {
-  const [open, setOpen] = useState(false);
+export function EditTaskForm({ task, open, onOpenChange }: EditTaskFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignableUsers, setAssignableUsers] = useState<User[]>([]);
   const { toast } = useToast();
-  const router = useRouter();
   const { profile } = useUser();
 
   const canEditAllFields = profile && ['admin', 'pmc', 'contractor', 'consultant'].includes(profile.role);
@@ -163,7 +161,7 @@ export function EditTaskForm({ task, children }: EditTaskFormProps) {
         title: 'Task Updated',
         description: `Task "${values.title}" has been successfully updated.`,
       });
-      setOpen(false);
+      onOpenChange(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       toast({
@@ -177,8 +175,7 @@ export function EditTaskForm({ task, children }: EditTaskFormProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>{children}</DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-headline">Edit Task</DialogTitle>
@@ -354,7 +351,7 @@ export function EditTaskForm({ task, children }: EditTaskFormProps) {
 
             <DialogFooter className="pt-4">
               <DialogClose asChild>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               </DialogClose>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? (

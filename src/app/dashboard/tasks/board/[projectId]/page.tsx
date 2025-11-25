@@ -102,7 +102,7 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
   const [isAlertOpen, setIsAlertOpen] = React.useState(false);
   const [escalationResult, setEscalationResult] = React.useState<any>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-  const router = useRouter();
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
 
@@ -159,11 +159,9 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent onClick={(e) => {e.preventDefault(); e.stopPropagation();}}>
-                           <EditTaskForm task={task}>
-                             <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
-                                Edit Task
-                             </button>
-                           </EditTaskForm>
+                          <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
+                            Edit Task
+                          </DropdownMenuItem>
                           {canRequestApproval && (
                             <RequestApprovalForm task={task} projectUsers={projectUsers}>
                                 <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
@@ -215,6 +213,13 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
             </Card>
         </Link>
     </div>
+    {canEditTask && (
+        <EditTaskForm 
+            task={task} 
+            open={isEditDialogOpen} 
+            onOpenChange={setIsEditDialogOpen} 
+        />
+    )}
     </>
   );
 }
