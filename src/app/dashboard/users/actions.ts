@@ -23,40 +23,21 @@ export async function inviteUser(email: string, role: string) {
     return { error: 'You do not have permission to invite users.' };
   }
   
-  // Generate a random password
-  const randomPassword = Math.random().toString(36).slice(-8);
-
-  const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-    email,
-    password: randomPassword,
-    email_confirm: true,
-    user_metadata: {
-      full_name: email.split('@')[0],
-      role: role,
-    }
+  const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
+    data: { role: role, full_name: email.split('@')[0] }
   });
 
-  if (createError) {
-    console.error('Error creating user:', createError);
-    if (createError.message.includes('unique constraint')) {
+  if (error) {
+    console.error('Error inviting user:', error);
+    if (error.message.includes('unique constraint')) {
         return { error: 'A user with this email already exists.' };
     }
-    return { error: `Create User Error: ${createError.message}` };
-  }
-
-  // Send a password recovery email to allow the user to set their password
-  const { error: recoveryError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/login`
-  });
-
-  if (recoveryError) {
-      console.error('Error sending recovery email:', recoveryError);
-      return { error: `User created, but failed to send setup email: ${recoveryError.message}` };
+    return { error: `Invite User Error: ${error.message}` };
   }
 
 
   revalidatePath('/dashboard/users');
-  return { data: newUser };
+  return { data };
 }
 
 export async function deleteUser(userId: string) {
