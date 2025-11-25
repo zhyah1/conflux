@@ -177,7 +177,7 @@ export async function updateTask(formData: z.infer<typeof updateTaskSchema>) {
     const parsedData = updateTaskSchema.safeParse(formData);
 
     if (!parsedData.success) {
-        return { error: 'Invalid form data.' };
+        return { error: `Invalid form data: ${parsedData.error.message}` };
     }
 
     const { id, project_id, ...taskData } = parsedData.data;

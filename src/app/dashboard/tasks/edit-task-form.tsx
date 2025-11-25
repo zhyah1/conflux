@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -36,7 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { updateTask } from './actions';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import type { Task } from './[id]/page';
+import type { Task } from './board/[projectId]/page';
 import { useUser } from '@/app/user-provider';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
