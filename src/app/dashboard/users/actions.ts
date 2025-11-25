@@ -7,7 +7,6 @@ import { cookies } from 'next/headers';
 
 
 export async function inviteUser(email: string, role: string) {
-  // Use service_role key to perform admin actions
   const supabase = createServerActionClient({ cookies }, {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -16,34 +15,45 @@ export async function inviteUser(email: string, role: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
 
-  // Fetch the inviting user's profile
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
   if (!['admin', 'owner'].includes(profile.role)) {
     return { error: 'You do not have permission to invite users.' };
   }
-
-  // Invite the user using Supabase's built-in invitation flow
-  const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-    data: {
-      role: role,
+  
+  // 1. Manually create the user
+  const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+    email: email,
+    email_confirm: true, // Auto-confirm the email
+    user_metadata: {
       full_name: email.split('@')[0],
-    },
-    redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/login`,
+      role: role
+    }
   });
 
-  if (error) {
-    console.error('Error inviting user:', error);
-    // Provide a more user-friendly error message
-    if (error.message.includes('unique constraint')) {
+  if (createError) {
+    console.error('Error creating user:', createError);
+    if (createError.message.includes('unique constraint')) {
         return { error: 'A user with this email already exists.' };
     }
-    return { error: `Invite Error: ${error.message}` };
+    return { error: `Create User Error: ${createError.message}` };
   }
 
+  // 2. Send a password reset (enrollment) email
+  const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/login`
+  });
+
+  if (resetError) {
+      console.error('Error sending password reset for new user:', resetError);
+      // Even if the email fails, the user was created. Let the admin know.
+      return { error: `User created, but failed to send setup email: ${resetError.message}` };
+  }
+
+
   revalidatePath('/dashboard/users');
-  return { data };
+  return { data: newUser };
 }
 
 export async function deleteUser(userId: string) {
