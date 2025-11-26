@@ -42,13 +42,12 @@ export async function inviteUser(email: string, role: string) {
     return { error: 'You do not have permission to invite users.' };
   }
   
-  // A temporary password is required for user creation, but will be immediately reset.
   const randomPassword = generatePassword();
   
   const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
     email: email,
     password: randomPassword,
-    email_confirm: true,
+    email_confirm: true, // Auto-confirm the user
     user_metadata: {
       role: role,
       full_name: email.split('@')[0],
@@ -62,22 +61,11 @@ export async function inviteUser(email: string, role: string) {
     }
     return { error: `Create User Error: ${createError.message}` };
   }
-  
-  // After creating the user, immediately send a password reset to have them set their own password.
-  const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://theconstrux.com/login' // Direct them to your login page after password reset.
-  });
-
-  if (resetError) {
-      console.error('Error sending password reset email:', resetError);
-      // Even if the email fails, the user was created. This is a partial success.
-      return { error: `User created, but failed to send password setup email: ${resetError.message}` };
-  }
 
   revalidatePath('/dashboard/users');
   
-  // The user is created and an email is on its way. No need to return a password.
-  return { data: { user: newUser.user }, error: null };
+  // Return the generated password so it can be displayed to the admin.
+  return { data: { user: newUser.user, password: randomPassword }, error: null };
 }
 
 export async function deleteUser(userId: string) {

@@ -123,12 +123,22 @@ export default function UsersPage() {
     const result = await inviteUser(inviteEmail, selectedRole);
 
     if (result.error) {
-      toast({ variant: 'destructive', title: 'Error', description: result.error });
+      toast({ variant: 'destructive', title: 'Error Creating User', description: result.error });
     } else {
       toast({ 
-          title: 'Invitation Sent!',
-          description: `An email has been sent to ${inviteEmail} with instructions to set up their password.`,
-          duration: 10000,
+          title: 'User Created Successfully!',
+          description: (
+            <div className="flex flex-col gap-2">
+              <p>Share these credentials with the new user:</p>
+              <div className="text-sm">
+                <strong>Email:</strong> {result.data.user.email}
+              </div>
+              <div className="text-sm">
+                <strong>Password:</strong> {result.data.password}
+              </div>
+            </div>
+          ),
+          duration: 30000, // Keep toast open longer for copying
       });
       setInviteEmail('');
       await fetchUsers();
@@ -197,7 +207,7 @@ export default function UsersPage() {
         <CardHeader>
           <CardTitle className="font-headline">Invite New User</CardTitle>
           <CardDescription>
-            An email will be sent to the user with a link to set their password.
+            A temporary password will be generated for the user.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -227,7 +237,7 @@ export default function UsersPage() {
                 </Select>
               </div>
               <Button type="submit" disabled={isInviting}>
-                {isInviting ? <Loader2 className="animate-spin" /> : 'Create and Invite User'}
+                {isInviting ? <Loader2 className="animate-spin" /> : 'Create User'}
               </Button>
           </form>
 
