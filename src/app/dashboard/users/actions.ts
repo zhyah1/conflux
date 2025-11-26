@@ -47,7 +47,7 @@ export async function inviteUser(email: string, role: string) {
   const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
     email: email,
     password: randomPassword,
-    email_confirm: true, // Auto-confirm the user
+    email_confirm: true, 
     user_metadata: {
       role: role,
       full_name: email.split('@')[0],
@@ -62,10 +62,22 @@ export async function inviteUser(email: string, role: string) {
     return { error: `Create User Error: ${createError.message}` };
   }
 
+  // After creating the user, immediately send a password reset email.
+  // This email will serve as the invitation and setup link.
+  const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/login`,
+  });
+
+  if (resetError) {
+      console.error('Error sending password setup email:', resetError);
+      return { error: 'User created, but failed to send password setup email. Please check your SMTP settings in Supabase.' };
+  }
+
+
   revalidatePath('/dashboard/users');
   
-  // Return the generated password so it can be displayed to the admin.
-  return { data: { user: newUser.user, password: randomPassword }, error: null };
+  // Do not return the password. The user will set their own.
+  return { data: { user: newUser.user }, error: null };
 }
 
 export async function deleteUser(userId: string) {

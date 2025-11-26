@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,8 +16,45 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const errorDescription = searchParams.get('error_description');
+    if (errorDescription) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: errorDescription,
+      });
+    }
+
+    const hash = window.location.hash;
+    const params = new URLSearchParams(hash.substring(1));
+    const accessToken = params.get('access_token');
+    const type = params.get('type');
+    
+    if (accessToken && type === 'recovery') {
+        setIsSettingPassword(true);
+        // Supabase client will handle the session
+    }
+
+  }, [searchParams, toast]);
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+        toast({ variant: 'destructive', title: 'Error setting password', description: error.message });
+    } else {
+        toast({ title: 'Success', description: 'Password updated successfully. You are now logged in.' });
+        router.push('/dashboard');
+    }
+    setLoading(false);
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +120,41 @@ export default function LoginPage() {
     
     setLoading(false);
   };
+
+  if (isSettingPassword) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="text-center">
+            <Logo className="h-10 w-10 text-primary mx-auto mb-2" />
+            <CardTitle className="font-headline">Set Your Password</CardTitle>
+            <CardDescription>
+              Welcome! Create a secure password to access your account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleUpdatePassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter a strong password"
+                  minLength={6}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Saving...' : 'Save and Log In'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
