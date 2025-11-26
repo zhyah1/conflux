@@ -55,25 +55,6 @@ export async function inviteUser(email: string, role: string) {
     return { error: `Create User Error: ${error.message}`, password: null };
   }
 
-  // The user is created in auth.users, but we need to create the profile in public.users
-  // This is usually handled by a database trigger, but we'll do it explicitly here to be safe.
-  if (newUserData.user) {
-    const { error: profileError } = await supabase.from('users').insert({
-        id: newUserData.user.id,
-        email: newUserData.user.email,
-        full_name: newUserData.user.user_metadata.full_name,
-        role: newUserData.user.user_metadata.role
-    });
-
-    if (profileError) {
-        console.error("Error creating user profile:", profileError);
-        // If profile creation fails, we should probably delete the auth user to avoid orphans
-        await supabase.auth.admin.deleteUser(newUserData.user.id);
-        return { error: `Failed to create user profile: ${profileError.message}`, password: null };
-    }
-  }
-
-
   revalidatePath('/dashboard/users');
   // Return the generated password so the admin can share it.
   return { data: newUserData, password: randomPassword, error: null };
