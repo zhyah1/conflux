@@ -6,17 +6,6 @@ import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
-// Function to generate a random password
-function generatePassword(length = 12) {
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-  let password = '';
-  // The 'crypto' module is not available in this environment, so we use a simpler method.
-  for (let i = 0; i < length; i++) {
-    password += charset.charAt(Math.floor(Math.random() * charset.length));
-  }
-  return password;
-}
-
 export async function inviteUser(email: string, role: string) {
   const supabase = createServerActionClient({ cookies }, {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -24,42 +13,41 @@ export async function inviteUser(email: string, role: string) {
   });
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Not authenticated', password: null };
+  if (!user) return { error: 'Not authenticated' };
 
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (!profile) return { error: 'Profile not found', password: null };
+  if (!profile) return { error: 'Profile not found' };
 
   if (!['admin', 'owner'].includes(profile.role)) {
-    return { error: 'You do not have permission to invite users.', password: null };
+    return { error: 'You do not have permission to invite users.' };
   }
-  
-  const randomPassword = generatePassword();
 
-  const { data: newUserData, error } = await supabase.auth.admin.createUser({
+  // Invite the user using a magic link. This is more secure than sending passwords.
+  const { data: inviteData, error } = await supabase.auth.admin.inviteUserByEmail(
     email,
-    password: randomPassword,
-    email_confirm: true, // We assume the email is valid and bypass confirmation email
-    user_metadata: {
+    {
+      data: {
         role: role,
         full_name: email.split('@')[0],
+      },
+      // This will redirect the user to your app after they click the magic link
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`, 
     }
-  });
+  );
 
   if (error) {
-    console.error('Error creating user:', error);
+    console.error('Error inviting user:', error);
     if (error.message.includes('unique constraint') || error.message.includes('already registered')) {
-        return { error: 'A user with this email already exists.', password: null };
+        return { error: 'A user with this email already exists.' };
     }
-    return { error: `Create User Error: ${error.message}`, password: null };
+    return { error: `Invite User Error: ${error.message}` };
   }
 
-  // The database trigger on auth.users should handle creating the public.users record.
-  // No manual insertion is needed.
-
+  // The database trigger on auth.users will handle creating the public.users record.
+  
   revalidatePath('/dashboard/users');
   
-  // Return the generated password so it can be displayed in the UI.
-  return { data: newUserData, password: randomPassword, error: null };
+  return { data: inviteData, error: null };
 }
 
 export async function deleteUser(userId: string) {
@@ -82,25 +70,16 @@ export async function deleteUser(userId: string) {
     return { error: "You cannot delete your own account." };
   }
 
-  // First delete from the public.users table (due to foreign key on auth.users)
-  const { error: profileError } = await supabase
-    .from('users')
-    .delete()
-    .eq('id', userId);
-
-  if (profileError) {
-     console.error('Error deleting user from profiles:', profileError);
-     return { error: `DB Error: ${profileError.message}` };
-  }
-
-  // Then delete the user from auth.users
+  // The 'public.users' table has a foreign key to 'auth.users', so we must delete from auth first.
   const { error: authError } = await supabase.auth.admin.deleteUser(userId);
 
   if (authError) {
     console.error('Error deleting user from Auth:', authError);
-    // If this fails, the user might be left in a dangling state. The profile was deleted though.
-    return { error: `Auth Error: ${authError.message}. The user's profile was removed, but the auth user could not be.` };
+    // If this fails, we don't proceed to delete the profile record to avoid orphans.
+    return { error: `Auth Error: ${authError.message}.` };
   }
+  
+  // The 'public.users' record should be deleted automatically by a database trigger.
   
   revalidatePath('/dashboard/users');
   return { success: true };
