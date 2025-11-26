@@ -15,7 +15,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
   const [isSettingPassword, setIsSettingPassword] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -61,53 +60,23 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (isSignUp) {
-        // Sign up a new user
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-           options: {
-            data: {
-              full_name: email.split('@')[0], 
-              role: 'admin', // Default role for new sign-ups
-            },
-          },
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Sign In Error',
+          description: error.message
         });
-        
-        if (error) {
-          toast({
-            variant: 'destructive',
-            title: 'Sign Up Error',
-            description: error.message
-          });
-        } else {
-          toast({
-            title: 'Success',
-            description: 'Account created successfully! Please check your email for verification.'
-          });
-          // Don't redirect immediately, let them verify email.
-          setIsSignUp(false); // Switch back to login view
-        }
       } else {
-        // Sign in
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+        toast({
+          title: 'Success',
+          description: 'Signed in successfully!'
         });
-        
-        if (error) {
-          toast({
-            variant: 'destructive',
-            title: 'Sign In Error',
-            description: error.message
-          });
-        } else {
-          toast({
-            title: 'Success',
-            description: 'Signed in successfully!'
-          });
-          router.push('/dashboard');
-        }
+        router.push('/dashboard');
       }
     } catch (error) {
       console.error('Auth error:', error);
@@ -161,12 +130,9 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
            <Logo className="h-10 w-10 text-primary mx-auto mb-2" />
-          <CardTitle className="font-headline">{isSignUp ? 'Create An Account' : 'Welcome back to Construx'}</CardTitle>
+          <CardTitle className="font-headline">Welcome back to Construx</CardTitle>
           <CardDescription>
-            {isSignUp 
-              ? 'Create an account to start managing your projects.' 
-              : 'Sign in to your account to continue'
-            }
+            Sign in to your account to continue
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -197,22 +163,9 @@ export default function LoginPage() {
             </div>
             
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
+              {loading ? 'Loading...' : 'Sign In'}
             </Button>
             
-            <div className="text-center">
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm"
-              >
-                {isSignUp 
-                  ? 'Already have an account? Sign in' 
-                  : 'Need an account? Sign up'
-                }
-              </Button>
-            </div>
           </form>
         </CardContent>
       </Card>
