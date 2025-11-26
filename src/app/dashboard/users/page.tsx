@@ -147,9 +147,14 @@ export default function UsersPage() {
       toast({ variant: 'destructive', title: 'Error', description: `Failed to invite user: ${result.error}` });
     } else {
       toast({ 
-          title: 'Invitation Sent!', 
-          description: `An invitation email has been sent to ${inviteEmail}.`,
-          duration: 5000,
+          title: 'User Created Successfully!', 
+          description: (
+            <div>
+              <p>User {inviteEmail} has been created. Here is their temporary password. Please share it with them securely.</p>
+              <PasswordDisplay password={result.password} />
+            </div>
+          ),
+          duration: 10000,
       });
       setInviteEmail('');
       await fetchUsers();
@@ -218,7 +223,7 @@ export default function UsersPage() {
         <CardHeader>
           <CardTitle className="font-headline">Invite New User</CardTitle>
           <CardDescription>
-            Send an invitation link for a new team member to join and set up their account.
+            Create an account for a new team member and provide them with a temporary password.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -248,7 +253,7 @@ export default function UsersPage() {
                 </Select>
               </div>
               <Button type="submit" disabled={isInviting}>
-                {isInviting ? <Loader2 className="animate-spin" /> : 'Send Invitation'}
+                {isInviting ? <Loader2 className="animate-spin" /> : 'Create User'}
               </Button>
           </form>
 

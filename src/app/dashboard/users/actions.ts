@@ -6,6 +6,16 @@ import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
+// Function to generate a random password
+function generatePassword(length = 12) {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+  let password = '';
+  // The 'crypto' module is not available in this environment, so we use a simpler method.
+  for (let i = 0; i < length; i++) {
+    password += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  return password;
+}
 
 export async function inviteUser(email: string, role: string) {
   const supabase = createServerActionClient({ cookies }, {
@@ -23,22 +33,17 @@ export async function inviteUser(email: string, role: string) {
     return { error: 'You do not have permission to invite users.', password: null };
   }
   
-  // Note: We use inviteUserByEmail because it's the most reliable way to
-  // have Supabase handle the user creation and notification flow.
-  // The alternative of creating a user and then trying to send a password
-  // has limitations in this environment (cannot send emails directly).
-  const { data: newUserData, error } = await supabase.auth.admin.inviteUserByEmail(
+  const randomPassword = generatePassword();
+
+  const { data: newUserData, error } = await supabase.auth.admin.createUser({
     email,
-    {
-      data: {
+    password: randomPassword,
+    email_confirm: true, // We assume the email is valid and bypass confirmation email
+    user_metadata: {
         role: role,
         full_name: email.split('@')[0],
-      },
-      // This will redirect the user to your site after they click the invite link
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/login`
     }
-  );
-
+  });
 
   if (error) {
     console.error('Error creating user:', error);
@@ -48,9 +53,13 @@ export async function inviteUser(email: string, role: string) {
     return { error: `Create User Error: ${error.message}`, password: null };
   }
 
+  // The database trigger on auth.users should handle creating the public.users record.
+  // No manual insertion is needed.
+
   revalidatePath('/dashboard/users');
-  // We no longer return the password as Supabase handles the invitation email.
-  return { data: newUserData, password: null, error: null };
+  
+  // Return the generated password so it can be displayed in the UI.
+  return { data: newUserData, password: randomPassword, error: null };
 }
 
 export async function deleteUser(userId: string) {
