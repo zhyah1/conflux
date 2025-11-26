@@ -23,9 +23,8 @@ export async function inviteUser(email: string, role: string) {
     return { error: 'You do not have permission to invite users.' };
   }
   
-  // Get the base URL from environment variables to avoid localhost issues
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-  const redirectTo = `${baseUrl}/login`;
+  // Explicitly set the production URL to ensure correct invitation links.
+  const redirectTo = `https://theconstrux.com/login`;
 
   const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
     data: { role: role, full_name: email.split('@')[0] },
