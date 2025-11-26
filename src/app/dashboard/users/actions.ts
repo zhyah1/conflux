@@ -14,34 +14,69 @@ export async function inviteUser(email: string, role: string) {
   });
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Not authenticated' };
+  if (!user) return { error: 'Not authenticated', password: null };
 
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
-  if (!profile) return { error: 'Profile not found' };
+  if (!profile) return { error: 'Profile not found', password: null };
 
   if (!['admin', 'owner'].includes(profile.role)) {
-    return { error: 'You do not have permission to invite users.' };
+    return { error: 'You do not have permission to invite users.', password: null };
   }
   
-  // Explicitly set the production URL to ensure correct invitation links.
-  const redirectTo = `https://theconstrux.com/login`;
+  // Generate a random password
+  const generatePassword = (length = 12) => {
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+    let password = '';
+    // Note: crypto.getRandomValues is not available in server actions in this environment.
+    // Using a simpler random generation method.
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return password;
+  }
 
-  const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-    data: { role: role, full_name: email.split('@')[0] },
-    redirectTo,
+  const randomPassword = generatePassword();
+
+  const { data: newUserData, error } = await supabase.auth.admin.createUser({
+    email,
+    password: randomPassword,
+    email_confirm: true, // Mark email as confirmed since we are creating the user directly
+    user_metadata: { 
+        role: role, 
+        full_name: email.split('@')[0] 
+    },
   });
 
   if (error) {
-    console.error('Error inviting user:', error);
+    console.error('Error creating user:', error);
     if (error.message.includes('unique constraint')) {
-        return { error: 'A user with this email already exists.' };
+        return { error: 'A user with this email already exists.', password: null };
     }
-    return { error: `Invite User Error: ${error.message}` };
+    return { error: `Create User Error: ${error.message}`, password: null };
+  }
+
+  // The user is created in auth.users, but we need to create the profile in public.users
+  // This is usually handled by a database trigger, but we'll do it explicitly here to be safe.
+  if (newUserData.user) {
+    const { error: profileError } = await supabase.from('users').insert({
+        id: newUserData.user.id,
+        email: newUserData.user.email,
+        full_name: newUserData.user.user_metadata.full_name,
+        role: newUserData.user.user_metadata.role
+    });
+
+    if (profileError) {
+        console.error("Error creating user profile:", profileError);
+        // If profile creation fails, we should probably delete the auth user to avoid orphans
+        await supabase.auth.admin.deleteUser(newUserData.user.id);
+        return { error: `Failed to create user profile: ${profileError.message}`, password: null };
+    }
   }
 
 
   revalidatePath('/dashboard/users');
-  return { data };
+  // Return the generated password so the admin can share it.
+  return { data: newUserData, password: randomPassword, error: null };
 }
 
 export async function deleteUser(userId: string) {

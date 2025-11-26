@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { PageHeader } from '../components/page-header';
@@ -20,7 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Loader2 } from 'lucide-react';
+import { MoreHorizontal, Loader2, Copy, Check } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,6 +63,27 @@ type User = {
 
 const roles = ['admin', 'pmc', 'contractor', 'consultant', 'subcontractor', 'client'];
 
+function PasswordDisplay({ password }: { password: any }) {
+    const [hasCopied, setHasCopied] = useState(false);
+    const { toast } = useToast();
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(password);
+        setHasCopied(true);
+        toast({ title: 'Password Copied!' });
+        setTimeout(() => setHasCopied(false), 2000);
+    };
+
+    return (
+        <div className="mt-2 flex items-center justify-between rounded-md bg-muted p-2">
+            <code className="text-sm font-mono">{password}</code>
+            <Button onClick={copyToClipboard} size="icon" variant="ghost" className="h-7 w-7">
+                {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+        </div>
+    );
+}
+
 export default function UsersPage() {
   const { toast } = useToast();
   const router = useRouter();
@@ -72,6 +94,8 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [isInviting, setIsInviting] = useState(false);
+
 
   const canManageUsers = profile?.role === 'admin' || profile?.role === 'owner';
 
@@ -109,21 +133,33 @@ export default function UsersPage() {
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsInviting(true);
     
     if (!inviteEmail) {
       toast({ variant: 'destructive', title: 'Error', description: 'Email is required.' });
+      setIsInviting(false);
       return;
     }
     
     const result = await inviteUser(inviteEmail, selectedRole);
 
     if (result.error) {
-      toast({ variant: 'destructive', title: 'Error', description: `Failed to send invitation: ${result.error}` });
+      toast({ variant: 'destructive', title: 'Error', description: `Failed to create user: ${result.error}` });
     } else {
-      toast({ title: 'Success', description: `Invitation sent to ${inviteEmail}.` });
+      toast({ 
+          title: 'User Created Successfully!', 
+          description: (
+              <div>
+                <p>Share this temporary password with {inviteEmail}:</p>
+                <PasswordDisplay password={result.password} />
+              </div>
+          ),
+          duration: 15000,
+      });
       setInviteEmail('');
       await fetchUsers();
     }
+     setIsInviting(false);
   };
   
   const handleDeleteUser = async () => {
@@ -187,7 +223,7 @@ export default function UsersPage() {
         <CardHeader>
           <CardTitle className="font-headline">Invite New User</CardTitle>
           <CardDescription>
-            Send an invitation to a new team member and assign them a role.
+            Create an account for a new team member and assign them a role.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -216,8 +252,8 @@ export default function UsersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit">
-                Invite User
+              <Button type="submit" disabled={isInviting}>
+                {isInviting ? <Loader2 className="animate-spin" /> : 'Create User'}
               </Button>
           </form>
 
