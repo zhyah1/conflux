@@ -123,16 +123,11 @@ export default function UsersPage() {
     const result = await inviteUser(inviteEmail, selectedRole);
 
     if (result.error) {
-      toast({ variant: 'destructive', title: 'Error', description: `Failed to create user: ${result.error}` });
+      toast({ variant: 'destructive', title: 'Error', description: result.error });
     } else {
       toast({ 
-          title: 'User Created Successfully!', 
-          description: (
-            <div>
-              <p>Email: {result.data?.user?.email}</p>
-              <p>Password: {result.data?.password}</p>
-            </div>
-          ),
+          title: 'Invitation Sent!',
+          description: `An email has been sent to ${inviteEmail} with instructions to set up their password.`,
           duration: 10000,
       });
       setInviteEmail('');
@@ -202,7 +197,7 @@ export default function UsersPage() {
         <CardHeader>
           <CardTitle className="font-headline">Invite New User</CardTitle>
           <CardDescription>
-            Create an account for a new team member. Their password will be displayed for you to share.
+            An email will be sent to the user with a link to set their password.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -232,7 +227,7 @@ export default function UsersPage() {
                 </Select>
               </div>
               <Button type="submit" disabled={isInviting}>
-                {isInviting ? <Loader2 className="animate-spin" /> : 'Create User'}
+                {isInviting ? <Loader2 className="animate-spin" /> : 'Create and Invite User'}
               </Button>
           </form>
 

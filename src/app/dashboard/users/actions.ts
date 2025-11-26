@@ -6,6 +6,8 @@ import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
+// This function is not used by Supabase's crypto but is kept for reference
+// on how a password could be generated if needed outside of this flow.
 function generatePassword(length = 12) {
   const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
   let password = '';
@@ -40,31 +42,42 @@ export async function inviteUser(email: string, role: string) {
     return { error: 'You do not have permission to invite users.' };
   }
   
+  // A temporary password is required for user creation, but will be immediately reset.
   const randomPassword = generatePassword();
   
-  const { data: newUser, error } = await supabase.auth.admin.createUser({
+  const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
     email: email,
     password: randomPassword,
-    email_confirm: true, // Mark email as confirmed since we are creating the user directly
+    email_confirm: true,
     user_metadata: {
       role: role,
       full_name: email.split('@')[0],
     }
   });
 
-  if (error) {
-    console.error('Error creating user:', error);
-    if (error.message.includes('unique constraint') || error.message.includes('already registered')) {
+  if (createError) {
+    console.error('Error creating user:', createError);
+    if (createError.message.includes('unique constraint') || createError.message.includes('already registered')) {
         return { error: 'A user with this email already exists.' };
     }
-    return { error: `Create User Error: ${error.message}` };
+    return { error: `Create User Error: ${createError.message}` };
+  }
+  
+  // After creating the user, immediately send a password reset to have them set their own password.
+  const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://theconstrux.com/login' // Direct them to your login page after password reset.
+  });
+
+  if (resetError) {
+      console.error('Error sending password reset email:', resetError);
+      // Even if the email fails, the user was created. This is a partial success.
+      return { error: `User created, but failed to send password setup email: ${resetError.message}` };
   }
 
-  // The database trigger will automatically create the public.users record.
-  
   revalidatePath('/dashboard/users');
   
-  return { data: { user: newUser.user, password: randomPassword }, error: null };
+  // The user is created and an email is on its way. No need to return a password.
+  return { data: { user: newUser.user }, error: null };
 }
 
 export async function deleteUser(userId: string) {
