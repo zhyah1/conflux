@@ -23,41 +23,34 @@ export async function inviteUser(email: string, role: string) {
     return { error: 'You do not have permission to invite users.', password: null };
   }
   
-  // Generate a random password
-  const generatePassword = (length = 12) => {
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-    let password = '';
-    // Note: crypto.getRandomValues is not available in server actions in this environment.
-    // Using a simpler random generation method.
-    for (let i = 0; i < length; i++) {
-      password += charset.charAt(Math.floor(Math.random() * charset.length));
-    }
-    return password;
-  }
-
-  const randomPassword = generatePassword();
-
-  const { data: newUserData, error } = await supabase.auth.admin.createUser({
+  // Note: We use inviteUserByEmail because it's the most reliable way to
+  // have Supabase handle the user creation and notification flow.
+  // The alternative of creating a user and then trying to send a password
+  // has limitations in this environment (cannot send emails directly).
+  const { data: newUserData, error } = await supabase.auth.admin.inviteUserByEmail(
     email,
-    password: randomPassword,
-    email_confirm: true, // Mark email as confirmed since we are creating the user directly
-    user_metadata: { 
-        role: role, 
-        full_name: email.split('@')[0] 
-    },
-  });
+    {
+      data: {
+        role: role,
+        full_name: email.split('@')[0],
+      },
+      // This will redirect the user to your site after they click the invite link
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/login`
+    }
+  );
+
 
   if (error) {
     console.error('Error creating user:', error);
-    if (error.message.includes('unique constraint')) {
+    if (error.message.includes('unique constraint') || error.message.includes('already registered')) {
         return { error: 'A user with this email already exists.', password: null };
     }
     return { error: `Create User Error: ${error.message}`, password: null };
   }
 
   revalidatePath('/dashboard/users');
-  // Return the generated password so the admin can share it.
-  return { data: newUserData, password: randomPassword, error: null };
+  // We no longer return the password as Supabase handles the invitation email.
+  return { data: newUserData, password: null, error: null };
 }
 
 export async function deleteUser(userId: string) {
