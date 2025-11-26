@@ -1,18 +1,13 @@
 
-
 'use server';
 
 import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
-// This function is not used by Supabase's crypto but is kept for reference
-// on how a password could be generated if needed outside of this flow.
 function generatePassword(length = 12) {
   const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
   let password = '';
-  // This is a server-side polyfill for crypto.getRandomValues
-  // In a Node.js environment, `crypto` is available globally.
   const crypto = require('crypto');
   const array = new Uint32Array(length);
   const randomBytes = crypto.randomBytes(length * 4);
@@ -44,13 +39,15 @@ export async function inviteUser(email: string, role: string) {
   
   const randomPassword = generatePassword();
   
+  // Create user with Supabase Auth
   const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
     email: email,
     password: randomPassword,
-    email_confirm: true, // Auto-confirm user
+    email_confirm: false, // Changed to false so we can send custom email
     user_metadata: {
       role: role,
       full_name: email.split('@')[0],
+      temporary_password: randomPassword, // Store for email template
     }
   });
 
@@ -60,6 +57,27 @@ export async function inviteUser(email: string, role: string) {
         return { error: 'A user with this email already exists.' };
     }
     return { error: `Create User Error: ${createError.message}` };
+  }
+
+  // Send credentials email using Supabase's invite user with redirect
+  // This will use the custom email template we set up in Supabase
+  try {
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+      data: {
+        role: role,
+        password: randomPassword,
+        full_name: email.split('@')[0],
+      },
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
+    });
+
+    if (inviteError) {
+      console.error('Error sending invite email:', inviteError);
+      // User is still created, just log the error
+    }
+  } catch (emailError) {
+    console.error('Error sending email:', emailError);
+    // Continue anyway - user was created successfully
   }
   
   revalidatePath('/dashboard/users');
