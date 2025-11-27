@@ -75,49 +75,53 @@ export function EditTaskForm({ task, open, onOpenChange }: EditTaskFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignableUsers, setAssignableUsers] = useState<User[]>([]);
   const { toast } = useToast();
-  const { profile } = useUser();
+  const { profile, user } = useUser();
 
   const canEditAllFields = profile && ['admin', 'pmc', 'contractor', 'consultant'].includes(profile.role);
   const canEditAssignee = profile && ['admin', 'pmc', 'contractor', 'consultant'].includes(profile.role);
   
   useEffect(() => {
     async function fetchUsers() {
-      if (!profile || !canEditAssignee) return;
+      if (!profile || !canEditAssignee || !user) return;
       
-      let targetRoles: string[] = [];
-      switch (profile.role) {
-        case 'admin':
-          targetRoles = ['pmc', 'contractor', 'consultant', 'subcontractor'];
-          break;
-        case 'pmc':
-          targetRoles = ['contractor', 'consultant', 'subcontractor'];
-          break;
-        case 'contractor':
-        case 'consultant':
-          targetRoles = ['subcontractor'];
-          break;
-      }
+      const { data: projectUsers, error: projectUsersError } = await supabase
+        .from('project_users')
+        .select('users!inner(id, full_name, role)')
+        .eq('project_id', task.project_id);
 
-      if (targetRoles.length === 0) {
-        setAssignableUsers([]);
+      if (projectUsersError) {
+        console.error('Error fetching project users for task form', projectUsersError);
         return;
       }
       
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, full_name, role')
-        .in('role', targetRoles);
+      const allProjectMembers = projectUsers.map((pu: any) => pu.users).filter(Boolean) as User[];
+      
+      let potentialAssignees: User[] = [];
 
-      if (error) {
-        console.error('Error fetching users for form', error);
-      } else {
-        setAssignableUsers(data);
+      switch (profile.role) {
+        case 'admin':
+          potentialAssignees = allProjectMembers;
+          break;
+        case 'pmc':
+          potentialAssignees = allProjectMembers.filter(u => ['contractor', 'consultant', 'subcontractor'].includes(u.role));
+          break;
+        case 'contractor':
+        case 'consultant':
+          const self = allProjectMembers.find(u => u.id === user.id);
+          const subcontractors = allProjectMembers.filter(u => u.role === 'subcontractor');
+          potentialAssignees = self ? [self, ...subcontractors] : subcontractors;
+          break;
+        case 'subcontractor':
+            const selfSub = allProjectMembers.find(u => u.id === user.id);
+            if(selfSub) potentialAssignees = [selfSub];
+            break;
       }
+      setAssignableUsers(potentialAssignees);
     }
     if (open) {
       fetchUsers();
     }
-  }, [open, profile, canEditAssignee]);
+  }, [open, profile, canEditAssignee, task.project_id, user]);
 
   const form = useForm<z.infer<typeof updateTaskSchema>>({
     resolver: zodResolver(updateTaskSchema),
@@ -369,3 +373,4 @@ export function EditTaskForm({ task, open, onOpenChange }: EditTaskFormProps) {
     </Dialog>
   );
 }
+

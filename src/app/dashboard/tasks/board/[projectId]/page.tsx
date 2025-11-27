@@ -42,6 +42,9 @@ import {
   DndContext,
   closestCenter,
   type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -104,11 +107,12 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
   const [isLoading, setIsLoading] = React.useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.5 : 1,
   };
   
   const handleCheckDelay = async () => {
@@ -225,7 +229,7 @@ function TaskCard({ task, projectUsers }: { task: Task, projectUsers: string[] }
 }
 
 function DroppableColumn({ id, title, color, tasks, count, projectId, projectUsers, canManageTasks }: { id: TaskStatus, title: string, color: string, tasks: Task[], count: number, projectId: string, projectUsers: string[], canManageTasks: boolean }) {
-    const { setNodeRef } = useSortable({ id });
+    const { setNodeRef } = useSortable({ id: id, data: { type: 'column' } });
 
     return (
         <div ref={setNodeRef} className="bg-muted/50 rounded-lg h-full flex flex-col">
@@ -243,7 +247,7 @@ function DroppableColumn({ id, title, color, tasks, count, projectId, projectUse
                 )}
             </div>
             <div className="p-4 flex-1 overflow-y-auto">
-                <SortableContext items={tasks} strategy={verticalListSortingStrategy}>
+                <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
                     {tasks.map((task) => (
                         <TaskCard key={task.id} task={task} projectUsers={projectUsers} />
                     ))}
@@ -268,9 +272,10 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
   const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor' || profile?.role === 'consultant';
 
   const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
+  const sensors = useSensors(useSensor(PointerSensor));
 
   const fetchTasks = async () => {
-    setLoading(true);
+    // No setLoading(true) here to avoid flicker on re-fetch from subscription
     const { data: tasksData, error: tasksError } = await getTasksByProjectId(projectId);
 
     if (!tasksError) {
@@ -283,6 +288,7 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
 
   useEffect(() => {
     if (projectId) {
+      setLoading(true);
       fetchTasks();
       
       const channel = supabase
@@ -307,61 +313,72 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
   }, [tasks, searchTerm]);
 
 
-  const taskCounts = useMemo(() => {
+  const tasksByStatus = useMemo(() => {
     return statusColumns.reduce((acc, col) => {
-      acc[col.status] = filteredTasks.filter(task => task.status === col.status).length;
+      acc[col.status] = filteredTasks.filter(task => task.status === col.status);
       return acc;
-    }, {} as Record<TaskStatus, number>);
+    }, {} as Record<TaskStatus, Task[]>);
   }, [filteredTasks]);
 
-  const getTasksByStatus = (status: TaskStatus) => {
-    return filteredTasks.filter((task) => task.status === status);
-  };
-  
-   const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (!over || active.id === over.id) {
+    if (!over) {
         return;
     }
-    
-    const activeTask = tasks.find(t => t.id === active.id);
-    const newStatus = over.id as TaskStatus;
 
-    if (!activeTask || activeTask.status === newStatus || newStatus === 'Waiting for Approval') {
-      return;
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const activeTask = tasks.find((t) => t.id === activeId);
+    
+    // Find the column the task was dropped on. over.data.current could be a column or another task.
+    const newStatus = over.data.current?.type === 'column' 
+      ? overId as TaskStatus 
+      : tasks.find(t => t.id === overId)?.status as TaskStatus;
+
+    if (!activeTask || !newStatus || activeTask.status === newStatus) {
+        return;
     }
 
     // Optimistic UI update
-    setTasks(tasks => tasks.map(t => t.id === active.id ? { ...t, status: newStatus } : t));
-
-    // Persist changes to the backend
-    const result = await updateTask({
-      id: activeTask.id,
-      title: activeTask.title,
-      priority: activeTask.priority,
-      project_id: activeTask.project_id,
-      description: activeTask.description,
-      due_date: activeTask.due_date ? new Date(activeTask.due_date) : undefined,
-      progress: activeTask.progress,
-      status: newStatus,
-      // Ensure assignee_id is correctly formatted for the action
-      assignee_id: activeTask.users?.id || null
+    setTasks(currentTasks => {
+        const updatedTasks = currentTasks.map(t =>
+            t.id === activeId ? { ...t, status: newStatus } : t
+        );
+        return updatedTasks;
     });
 
-    if (result.error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error updating task',
-        description: result.error,
-      });
-      // Revert optimistic update on error
-      setTasks(tasks => tasks.map(t => t.id === active.id ? { ...t, status: activeTask.status } : t));
-    } else {
+    // Persist changes to the backend
+    try {
+        const result = await updateTask({
+            id: activeTask.id,
+            title: activeTask.title,
+            priority: activeTask.priority,
+            project_id: activeTask.project_id,
+            description: activeTask.description,
+            due_date: activeTask.due_date ? new Date(activeTask.due_date) : undefined,
+            progress: activeTask.progress,
+            status: newStatus,
+            assignee_id: activeTask.users?.id || null,
+        });
+
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
         toast({
             title: 'Task Updated',
             description: `Moved "${activeTask.title}" to ${newStatus}.`,
         });
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error updating task',
+            description: error instanceof Error ? error.message : 'An unknown error occurred.',
+        });
+        // Revert optimistic update on error
+        setTasks(tasks); 
     }
   };
 
@@ -382,7 +399,7 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
             <CardTitle className="text-sm font-medium">Waiting</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{taskCounts['Waiting for Approval']}</div>
+            <div className="text-2xl font-bold">{tasksByStatus['Waiting for Approval'].length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -390,7 +407,7 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
             <CardTitle className="text-sm font-medium">To Do</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{taskCounts['Backlog']}</div>
+            <div className="text-2xl font-bold">{tasksByStatus['Backlog'].length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -398,7 +415,7 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
             <CardTitle className="text-sm font-medium">In Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{taskCounts['In Progress']}</div>
+            <div className="text-2xl font-bold">{tasksByStatus['In Progress'].length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -406,7 +423,7 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
             <CardTitle className="text-sm font-medium">Done</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{taskCounts['Done']}</div>
+            <div className="text-2xl font-bold">{tasksByStatus['Done'].length}</div>
           </CardContent>
         </Card>
       </div>
@@ -425,23 +442,26 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
       </div>
       
       <DndContext
+        sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
         <div className="flex-1 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 items-start">
-          {statusColumns.map(({ status, title, color }) => (
-            <DroppableColumn
-              key={status}
-              id={status}
-              title={title}
-              color={color}
-              tasks={getTasksByStatus(status)}
-              count={taskCounts[status]}
-              projectId={projectId}
-              projectUsers={projectUsers}
-              canManageTasks={canManageTasks}
-            />
-          ))}
+            <SortableContext items={statusColumns.map(c => c.status)} strategy={verticalListSortingStrategy}>
+              {statusColumns.map(({ status, title, color }) => (
+                <DroppableColumn
+                  key={status}
+                  id={status}
+                  title={title}
+                  color={color}
+                  tasks={tasksByStatus[status]}
+                  count={tasksByStatus[status].length}
+                  projectId={projectId}
+                  projectUsers={projectUsers}
+                  canManageTasks={canManageTasks}
+                />
+              ))}
+            </SortableContext>
         </div>
       </DndContext>
     </>
@@ -499,7 +519,7 @@ export default function TaskBoardPage() {
               <Skeleton className="h-24" />
               <Skeleton className="h-24" />
             </div>
-             <div className="grid gap-6 md:grid-cols-4 items-start">
+             <div className="grid gap-6 md:grid-cols-5 items-start">
                 <Skeleton className="h-96" />
                 <Skeleton className="h-96" />
                 <Skeleton className="h-96" />
@@ -586,3 +606,4 @@ export default function TaskBoardPage() {
     </div>
   );
 }
+
