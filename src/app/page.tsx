@@ -2,24 +2,16 @@
 
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { ArrowRight } from 'lucide-react';
-
 
 export default function ConstruxLanding() {
-  const [scrollY, setScrollY] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden">
+    <div className="min-h-screen bg-black text-white overflow-hidden flex flex-col">
       {/* Subtle grid background */}
       <div className="fixed inset-0 opacity-20 pointer-events-none">
         <div className="absolute inset-0" style={{
@@ -35,9 +27,9 @@ export default function ConstruxLanding() {
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-10 px-6 py-6 max-w-7xl mx-auto">
+      <nav className="relative z-10 px-6 py-6 max-w-7xl mx-auto w-full">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <Link href="/" className="flex items-center gap-4">
             {/* DeepMind-inspired logo */}
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
@@ -56,7 +48,7 @@ export default function ConstruxLanding() {
               </div>
             </div>
             <span className="text-xl font-light tracking-wide">Construx</span>
-          </div>
+          </Link>
           <div className="hidden md:flex items-center gap-8">
             <Link href="/about" className="text-gray-400 hover:text-white transition-colors text-sm">About</Link>
             <Link href="/login" className="px-5 py-2 text-sm text-gray-400 hover:text-white border border-white/20 rounded-lg hover:border-white/40 transition-all">
@@ -67,14 +59,14 @@ export default function ConstruxLanding() {
       </nav>
 
       {/* Hero Section */}
-      <main className="relative z-10 px-6 py-20 max-w-7xl mx-auto">
+      <main className="relative z-10 flex flex-1 items-center justify-center px-6 max-w-7xl mx-auto">
         <div className={`text-center transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           {/* Large Logo */}
-          <div className="flex justify-center mb-16">
+          <div className="flex justify-center mb-8">
             <div className="relative group cursor-pointer">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-2xl blur-xl opacity-75 group-hover:opacity-100 transition duration-500 animate-pulse"></div>
-              <div className="relative bg-black border border-white/20 rounded-2xl p-8 group-hover:border-white/40 transition duration-300">
-                <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <div className="relative bg-black border border-white/20 rounded-2xl p-6 group-hover:border-white/40 transition duration-300">
+                <svg width="60" height="60" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M40 10L10 25V55L40 70L70 55V25L40 10Z" stroke="url(#gradientLarge)" strokeWidth="2.5" fill="none"/>
                   <path d="M40 10V40M40 40L10 25M40 40L70 25M40 40V70M10 55L40 70M70 55L40 70" stroke="url(#gradientLarge)" strokeWidth="2" strokeOpacity="0.6"/>
                   <circle cx="40" cy="40" r="6" fill="url(#gradientLarge)"/>
@@ -95,7 +87,7 @@ export default function ConstruxLanding() {
           </div>
 
           {/* Headline */}
-          <h1 className="text-6xl md:text-8xl font-light mb-8 leading-tight tracking-tight">
+          <h1 className="text-5xl md:text-6xl font-light mb-6 leading-tight tracking-tight">
             <span className="font-extralight">Build Better.</span>
             <br />
             <span className="font-light">Build Smarter.</span>
@@ -106,14 +98,14 @@ export default function ConstruxLanding() {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-16 leading-relaxed font-light">
+          <p className="text-base md:text-lg text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed font-light">
             Construx is the ultimate project management solution for the modern construction industry. 
             Streamline your projects from groundbreaking to handover with traditional excellence.
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-24">
-            <Link href="/login" className="group px-10 py-4 bg-white text-black rounded-lg font-normal text-base hover:bg-gray-200 transform hover:scale-105 transition-all duration-300">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link href="/login" className="group px-8 py-3 bg-white text-black rounded-lg font-normal text-base hover:bg-gray-200 transform hover:scale-105 transition-all duration-300">
                 <span className="flex items-center gap-2">
                     Get Started
                     <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,25 +113,9 @@ export default function ConstruxLanding() {
                     </svg>
                 </span>
             </Link>
-            <Link href="/about" className="px-10 py-4 border border-white/20 rounded-lg font-normal text-base hover:border-white/40 hover:bg-white/5 transform hover:scale-105 transition-all duration-300">
+            <Link href="/about" className="px-8 py-3 border border-white/20 rounded-lg font-normal text-base hover:border-white/40 hover:bg-white/5 transform hover:scale-105 transition-all duration-300">
               Learn More
             </Link>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              { label: 'Active Projects', value: '10K+' },
-              { label: 'Team Members', value: '50K+' },
-              { label: 'Success Rate', value: '99%' }
-            ].map((stat, i) => (
-              <div key={i} className="p-8 bg-white/[0.02] backdrop-blur border border-white/10 rounded-xl hover:border-white/20 hover:bg-white/[0.04] transition-all duration-300">
-                <div className="text-5xl font-light mb-2 bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
-                  {stat.value}
-                </div>
-                <div className="text-gray-500 text-sm tracking-wide">{stat.label}</div>
-              </div>
-            ))}
           </div>
         </div>
       </main>
