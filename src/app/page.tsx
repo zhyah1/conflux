@@ -1,55 +1,146 @@
+'use client';
+
+import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
-import { Logo } from '@/components/logo';
 import { ArrowRight } from 'lucide-react';
 
-export default function LandingPage() {
+
+export default function ConstruxLanding() {
+  const [scrollY, setScrollY] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setIsVisible(true);
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <header className="fixed top-0 left-0 right-0 z-50 p-4">
-        <div className="container mx-auto flex items-center gap-2">
-          <Logo className="h-8 w-8" />
-          <span className="text-lg font-semibold">Construx</span>
+    <div className="min-h-screen bg-black text-white overflow-x-hidden">
+      {/* Subtle grid background */}
+      <div className="fixed inset-0 opacity-20 pointer-events-none">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px)`,
+          backgroundSize: '50px 50px'
+        }} />
+      </div>
+
+      {/* Animated gradient orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl animate-pulse delay-700" />
+      </div>
+
+      {/* Navigation */}
+      <nav className="relative z-10 px-6 py-6 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {/* DeepMind-inspired logo */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
+              <div className="relative bg-black border border-white/20 rounded-lg p-3 group-hover:border-white/40 transition duration-300">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M16 4L4 10V22L16 28L28 22V10L16 4Z" stroke="url(#gradient)" strokeWidth="2" fill="none"/>
+                  <path d="M16 4V16M16 16L4 10M16 16L28 10M16 16V28M4 22L16 28M28 22L16 28" stroke="url(#gradient)" strokeWidth="1.5" strokeOpacity="0.6"/>
+                  <circle cx="16" cy="16" r="3" fill="url(#gradient)"/>
+                  <defs>
+                    <linearGradient id="gradient" x1="4" y1="4" x2="28" y2="28">
+                      <stop offset="0%" stopColor="#3B82F6"/>
+                      <stop offset="100%" stopColor="#A855F7"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+            </div>
+            <span className="text-xl font-light tracking-wide">Construx</span>
+          </div>
+          <div className="hidden md:flex items-center gap-8">
+            <Link href="/about" className="text-gray-400 hover:text-white transition-colors text-sm">About</Link>
+            <Link href="/login" className="px-5 py-2 text-sm text-gray-400 hover:text-white border border-white/20 rounded-lg hover:border-white/40 transition-all">
+              Sign In
+            </Link>
+          </div>
         </div>
-      </header>
+      </nav>
 
-      <main className="flex-1 flex items-center justify-center">
-        <div className="relative isolate pt-14">
-            <div
-                className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
-                aria-hidden="true"
-            >
-                <div
-                    className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#8085ff] to-[#3B82F6] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
-                    style={{
-                        clipPath:
-                        'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)',
-                    }}
-                />
+      {/* Hero Section */}
+      <main className="relative z-10 px-6 py-20 max-w-7xl mx-auto">
+        <div className={`text-center transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+          {/* Large Logo */}
+          <div className="flex justify-center mb-16">
+            <div className="relative group cursor-pointer">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-2xl blur-xl opacity-75 group-hover:opacity-100 transition duration-500 animate-pulse"></div>
+              <div className="relative bg-black border border-white/20 rounded-2xl p-8 group-hover:border-white/40 transition duration-300">
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M40 10L10 25V55L40 70L70 55V25L40 10Z" stroke="url(#gradientLarge)" strokeWidth="2.5" fill="none"/>
+                  <path d="M40 10V40M40 40L10 25M40 40L70 25M40 40V70M10 55L40 70M70 55L40 70" stroke="url(#gradientLarge)" strokeWidth="2" strokeOpacity="0.6"/>
+                  <circle cx="40" cy="40" r="6" fill="url(#gradientLarge)"/>
+                  <circle cx="40" cy="40" r="6" fill="url(#gradientLarge)" opacity="0.5">
+                    <animate attributeName="r" from="6" to="12" dur="2s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" from="0.5" to="0" dur="2s" repeatCount="indefinite"/>
+                  </circle>
+                  <defs>
+                    <linearGradient id="gradientLarge" x1="10" y1="10" x2="70" y2="70">
+                      <stop offset="0%" stopColor="#3B82F6"/>
+                      <stop offset="50%" stopColor="#8B5CF6"/>
+                      <stop offset="100%" stopColor="#A855F7"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
             </div>
-            <div className="py-24 sm:py-32">
-                <div className="container mx-auto text-center">
-                    <Logo className="w-24 h-24 mx-auto mb-8 shadow-2xl shadow-blue-500/50 ring-4 ring-primary/20" />
+          </div>
 
-                    <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl font-headline">
-                        Build Better. Build Smarter. <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Build Together.</span>
-                    </h1>
-                    <p className="mt-6 text-lg leading-8 text-gray-300 max-w-2xl mx-auto">
-                        Construx is the ultimate project management solution for the modern construction industry.
-                        Streamline your projects from groundbreaking to handover with traditional excellence.
-                    </p>
-                    <div className="mt-10 flex items-center justify-center gap-x-6">
-                        <Link href="/login" className={cn(buttonVariants({ size: 'lg' }), 'bg-white text-black hover:bg-gray-200')}>
-                            Get Started <ArrowRight className="ml-2" />
-                        </Link>
-                        <Link href="/about" className={cn(buttonVariants({ size: 'lg', variant: 'outline' }), 'text-white')}>
-                            Learn More
-                        </Link>
-                    </div>
+          {/* Headline */}
+          <h1 className="text-6xl md:text-8xl font-light mb-8 leading-tight tracking-tight">
+            <span className="font-extralight">Build Better.</span>
+            <br />
+            <span className="font-light">Build Smarter.</span>
+            <br />
+            <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 bg-clip-text text-transparent font-normal">
+              Build Together.
+            </span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-16 leading-relaxed font-light">
+            Construx is the ultimate project management solution for the modern construction industry. 
+            Streamline your projects from groundbreaking to handover with traditional excellence.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-24">
+            <Link href="/login" className="group px-10 py-4 bg-white text-black rounded-lg font-normal text-base hover:bg-gray-200 transform hover:scale-105 transition-all duration-300">
+                <span className="flex items-center gap-2">
+                    Get Started
+                    <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                </span>
+            </Link>
+            <Link href="/about" className="px-10 py-4 border border-white/20 rounded-lg font-normal text-base hover:border-white/40 hover:bg-white/5 transform hover:scale-105 transition-all duration-300">
+              Learn More
+            </Link>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {[
+              { label: 'Active Projects', value: '10K+' },
+              { label: 'Team Members', value: '50K+' },
+              { label: 'Success Rate', value: '99%' }
+            ].map((stat, i) => (
+              <div key={i} className="p-8 bg-white/[0.02] backdrop-blur border border-white/10 rounded-xl hover:border-white/20 hover:bg-white/[0.04] transition-all duration-300">
+                <div className="text-5xl font-light mb-2 bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
+                  {stat.value}
                 </div>
-            </div>
+                <div className="text-gray-500 text-sm tracking-wide">{stat.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </main>
     </div>
