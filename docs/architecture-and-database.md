@@ -26,7 +26,7 @@ This table stores profile information for each user and is linked to the `auth.u
 | `id`         | `uuid`    | Primary Key. Foreign key to `auth.users.id`.                |
 | `full_name`  | `text`    | The user's full name.                                       |
 | `email`      | `text`    | The user's email address.                                   |
-| `role`       | `text`    | The user's assigned role (e.g., `admin`, `pmc`, `consultant`, `client`).   |
+| `role`       | `text`    | The user's assigned role (e.g., `admin`, `pmc`, `contractor`, `client`).   |
 | `avatar_url` | `text`    | A URL to the user's profile picture.                        |
 
 #### `projects`
