@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -149,10 +150,12 @@ export function AddTaskForm({
           potentialAssignees = allProjectMembers;
           break;
         case 'pmc':
-          potentialAssignees = allProjectMembers.filter(u => ['contractor', 'consultant', 'subcontractor'].includes(u.role));
+          potentialAssignees = allProjectMembers.filter(u => ['contractor', 'Landscape consultant', 'MEP consultant', 'Interior design Consultant', 'subcontractor'].includes(u.role));
           break;
         case 'contractor':
-        case 'consultant':
+        case 'Landscape consultant':
+        case 'MEP consultant':
+        case 'Interior design Consultant':
           const self = allProjectMembers.find(u => u.id === user.id);
           const subcontractors = allProjectMembers.filter(u => u.role === 'subcontractor');
           potentialAssignees = self ? [self, ...subcontractors] : subcontractors;
@@ -165,7 +168,7 @@ export function AddTaskForm({
       setAssignableUsers(potentialAssignees);
 
       // Fetch approvers if needed
-      const approverRoles = ['admin', 'pmc', 'contractor', 'consultant'];
+      const approverRoles = ['admin', 'pmc', 'contractor', 'Landscape consultant', 'MEP consultant', 'Interior design Consultant'];
       const potentialApprovers = allProjectMembers.filter(u => approverRoles.includes(u.role) && u.id !== profile.id);
       setApprovers(potentialApprovers);
     }

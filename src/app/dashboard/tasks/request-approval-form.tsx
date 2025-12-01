@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { requestTaskApproval } from './actions';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import type { Task } from './[id]/page';
+import type { Task } from './board/[projectId]/page';
 import { useUser } from '@/app/user-provider';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -61,7 +61,7 @@ export function RequestApprovalForm({ children, task, projectUsers }: { children
     async function fetchApprovers() {
       if (!profile) return;
       
-      const targetRoles: string[] = ['admin', 'pmc', 'contractor', 'consultant'];
+      const targetRoles: string[] = ['admin', 'pmc', 'contractor', 'Landscape consultant', 'MEP consultant', 'Interior design Consultant'];
       
       const { data: projectUsersData, error: projectUsersError } = await supabase
         .from('project_users')

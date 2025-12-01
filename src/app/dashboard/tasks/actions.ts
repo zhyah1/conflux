@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { createServerActionClient } from '@supabase/auth-helpers-nextjs';
@@ -45,7 +46,7 @@ export async function addTask(formData: z.infer<typeof taskSchema>) {
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  if (!['admin', 'pmc', 'contractor', 'consultant', 'subcontractor'].includes(profile.role)) {
+  if (!['admin', 'pmc', 'contractor', 'Landscape consultant', 'MEP consultant', 'Interior design Consultant', 'subcontractor'].includes(profile.role)) {
      return { error: 'You do not have permission to add tasks.' };
   }
   
@@ -102,7 +103,7 @@ export async function addMultipleTasks(tasks: ExtractedTask[], projectId: string
   const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single();
   if (!profile) return { error: 'Profile not found' };
 
-  if (!['admin', 'pmc', 'contractor', 'consultant'].includes(profile.role)) {
+  if (!['admin', 'pmc', 'contractor', 'Landscape consultant', 'MEP consultant', 'Interior design Consultant'].includes(profile.role)) {
     return { error: 'You do not have permission to add tasks.' };
   }
 

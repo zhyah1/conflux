@@ -269,7 +269,7 @@ function KanbanBoard({ projectId, projectUsers }: { projectId: string, projectUs
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
   
-  const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor' || profile?.role === 'consultant';
+  const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor' || ['Landscape consultant', 'MEP consultant', 'Interior design Consultant'].includes(profile?.role || '');
 
   const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
   const sensors = useSensors(useSensor(PointerSensor));
@@ -478,7 +478,7 @@ export default function TaskBoardPage() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('kanban');
 
-  const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor' || profile?.role === 'consultant';
+  const canManageTasks = profile?.role === 'admin' || profile?.role === 'pmc' || profile?.role === 'contractor' || ['Landscape consultant', 'MEP consultant', 'Interior design Consultant'].includes(profile?.role || '');
 
 
   useEffect(() => {

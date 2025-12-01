@@ -77,8 +77,8 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
 
   const isOwner = profile?.role === 'owner';
   const canEditAllFields = profile && ['admin', 'pmc'].includes(profile.role) && !isOwner;
-  const canEditAssignments = profile && ['admin', 'pmc', 'contractor', 'consultant'].includes(profile.role) && !isOwner;
-  const isContractorOrSub = profile && ['contractor', 'consultant', 'subcontractor'].includes(profile.role);
+  const canEditAssignments = profile && ['admin', 'pmc', 'contractor', 'Landscape consultant', 'MEP consultant', 'Interior design Consultant'].includes(profile.role) && !isOwner;
+  const isContractorOrSub = profile && ['contractor', 'Landscape consultant', 'MEP consultant', 'Interior design Consultant', 'subcontractor'].includes(profile.role);
 
   
   useEffect(() => {
@@ -88,13 +88,15 @@ export function EditProjectForm({ project, open, onOpenChange }: EditProjectForm
       let targetRoles: string[] = [];
        switch (profile.role) {
         case 'admin':
-          targetRoles = ['pmc', 'contractor', 'consultant', 'subcontractor', 'client'];
+          targetRoles = ['pmc', 'contractor', 'Landscape consultant', 'MEP consultant', 'Interior design Consultant', 'subcontractor', 'client'];
           break;
         case 'pmc':
-          targetRoles = ['contractor', 'consultant', 'subcontractor'];
+          targetRoles = ['contractor', 'Landscape consultant', 'MEP consultant', 'Interior design Consultant', 'subcontractor'];
           break;
         case 'contractor':
-        case 'consultant':
+        case 'Landscape consultant':
+        case 'MEP consultant':
+        case 'Interior design Consultant':
           targetRoles = ['subcontractor'];
           break;
       }

@@ -77,8 +77,8 @@ export function EditTaskForm({ task, open, onOpenChange }: EditTaskFormProps) {
   const { toast } = useToast();
   const { profile, user } = useUser();
 
-  const canEditAllFields = profile && ['admin', 'pmc', 'contractor', 'consultant'].includes(profile.role);
-  const canEditAssignee = profile && ['admin', 'pmc', 'contractor', 'consultant'].includes(profile.role);
+  const canEditAllFields = profile && ['admin', 'pmc', 'contractor', 'Landscape consultant', 'MEP consultant', 'Interior design Consultant'].includes(profile.role);
+  const canEditAssignee = profile && ['admin', 'pmc', 'contractor', 'Landscape consultant', 'MEP consultant', 'Interior design Consultant'].includes(profile.role);
   
   useEffect(() => {
     async function fetchUsers() {
@@ -103,10 +103,12 @@ export function EditTaskForm({ task, open, onOpenChange }: EditTaskFormProps) {
           potentialAssignees = allProjectMembers;
           break;
         case 'pmc':
-          potentialAssignees = allProjectMembers.filter(u => ['contractor', 'consultant', 'subcontractor'].includes(u.role));
+          potentialAssignees = allProjectMembers.filter(u => ['contractor', 'Landscape consultant', 'MEP consultant', 'Interior design Consultant', 'subcontractor'].includes(u.role));
           break;
         case 'contractor':
-        case 'consultant':
+        case 'Landscape consultant':
+        case 'MEP consultant':
+        case 'Interior design Consultant':
           const self = allProjectMembers.find(u => u.id === user.id);
           const subcontractors = allProjectMembers.filter(u => u.role === 'subcontractor');
           potentialAssignees = self ? [self, ...subcontractors] : subcontractors;
