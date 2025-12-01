@@ -15,16 +15,14 @@ import { Label } from '@/components/ui/label';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, KeyRound } from 'lucide-react';
+import Link from 'next/link';
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -59,28 +57,6 @@ export default function SettingsPage() {
     setIsUpdatingProfile(false);
   };
 
-  const handlePasswordUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Passwords do not match.' });
-        return;
-    }
-    if (newPassword.length < 6) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Password must be at least 6 characters long.' });
-        return;
-    }
-
-    setIsUpdatingPassword(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) {
-        toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } else {
-        toast({ title: 'Success', description: 'Password updated successfully.' });
-        setNewPassword('');
-        setConfirmPassword('');
-    }
-    setIsUpdatingPassword(false);
-  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -117,30 +93,26 @@ export default function SettingsPage() {
         </Card>
 
         <Card>
-          <form onSubmit={handlePasswordUpdate}>
             <CardHeader>
-              <CardTitle className="font-headline">Reset Password</CardTitle>
+              <CardTitle className="font-headline">Security</CardTitle>
               <CardDescription>
-                Enter a new password to reset your account credentials.
+                Manage your account's security settings.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-password">New Password</Label>
-                <Input id="new-password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} disabled={isUpdatingPassword} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirm-password">Confirm New Password</Label>
-                <Input id="confirm-password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={isUpdatingPassword} />
-              </div>
+            <CardContent>
+               <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div>
+                        <h4 className="font-semibold">Password</h4>
+                        <p className="text-sm text-muted-foreground">Change your password to keep your account secure.</p>
+                    </div>
+                    <Button asChild variant="outline">
+                        <Link href="/dashboard/settings/reset-password">
+                            <KeyRound className="mr-2 h-4 w-4"/>
+                            Reset Password
+                        </Link>
+                    </Button>
+               </div>
             </CardContent>
-            <CardFooter>
-              <Button type="submit" disabled={isUpdatingPassword}>
-                 {isUpdatingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Reset Password
-              </Button>
-            </CardFooter>
-          </form>
         </Card>
       </div>
     </div>
